@@ -1,0 +1,6 @@
+# TIFF data files
+*.tif
+*.tiff
+
+# macOS directory metadata
+.DS_Store
