@@ -1,9 +1,20 @@
-"""Extract valid NPP-VIIRS radiance pixels within Vietnam to CSV."""
+"""
+Extract valid NPP-VIIRS radiance pixels within Vietnam to CSV.
+Author: Kien Le
+AI disclosure: This code was generated with the assistance of AI. The author has reviewed and edited the code to ensure its accuracy and functionality.
+Last Update: 2026-30-09
+Dependencies: geopandas, numpy, rasterio
+This script reads a VIIRS raster file and a shapefile containing Vietnam's administrative boundaries,
+extracts the valid radiance pixels that fall within Vietnam, and writes them to a CSV file
+with columns for raster row, raster column, longitude, latitude, and radiance value.
+Usage:
+    python extract_viirs_pixels.py --raster <path_to_raster> --boundary <path_to_boundary_shapefile> --output <path_to_output_csv>
+If no arguments are provided, the script will use default paths defined in the code.
+"""
 
 import argparse
 import csv
 from pathlib import Path
-
 import geopandas as gpd
 import numpy as np
 import rasterio

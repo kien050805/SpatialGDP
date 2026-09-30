@@ -1,8 +1,11 @@
-"""Plot Vietnam's extracted 2025 VIIRS radiance pixels from the CSV."""
-
+"""
+Plot Vietnam's extracted 2025 VIIRS radiance pixels from the CSV.
+Author: Kien Le
+AI disclosure: This code was generated with the assistance of AI. The author has reviewed and edited the code to ensure its accuracy and functionality.
+Last Update: 2026-30-09   
+"""
 import argparse
 from pathlib import Path
-
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
