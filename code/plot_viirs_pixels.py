@@ -14,11 +14,11 @@ from matplotlib.colors import PowerNorm
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CSV = PROJECT_ROOT / "data" / "vietnam_viirs_2025_pixel_radiance.csv"
+DEFAULT_CSV = PROJECT_ROOT / "data" / "vietnam_viirs_2021_pixel_radiance.csv"
 DEFAULT_BOUNDARY = (
     PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin0.shp"
 )
-DEFAULT_OUTPUT = PROJECT_ROOT / "figures" / "vietnam_viirs_2025_radiance.png"
+DEFAULT_OUTPUT = PROJECT_ROOT / "figures" / "vietnam_viirs_2021_radiance.png"
 
 
 def create_figure(csv_path: Path, boundary_path: Path, output_path: Path) -> None:
@@ -80,7 +80,7 @@ def create_figure(csv_path: Path, boundary_path: Path, output_path: Path) -> Non
     boundary.boundary.plot(ax=axis, color="#54e0d0", linewidth=0.7)
 
     axis.set_title(
-        "Vietnam | NPP-VIIRS Nighttime Radiance, 2025",
+        "Vietnam | NPP-VIIRS Nighttime Radiance, 2021",
         loc="left",
         pad=12,
         color="#f2eee8",
