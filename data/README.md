@@ -1,5 +1,9 @@
 # Data Folder
 
+Extracted yearly VIIRS pixel CSV files are stored in `viirs_pixel_radiance/`.
+Boundary shapefiles are stored in `vnm_admin_boundaries.shp/`, and reference
+documents are in `.ref/`.
+
 
 VIIRS Nighttime Light: https://eogdata.mines.edu/products/vnl/
 
@@ -8,7 +12,7 @@ VIIRS Nighttime Light: https://eogdata.mines.edu/products/vnl/
 
 VNM Boundaries: https://data.humdata.org/dataset/cod-ab-vnm
 
-* What important is the vnm_admin0 files, which indicates the geometry of VNM. 
+* The `vnm_admin0` file contains the national geometry; `vnm_admin1` contains provincial geometry.
 
 Vietnam National Statistics Office: 
 * https://www.nso.gov.vn/en/statistical-data/# : All Statistical data

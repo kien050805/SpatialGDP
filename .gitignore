@@ -4,3 +4,11 @@
 
 # macOS directory metadata
 .DS_Store
+
+# RStudio project files
+.Rproj.user
+.Rhistory
+.RData
+
+# Python virtual environments
+.venv/

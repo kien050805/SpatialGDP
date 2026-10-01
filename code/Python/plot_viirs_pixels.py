@@ -1,9 +1,10 @@
 """
-Plot Vietnam's extracted 2025 VIIRS radiance pixels from the CSV.
+Plot Vietnam's extracted VIIRS radiance pixels from the CSV.
 Author: Kien Le
 AI disclosure: This code was generated with the assistance of AI. The author has reviewed and edited the code to ensure its accuracy and functionality.
-Last Update: 2026-30-09   
+Last Update: 2021-09-30   
 """
+
 import argparse
 from pathlib import Path
 import geopandas as gpd
@@ -13,15 +14,31 @@ import pandas as pd
 from matplotlib.colors import PowerNorm
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CSV = PROJECT_ROOT / "data" / "vietnam_viirs_2021_pixel_radiance.csv"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CSV = (
+    PROJECT_ROOT
+    / "data"
+    / "viirs_pixel_radiance"
+    / "vietnam_viirs_2021_pixel_radiance.csv"
+)
 DEFAULT_BOUNDARY = (
     PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin0.shp"
 )
 DEFAULT_OUTPUT = PROJECT_ROOT / "figures" / "vietnam_viirs_2021_radiance.png"
+DEFAULT_ADMIN1_BOUNDARY = (
+    PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin1.shp"
+)
+DEFAULT_PROVINCIAL_OUTPUT = (
+    PROJECT_ROOT / "figures" / "vietnam_viirs_2021_provincial_radiance.png"
+)
 
 
-def create_figure(csv_path: Path, boundary_path: Path, output_path: Path) -> None:
+def create_figure(
+    csv_path: Path,
+    boundary_path: Path,
+    output_path: Path,
+    title: str = "Vietnam | NPP-VIIRS Nighttime Radiance, 2021",
+) -> None:
     pixels = pd.read_csv(
         csv_path,
         usecols=("raster_row", "raster_col", "longitude", "latitude", "radiance"),
@@ -80,7 +97,7 @@ def create_figure(csv_path: Path, boundary_path: Path, output_path: Path) -> Non
     boundary.boundary.plot(ax=axis, color="#54e0d0", linewidth=0.7)
 
     axis.set_title(
-        "Vietnam | NPP-VIIRS Nighttime Radiance, 2021",
+        title,
         loc="left",
         pad=12,
         color="#f2eee8",
@@ -103,6 +120,19 @@ def create_figure(csv_path: Path, boundary_path: Path, output_path: Path) -> Non
     print(f"Saved figure to {output_path.resolve()}")
 
 
+def create_provincial_figure(
+    csv_path: Path,
+    boundary_path: Path = DEFAULT_ADMIN1_BOUNDARY,
+    output_path: Path = DEFAULT_PROVINCIAL_OUTPUT,
+) -> None:
+    create_figure(
+        csv_path,
+        boundary_path,
+        output_path,
+        title="Vietnam | NPP-VIIRS Nighttime Radiance, 2021 | Provincial Borders",
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Create a map of extracted Vietnam VIIRS radiance pixels."
@@ -110,8 +140,13 @@ def main() -> None:
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV)
     parser.add_argument("--boundary", type=Path, default=DEFAULT_BOUNDARY)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--admin1-boundary", type=Path, default=DEFAULT_ADMIN1_BOUNDARY)
+    parser.add_argument(
+        "--provincial-output", type=Path, default=DEFAULT_PROVINCIAL_OUTPUT
+    )
     args = parser.parse_args()
     create_figure(args.csv, args.boundary, args.output)
+    create_provincial_figure(args.csv, args.admin1_boundary, args.provincial_output)
 
 
 if __name__ == "__main__":
