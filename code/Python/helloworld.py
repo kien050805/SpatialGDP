@@ -4,11 +4,9 @@ import geopandas as gpd
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-BOUNDARIES_DIR = PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp"
+BOUNDARIES_DIR = PROJECT_ROOT / "data" / "vnm_district_boundaries" / "an_giang"
 SHAPEFILES = (
-	BOUNDARIES_DIR / "vnm_admin1.shp",
-	BOUNDARIES_DIR / "vnm_adminlines.shp",
-	BOUNDARIES_DIR / "vnm_adminpoints.shp",
+	BOUNDARIES_DIR / "an_giang.shp",
 )
 
 

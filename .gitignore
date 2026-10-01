@@ -9,6 +9,3 @@
 .Rproj.user
 .Rhistory
 .RData
-
-# Python virtual environments
-.venv/
