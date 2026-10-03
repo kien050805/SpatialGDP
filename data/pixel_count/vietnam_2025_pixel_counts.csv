@@ -1,0 +1,3357 @@
+year,administrative_level,province,unit_code,unit_name,unit_type,pixel_count
+2025,commune,An Giang,30292,Bình Đức,Phường,136
+2025,commune,An Giang,30301,Mỹ Thới,Phường,177
+2025,commune,An Giang,30307,Long Xuyên,Phường,144
+2025,commune,An Giang,30313,Mỹ Hòa Hưng,Xã,94
+2025,commune,An Giang,30316,Châu Đốc,Phường,189
+2025,commune,An Giang,30325,Vĩnh Tế,Phường,304
+2025,commune,An Giang,30337,An Phú,Xã,153
+2025,commune,An Giang,30341,Khánh Bình,Xã,88
+2025,commune,An Giang,30346,Nhơn Hội,Xã,215
+2025,commune,An Giang,30352,Phú Hữu,Xã,385
+2025,commune,An Giang,30367,Vĩnh Hậu,Xã,231
+2025,commune,An Giang,30376,Tân Châu,Phường,82
+2025,commune,An Giang,30377,Long Phú,Phường,94
+2025,commune,An Giang,30385,Vĩnh Xương,Xã,243
+2025,commune,An Giang,30388,Tân An,Xã,192
+2025,commune,An Giang,30403,Châu Phong,Xã,235
+2025,commune,An Giang,30406,Phú Tân,Xã,198
+2025,commune,An Giang,30409,Chợ Vàm,Xã,318
+2025,commune,An Giang,30421,Phú Lâm,Xã,207
+2025,commune,An Giang,30430,Hòa Lạc,Xã,199
+2025,commune,An Giang,30436,Phú An,Xã,271
+2025,commune,An Giang,30445,Bình Thạnh Đông,Xã,295
+2025,commune,An Giang,30463,Châu Phú,Xã,385
+2025,commune,An Giang,30469,Mỹ Đức,Xã,295
+2025,commune,An Giang,30478,Vĩnh Thạnh Trung,Xã,313
+2025,commune,An Giang,30481,Thạnh Mỹ Tây,Xã,769
+2025,commune,An Giang,30487,Bình Mỹ,Xã,416
+2025,commune,An Giang,30502,Thới Sơn,Phường,229
+2025,commune,An Giang,30505,Chi Lăng,Phường,242
+2025,commune,An Giang,30520,Tịnh Biên,Phường,350
+2025,commune,An Giang,30526,An Cư,Xã,450
+2025,commune,An Giang,30538,Núi Cấm,Xã,397
+2025,commune,An Giang,30544,Tri Tôn,Xã,353
+2025,commune,An Giang,30547,Ba Chúc,Xã,338
+2025,commune,An Giang,30568,Vĩnh Gia,Xã,844
+2025,commune,An Giang,30577,Ô Lâm,Xã,472
+2025,commune,An Giang,30580,Cô Tô,Xã,840
+2025,commune,An Giang,30589,An Châu,Xã,338
+2025,commune,An Giang,30595,Cần Đăng,Xã,310
+2025,commune,An Giang,30604,Vĩnh An,Xã,427
+2025,commune,An Giang,30607,Bình Hòa,Xã,229
+2025,commune,An Giang,30619,Vĩnh Hanh,Xã,354
+2025,commune,An Giang,30628,Chợ Mới,Xã,242
+2025,commune,An Giang,30631,Long Điền,Xã,227
+2025,commune,An Giang,30643,Cù Lao Giêng,Xã,329
+2025,commune,An Giang,30658,Nhơn Mỹ,Xã,373
+2025,commune,An Giang,30664,Long Kiến,Xã,282
+2025,commune,An Giang,30673,Hội An,Xã,294
+2025,commune,An Giang,30682,Thoại Sơn,Xã,326
+2025,commune,An Giang,30685,Phú Hòa,Xã,342
+2025,commune,An Giang,30688,Óc Eo,Xã,329
+2025,commune,An Giang,30691,Tây Phú,Xã,446
+2025,commune,An Giang,30697,Vĩnh Trạch,Xã,277
+2025,commune,An Giang,30709,Định Mỹ,Xã,521
+2025,commune,An Giang,30742,Rạch Giá,Phường,215
+2025,commune,An Giang,30760,Vĩnh Thông,Phường,448
+2025,commune,An Giang,30766,Tô Châu,Phường,361
+2025,commune,An Giang,30769,Hà Tiên,Phường,294
+2025,commune,An Giang,30781,Tiên Hải,Xã,10
+2025,commune,An Giang,30787,Kiên Lương,Xã,641
+2025,commune,An Giang,30790,Hòa Điền,Xã,1357
+2025,commune,An Giang,30793,Vĩnh Điều,Xã,1089
+2025,commune,An Giang,30796,Giang Thành,Xã,874
+2025,commune,An Giang,30811,Sơn Hải,Xã,16
+2025,commune,An Giang,30814,Hòn Nghệ,Xã,15
+2025,commune,An Giang,30817,Hòn Đất,Xã,1324
+2025,commune,An Giang,30823,Bình Sơn,Xã,876
+2025,commune,An Giang,30826,Bình Giang,Xã,776
+2025,commune,An Giang,30835,Sơn Kiên,Xã,772
+2025,commune,An Giang,30838,Mỹ Thuận,Xã,1001
+2025,commune,An Giang,30850,Tân Hiệp,Xã,694
+2025,commune,An Giang,30856,Tân Hội,Xã,693
+2025,commune,An Giang,30874,Thạnh Đông,Xã,618
+2025,commune,An Giang,30880,Châu Thành,Xã,517
+2025,commune,An Giang,30886,Thạnh Lộc,Xã,494
+2025,commune,An Giang,30898,Bình An,Xã,341
+2025,commune,An Giang,30904,Giồng Riềng,Xã,576
+2025,commune,An Giang,30910,Thạnh Hưng,Xã,680
+2025,commune,An Giang,30928,Ngọc Chúc,Xã,431
+2025,commune,An Giang,30934,Hòa Hưng,Xã,542
+2025,commune,An Giang,30943,Long Thạnh,Xã,455
+2025,commune,An Giang,30949,Hòa Thuận,Xã,351
+2025,commune,An Giang,30952,Gò Quao,Xã,395
+2025,commune,An Giang,30958,Định Hòa,Xã,685
+2025,commune,An Giang,30970,Vĩnh Hòa Hưng,Xã,462
+2025,commune,An Giang,30982,Vĩnh Tuy,Xã,551
+2025,commune,An Giang,30985,An Biên,Xã,565
+2025,commune,An Giang,30988,Tây Yên,Xã,578
+2025,commune,An Giang,31006,Đông Thái,Xã,728
+2025,commune,An Giang,31012,Vĩnh Hòa,Xã,694
+2025,commune,An Giang,31018,An Minh,Xã,675
+2025,commune,An Giang,31024,Đông Hòa,Xã,728
+2025,commune,An Giang,31027,U Minh Thượng,Xã,1355
+2025,commune,An Giang,31031,Tân Thạnh,Xã,536
+2025,commune,An Giang,31036,Đông Hưng,Xã,376
+2025,commune,An Giang,31042,Vân Khánh,Xã,420
+2025,commune,An Giang,31051,Vĩnh Phong,Xã,660
+2025,commune,An Giang,31064,Vĩnh Bình,Xã,761
+2025,commune,An Giang,31069,Vĩnh Thuận,Xã,448
+2025,commune,An Giang,31078,Phú Quốc,Đặc khu,2708
+2025,commune,An Giang,31105,Thổ Châu,Đặc khu,63
+2025,commune,An Giang,31108,Kiên Hải,Đặc khu,115
+2025,commune,Bắc Ninh,07210,Bắc Giang,Phường,120
+2025,commune,Bắc Ninh,07228,Đa Mai,Phường,167
+2025,commune,Bắc Ninh,07246,Xuân Lương,Xã,500
+2025,commune,Bắc Ninh,07264,Tam Tiến,Xã,307
+2025,commune,Bắc Ninh,07282,Đồng Kỳ,Xã,317
+2025,commune,Bắc Ninh,07288,Yên Thế,Xã,220
+2025,commune,Bắc Ninh,07294,Bố Hạ,Xã,195
+2025,commune,Bắc Ninh,07306,Nhã Nam,Xã,172
+2025,commune,Bắc Ninh,07330,Phúc Hòa,Xã,165
+2025,commune,Bắc Ninh,07333,Quang Trung,Xã,157
+2025,commune,Bắc Ninh,07339,Tân Yên,Xã,242
+2025,commune,Bắc Ninh,07351,Ngọc Thiện,Xã,255
+2025,commune,Bắc Ninh,07375,Lạng Giang,Xã,280
+2025,commune,Bắc Ninh,07381,Tiên Lục,Xã,260
+2025,commune,Bắc Ninh,07399,Kép,Xã,297
+2025,commune,Bắc Ninh,07420,Mỹ Thái,Xã,232
+2025,commune,Bắc Ninh,07432,Tân Dĩnh,Xã,156
+2025,commune,Bắc Ninh,07444,Lục Nam,Xã,294
+2025,commune,Bắc Ninh,07450,Đông Phú,Xã,390
+2025,commune,Bắc Ninh,07462,Bảo Đài,Xã,416
+2025,commune,Bắc Ninh,07486,Nghĩa Phương,Xã,446
+2025,commune,Bắc Ninh,07489,Trường Sơn,Xã,365
+2025,commune,Bắc Ninh,07492,Lục Sơn,Xã,631
+2025,commune,Bắc Ninh,07498,Bắc Lũng,Xã,271
+2025,commune,Bắc Ninh,07519,Cẩm Lý,Xã,243
+2025,commune,Bắc Ninh,07525,Chũ,Phường,341
+2025,commune,Bắc Ninh,07531,Tân Sơn,Xã,479
+2025,commune,Bắc Ninh,07534,Sa Lý,Xã,420
+2025,commune,Bắc Ninh,07537,Biên Sơn,Xã,1424
+2025,commune,Bắc Ninh,07543,Sơn Hải,Xã,500
+2025,commune,Bắc Ninh,07552,Kiên Lao,Xã,429
+2025,commune,Bắc Ninh,07573,Biển Động,Xã,287
+2025,commune,Bắc Ninh,07582,Lục Ngạn,Xã,412
+2025,commune,Bắc Ninh,07594,Đèo Gia,Xã,519
+2025,commune,Bắc Ninh,07603,Nam Dương,Xã,335
+2025,commune,Bắc Ninh,07612,Phượng Sơn,Phường,399
+2025,commune,Bắc Ninh,07615,Sơn Động,Xã,400
+2025,commune,Bắc Ninh,07616,Tây Yên Tử,Xã,669
+2025,commune,Bắc Ninh,07621,Vân Sơn,Xã,374
+2025,commune,Bắc Ninh,07627,Đại Sơn,Xã,380
+2025,commune,Bắc Ninh,07642,Yên Định,Xã,244
+2025,commune,Bắc Ninh,07654,An Lạc,Xã,666
+2025,commune,Bắc Ninh,07663,Tuấn Đạo,Xã,486
+2025,commune,Bắc Ninh,07672,Dương Hưu,Xã,706
+2025,commune,Bắc Ninh,07681,Yên Dũng,Phường,257
+2025,commune,Bắc Ninh,07682,Tân An,Phường,212
+2025,commune,Bắc Ninh,07696,Tiền Phong,Phường,154
+2025,commune,Bắc Ninh,07699,Tân Tiến,Phường,128
+2025,commune,Bắc Ninh,07735,Đồng Việt,Xã,165
+2025,commune,Bắc Ninh,07738,Cảnh Thụy,Phường,141
+2025,commune,Bắc Ninh,07774,Tự Lạn,Phường,201
+2025,commune,Bắc Ninh,07777,Việt Yên,Phường,258
+2025,commune,Bắc Ninh,07795,Nếnh,Phường,185
+2025,commune,Bắc Ninh,07798,Vân Hà,Phường,219
+2025,commune,Bắc Ninh,07822,Hoàng Vân,Xã,204
+2025,commune,Bắc Ninh,07840,Hiệp Hòa,Xã,311
+2025,commune,Bắc Ninh,07864,Hợp Thịnh,Xã,250
+2025,commune,Bắc Ninh,07870,Xuân Cẩm,Xã,271
+2025,commune,Bắc Ninh,09169,Vũ Ninh,Phường,66
+2025,commune,Bắc Ninh,09187,Kinh Bắc,Phường,99
+2025,commune,Bắc Ninh,09190,Võ Cường,Phường,88
+2025,commune,Bắc Ninh,09193,Yên Phong,Xã,137
+2025,commune,Bắc Ninh,09202,Tam Giang,Xã,77
+2025,commune,Bắc Ninh,09205,Yên Trung,Xã,92
+2025,commune,Bắc Ninh,09208,Tam Đa,Xã,105
+2025,commune,Bắc Ninh,09238,Văn Môn,Xã,74
+2025,commune,Bắc Ninh,09247,Quế Võ,Phường,118
+2025,commune,Bắc Ninh,09253,Nhân Hòa,Phường,101
+2025,commune,Bắc Ninh,09265,Phương Liễu,Phường,66
+2025,commune,Bắc Ninh,09286,Nam Sơn,Phường,92
+2025,commune,Bắc Ninh,09292,Phù Lãng,Xã,140
+2025,commune,Bắc Ninh,09295,Bồng Lai,Phường,102
+2025,commune,Bắc Ninh,09301,Đào Viên,Phường,131
+2025,commune,Bắc Ninh,09313,Chi Lăng,Xã,117
+2025,commune,Bắc Ninh,09319,Tiên Du,Xã,105
+2025,commune,Bắc Ninh,09325,Hạp Lĩnh,Phường,65
+2025,commune,Bắc Ninh,09334,Liên Bão,Xã,96
+2025,commune,Bắc Ninh,09340,Đại Đồng,Xã,99
+2025,commune,Bắc Ninh,09343,Tân Chi,Xã,90
+2025,commune,Bắc Ninh,09349,Phật Tích,Xã,89
+2025,commune,Bắc Ninh,09367,Từ Sơn,Phường,103
+2025,commune,Bắc Ninh,09370,Tam Sơn,Phường,75
+2025,commune,Bắc Ninh,09379,Phù Khê,Phường,71
+2025,commune,Bắc Ninh,09385,Đồng Nguyên,Phường,63
+2025,commune,Bắc Ninh,09400,Thuận Thành,Phường,127
+2025,commune,Bắc Ninh,09409,Mão Điền,Phường,98
+2025,commune,Bắc Ninh,09427,Trí Quả,Phường,105
+2025,commune,Bắc Ninh,09430,Trạm Lộ,Phường,89
+2025,commune,Bắc Ninh,09433,Song Liễu,Phường,86
+2025,commune,Bắc Ninh,09445,Ninh Xá,Phường,77
+2025,commune,Bắc Ninh,09454,Gia Bình,Xã,147
+2025,commune,Bắc Ninh,09466,Cao Đức,Xã,100
+2025,commune,Bắc Ninh,09469,Đại Lai,Xã,77
+2025,commune,Bắc Ninh,09475,Nhân Thắng,Xã,107
+2025,commune,Bắc Ninh,09487,Đông Cứu,Xã,105
+2025,commune,Bắc Ninh,09496,Lương Tài,Xã,122
+2025,commune,Bắc Ninh,09499,Trung Kênh,Xã,136
+2025,commune,Bắc Ninh,09523,Trung Chính,Xã,134
+2025,commune,Bắc Ninh,09529,Lâm Thao,Xã,135
+2025,commune,Cao Bằng,01273,Thục Phán,Phường,289
+2025,commune,Cao Bằng,01279,Nùng Trí Cao,Phường,148
+2025,commune,Cao Bằng,01288,Tân Giang,Phường,425
+2025,commune,Cao Bằng,01290,Bảo Lâm,Xã,815
+2025,commune,Cao Bằng,01294,Lý Bôn,Xã,884
+2025,commune,Cao Bằng,01297,Nam Quang,Xã,746
+2025,commune,Cao Bằng,01304,Quảng Lâm,Xã,868
+2025,commune,Cao Bằng,01318,Yên Thổ,Xã,830
+2025,commune,Cao Bằng,01321,Bảo Lạc,Xã,593
+2025,commune,Cao Bằng,01324,Cốc Pàng,Xã,865
+2025,commune,Cao Bằng,01327,Cô Ba,Xã,685
+2025,commune,Cao Bằng,01336,Khánh Xuân,Xã,557
+2025,commune,Cao Bằng,01339,Xuân Trường,Xã,624
+2025,commune,Cao Bằng,01351,Hưng Đạo,Xã,624
+2025,commune,Cao Bằng,01354,Huy Giáp,Xã,670
+2025,commune,Cao Bằng,01360,Sơn Lộ,Xã,510
+2025,commune,Cao Bằng,01363,Thông Nông,Xã,478
+2025,commune,Cao Bằng,01366,Cần Yên,Xã,734
+2025,commune,Cao Bằng,01387,Thanh Long,Xã,596
+2025,commune,Cao Bằng,01392,Trường Hà,Xã,730
+2025,commune,Cao Bằng,01393,Lũng Nặm,Xã,493
+2025,commune,Cao Bằng,01414,Tổng Cọt,Xã,511
+2025,commune,Cao Bằng,01438,Hà Quảng,Xã,564
+2025,commune,Cao Bằng,01447,Trà Lĩnh,Xã,379
+2025,commune,Cao Bằng,01456,Quang Hán,Xã,474
+2025,commune,Cao Bằng,01465,Quang Trung,Xã,422
+2025,commune,Cao Bằng,01477,Trùng Khánh,Xã,637
+2025,commune,Cao Bằng,01489,Đình Phong,Xã,579
+2025,commune,Cao Bằng,01501,Đàm Thuỷ,Xã,584
+2025,commune,Cao Bằng,01525,Đoài Dương,Xã,570
+2025,commune,Cao Bằng,01537,Lý Quốc,Xã,517
+2025,commune,Cao Bằng,01552,Quang Long,Xã,655
+2025,commune,Cao Bằng,01558,Hạ Lang,Xã,413
+2025,commune,Cao Bằng,01561,Vinh Quý,Xã,723
+2025,commune,Cao Bằng,01576,Quảng Uyên,Xã,647
+2025,commune,Cao Bằng,01594,Độc Lập,Xã,519
+2025,commune,Cao Bằng,01618,Hạnh Phúc,Xã,635
+2025,commune,Cao Bằng,01636,Bế Văn Đàn,Xã,600
+2025,commune,Cao Bằng,01648,Phục Hòa,Xã,618
+2025,commune,Cao Bằng,01654,Hòa An,Xã,481
+2025,commune,Cao Bằng,01660,Nam Tuấn,Xã,617
+2025,commune,Cao Bằng,01699,Nguyễn Huệ,Xã,746
+2025,commune,Cao Bằng,01708,Bạch Đằng,Xã,712
+2025,commune,Cao Bằng,01726,Nguyên Bình,Xã,504
+2025,commune,Cao Bằng,01729,Tĩnh Túc,Xã,442
+2025,commune,Cao Bằng,01738,Ca Thành,Xã,567
+2025,commune,Cao Bằng,01747,Minh Tâm,Xã,542
+2025,commune,Cao Bằng,01768,Phan Thanh,Xã,699
+2025,commune,Cao Bằng,01774,Tam Kim,Xã,820
+2025,commune,Cao Bằng,01777,Thành Công,Xã,714
+2025,commune,Cao Bằng,01786,Đông Khê,Xã,638
+2025,commune,Cao Bằng,01789,Canh Tân,Xã,665
+2025,commune,Cao Bằng,01792,Kim Đồng,Xã,569
+2025,commune,Cao Bằng,01795,Minh Khai,Xã,904
+2025,commune,Cao Bằng,01807,Thạch An,Xã,578
+2025,commune,Cao Bằng,01822,Đức Long,Xã,544
+2025,commune,Cà Mau,31825,Bạc Liêu,Phường,139
+2025,commune,Cà Mau,31834,Vĩnh Trạch,Phường,198
+2025,commune,Cà Mau,31840,Hiệp Thành,Phường,363
+2025,commune,Cà Mau,31843,Hồng Dân,Xã,590
+2025,commune,Cà Mau,31849,Ninh Quới,Xã,344
+2025,commune,Cà Mau,31858,Vĩnh Lộc,Xã,441
+2025,commune,Cà Mau,31864,Ninh Thạnh Lợi,Xã,636
+2025,commune,Cà Mau,31867,Phước Long,Xã,465
+2025,commune,Cà Mau,31876,Vĩnh Phước,Xã,598
+2025,commune,Cà Mau,31882,Vĩnh Thanh,Xã,359
+2025,commune,Cà Mau,31885,Phong Hiệp,Xã,552
+2025,commune,Cà Mau,31891,Hòa Bình,Xã,542
+2025,commune,Cà Mau,31894,Châu Thới,Xã,433
+2025,commune,Cà Mau,31900,Vĩnh Lợi,Xã,291
+2025,commune,Cà Mau,31906,Hưng Hội,Xã,297
+2025,commune,Cà Mau,31918,Vĩnh Mỹ,Xã,551
+2025,commune,Cà Mau,31927,Vĩnh Hậu,Xã,688
+2025,commune,Cà Mau,31942,Giá Rai,Phường,500
+2025,commune,Cà Mau,31951,Láng Tròn,Phường,506
+2025,commune,Cà Mau,31957,Phong Thạnh,Xã,679
+2025,commune,Cà Mau,31972,Gành Hào,Xã,340
+2025,commune,Cà Mau,31975,Đông Hải,Xã,552
+2025,commune,Cà Mau,31985,Long Điền,Xã,560
+2025,commune,Cà Mau,31988,An Trạch,Xã,477
+2025,commune,Cà Mau,31993,Định Thành,Xã,551
+2025,commune,Cà Mau,32002,An Xuyên,Phường,332
+2025,commune,Cà Mau,32014,Lý Văn Lâm,Phường,216
+2025,commune,Cà Mau,32025,Tân Thành,Phường,232
+2025,commune,Cà Mau,32041,Hòa Thành,Phường,458
+2025,commune,Cà Mau,32044,Nguyễn Phích,Xã,1153
+2025,commune,Cà Mau,32047,U Minh,Xã,664
+2025,commune,Cà Mau,32059,Khánh An,Xã,838
+2025,commune,Cà Mau,32062,Khánh Lâm,Xã,989
+2025,commune,Cà Mau,32065,Thới Bình,Xã,575
+2025,commune,Cà Mau,32069,Biển Bạch,Xã,764
+2025,commune,Cà Mau,32071,Trí Phải,Xã,788
+2025,commune,Cà Mau,32083,Tân Lộc,Xã,457
+2025,commune,Cà Mau,32092,Hồ Thị Kỷ,Xã,441
+2025,commune,Cà Mau,32095,Trần Văn Thời,Xã,547
+2025,commune,Cà Mau,32098,Sông Đốc,Xã,469
+2025,commune,Cà Mau,32104,Đá Bạc,Xã,991
+2025,commune,Cà Mau,32110,Khánh Bình,Xã,492
+2025,commune,Cà Mau,32119,Khánh Hưng,Xã,603
+2025,commune,Cà Mau,32128,Cái Nước,Xã,538
+2025,commune,Cà Mau,32134,Lương Thế Trân,Xã,641
+2025,commune,Cà Mau,32137,Tân Hưng,Xã,428
+2025,commune,Cà Mau,32140,Hưng Mỹ,Xã,492
+2025,commune,Cà Mau,32152,Đầm Dơi,Xã,452
+2025,commune,Cà Mau,32155,Tạ An Khương,Xã,494
+2025,commune,Cà Mau,32161,Trần Phán,Xã,359
+2025,commune,Cà Mau,32167,Tân Thuận,Xã,787
+2025,commune,Cà Mau,32182,Quách Phẩm,Xã,346
+2025,commune,Cà Mau,32185,Thanh Tùng,Xã,430
+2025,commune,Cà Mau,32188,Tân Tiến,Xã,947
+2025,commune,Cà Mau,32191,Năm Căn,Xã,339
+2025,commune,Cà Mau,32201,Đất Mới,Xã,949
+2025,commune,Cà Mau,32206,Tam Giang,Xã,923
+2025,commune,Cà Mau,32212,Cái Đôi Vàm,Xã,528
+2025,commune,Cà Mau,32214,Phú Mỹ,Xã,421
+2025,commune,Cà Mau,32218,Phú Tân,Xã,470
+2025,commune,Cà Mau,32227,Nguyễn Việt Khái,Xã,617
+2025,commune,Cà Mau,32236,Tân Ân,Xã,994
+2025,commune,Cà Mau,32244,Phan Ngọc Hiển,Xã,1052
+2025,commune,Cà Mau,32248,Đất Mũi,Xã,1075
+2025,commune,Cần Thơ,31120,Cái Khế,Phường,38
+2025,commune,Cần Thơ,31135,Ninh Kiều,Phường,26
+2025,commune,Cần Thơ,31147,Tân An,Phường,39
+2025,commune,Cần Thơ,31150,An Bình,Phường,84
+2025,commune,Cần Thơ,31153,Ô Môn,Phường,256
+2025,commune,Cần Thơ,31157,Thới Long,Phường,257
+2025,commune,Cần Thơ,31162,Phước Thới,Phường,252
+2025,commune,Cần Thơ,31168,Bình Thủy,Phường,83
+2025,commune,Cần Thơ,31174,Thới An Đông,Phường,119
+2025,commune,Cần Thơ,31183,Long Tuyền,Phường,136
+2025,commune,Cần Thơ,31186,Cái Răng,Phường,129
+2025,commune,Cần Thơ,31201,Hưng Phú,Phường,194
+2025,commune,Cần Thơ,31207,Thốt Nốt,Phường,113
+2025,commune,Cần Thơ,31213,Tân Lộc,Phường,158
+2025,commune,Cần Thơ,31217,Trung Nhứt,Phường,150
+2025,commune,Cần Thơ,31228,Thuận Hưng,Phường,147
+2025,commune,Cần Thơ,31231,Thạnh An,Xã,412
+2025,commune,Cần Thơ,31232,Vĩnh Thạnh,Xã,307
+2025,commune,Cần Thơ,31237,Vĩnh Trinh,Xã,243
+2025,commune,Cần Thơ,31246,Thạnh Quới,Xã,500
+2025,commune,Cần Thơ,31249,Thạnh Phú,Xã,472
+2025,commune,Cần Thơ,31255,Trung Hưng,Xã,290
+2025,commune,Cần Thơ,31258,Thới Lai,Xã,243
+2025,commune,Cần Thơ,31261,Cờ Đỏ,Xã,211
+2025,commune,Cần Thơ,31264,Thới Hưng,Xã,334
+2025,commune,Cần Thơ,31273,Đông Hiệp,Xã,221
+2025,commune,Cần Thơ,31282,Đông Thuận,Xã,289
+2025,commune,Cần Thơ,31288,Trường Thành,Xã,281
+2025,commune,Cần Thơ,31294,Trường Xuân,Xã,321
+2025,commune,Cần Thơ,31299,Phong Điền,Xã,218
+2025,commune,Cần Thơ,31309,Trường Long,Xã,149
+2025,commune,Cần Thơ,31315,Nhơn Ái,Xã,180
+2025,commune,Cần Thơ,31321,Vị Thanh,Phường,107
+2025,commune,Cần Thơ,31333,Vị Tân,Phường,171
+2025,commune,Cần Thơ,31338,Hỏa Lựu,Xã,282
+2025,commune,Cần Thơ,31340,Ngã Bảy,Phường,118
+2025,commune,Cần Thơ,31342,Tân Hòa,Xã,279
+2025,commune,Cần Thơ,31348,Trường Long Tây,Xã,238
+2025,commune,Cần Thơ,31360,Thạnh Xuân,Xã,191
+2025,commune,Cần Thơ,31366,Châu Thành,Xã,222
+2025,commune,Cần Thơ,31369,Đông Phước,Xã,194
+2025,commune,Cần Thơ,31378,Phú Hữu,Xã,291
+2025,commune,Cần Thơ,31393,Hòa An,Xã,293
+2025,commune,Cần Thơ,31396,Hiệp Hưng,Xã,327
+2025,commune,Cần Thơ,31399,Tân Bình,Xã,311
+2025,commune,Cần Thơ,31408,Thạnh Hòa,Xã,387
+2025,commune,Cần Thơ,31411,Đại Thành,Phường,248
+2025,commune,Cần Thơ,31420,Phụng Hiệp,Xã,320
+2025,commune,Cần Thơ,31426,Phương Bình,Xã,406
+2025,commune,Cần Thơ,31432,Tân Phước Hưng,Xã,273
+2025,commune,Cần Thơ,31441,Vị Thủy,Xã,238
+2025,commune,Cần Thơ,31453,Vĩnh Thuận Đông,Xã,340
+2025,commune,Cần Thơ,31459,Vĩnh Tường,Xã,317
+2025,commune,Cần Thơ,31465,Vị Thanh 1,Xã,339
+2025,commune,Cần Thơ,31471,Long Mỹ,Phường,244
+2025,commune,Cần Thơ,31473,Long Bình,Phường,189
+2025,commune,Cần Thơ,31480,Long Phú 1,Phường,272
+2025,commune,Cần Thơ,31489,Vĩnh Viễn,Xã,326
+2025,commune,Cần Thơ,31492,Lương Tâm,Xã,290
+2025,commune,Cần Thơ,31495,Xà Phiên,Xã,478
+2025,commune,Cần Thơ,31507,Sóc Trăng,Phường,195
+2025,commune,Cần Thơ,31510,Phú Lợi,Phường,125
+2025,commune,Cần Thơ,31528,Kế Sách,Xã,292
+2025,commune,Cần Thơ,31531,An Lạc Thôn,Xã,400
+2025,commune,Cần Thơ,31537,Phong Nẫm,Xã,82
+2025,commune,Cần Thơ,31540,Thới An Hội,Xã,286
+2025,commune,Cần Thơ,31552,Nhơn Mỹ,Xã,378
+2025,commune,Cần Thơ,31561,Đại Hải,Xã,337
+2025,commune,Cần Thơ,31567,Mỹ Tú,Xã,413
+2025,commune,Cần Thơ,31569,Phú Tâm,Xã,230
+2025,commune,Cần Thơ,31570,Hồ Đắc Kiện,Xã,353
+2025,commune,Cần Thơ,31579,Long Hưng,Xã,383
+2025,commune,Cần Thơ,31582,Thuận Hòa,Xã,217
+2025,commune,Cần Thơ,31591,Mỹ Hương,Xã,492
+2025,commune,Cần Thơ,31594,An Ninh,Xã,326
+2025,commune,Cần Thơ,31603,Mỹ Phước,Xã,458
+2025,commune,Cần Thơ,31615,An Thạnh,Xã,457
+2025,commune,Cần Thơ,31633,Cù Lao Dung,Xã,692
+2025,commune,Cần Thơ,31639,Long Phú,Xã,365
+2025,commune,Cần Thơ,31645,Đại Ngãi,Xã,178
+2025,commune,Cần Thơ,31654,Trường Khánh,Xã,279
+2025,commune,Cần Thơ,31666,Tân Thạnh,Xã,335
+2025,commune,Cần Thơ,31673,Trần Đề,Xã,426
+2025,commune,Cần Thơ,31675,Liêu Tú,Xã,391
+2025,commune,Cần Thơ,31679,Lịch Hội Thượng,Xã,233
+2025,commune,Cần Thơ,31684,Mỹ Xuyên,Phường,232
+2025,commune,Cần Thơ,31687,Tài Văn,Xã,322
+2025,commune,Cần Thơ,31699,Thạnh Thới An,Xã,419
+2025,commune,Cần Thơ,31708,Nhu Gia,Xã,350
+2025,commune,Cần Thơ,31717,Hòa Tú,Xã,322
+2025,commune,Cần Thơ,31723,Ngọc Tố,Xã,530
+2025,commune,Cần Thơ,31726,Gia Hòa,Xã,369
+2025,commune,Cần Thơ,31732,Ngã Năm,Phường,450
+2025,commune,Cần Thơ,31741,Tân Long,Xã,491
+2025,commune,Cần Thơ,31753,Mỹ Quới,Phường,400
+2025,commune,Cần Thơ,31756,Phú Lộc,Xã,382
+2025,commune,Cần Thơ,31759,Lâm Tân,Xã,432
+2025,commune,Cần Thơ,31777,Vĩnh Lợi,Xã,365
+2025,commune,Cần Thơ,31783,Vĩnh Châu,Phường,490
+2025,commune,Cần Thơ,31789,Khánh Hòa,Phường,620
+2025,commune,Cần Thơ,31795,Vĩnh Hải,Xã,369
+2025,commune,Cần Thơ,31804,Vĩnh Phước,Phường,498
+2025,commune,Cần Thơ,31810,Lai Hòa,Xã,259
+2025,commune,Gia Lai,21553,Quy Nhơn Bắc,Phường,119
+2025,commune,Gia Lai,21583,Quy Nhơn,Phường,107
+2025,commune,Gia Lai,21589,Quy Nhơn Tây,Phường,574
+2025,commune,Gia Lai,21592,Quy Nhơn Nam,Phường,171
+2025,commune,Gia Lai,21601,Quy Nhơn Đông,Phường,395
+2025,commune,Gia Lai,21607,Nhơn Châu,Xã,17
+2025,commune,Gia Lai,21609,An Lão,Xã,511
+2025,commune,Gia Lai,21616,An Vinh,Xã,938
+2025,commune,Gia Lai,21622,An Toàn,Xã,1269
+2025,commune,Gia Lai,21628,An Hòa,Xã,644
+2025,commune,Gia Lai,21637,Tam Quan,Phường,142
+2025,commune,Gia Lai,21640,Bồng Sơn,Phường,387
+2025,commune,Gia Lai,21655,Hoài Nhơn Bắc,Phường,431
+2025,commune,Gia Lai,21661,Hoài Nhơn Tây,Phường,381
+2025,commune,Gia Lai,21664,Hoài Nhơn,Phường,193
+2025,commune,Gia Lai,21670,Hoài Nhơn Đông,Phường,312
+2025,commune,Gia Lai,21673,Hoài Nhơn Nam,Phường,185
+2025,commune,Gia Lai,21688,Hoài Ân,Xã,560
+2025,commune,Gia Lai,21697,Ân Hảo,Xã,461
+2025,commune,Gia Lai,21703,Vạn Đức,Xã,541
+2025,commune,Gia Lai,21715,Ân Tường,Xã,1100
+2025,commune,Gia Lai,21727,Kim Sơn,Xã,977
+2025,commune,Gia Lai,21730,Phù Mỹ,Xã,261
+2025,commune,Gia Lai,21733,Bình Dương,Xã,316
+2025,commune,Gia Lai,21739,Phù Mỹ Bắc,Xã,483
+2025,commune,Gia Lai,21751,Phù Mỹ Đông,Xã,414
+2025,commune,Gia Lai,21757,Phù Mỹ Tây,Xã,470
+2025,commune,Gia Lai,21769,An Lương,Xã,315
+2025,commune,Gia Lai,21775,Phù Mỹ Nam,Xã,406
+2025,commune,Gia Lai,21786,Vĩnh Thạnh,Xã,800
+2025,commune,Gia Lai,21787,Vĩnh Sơn,Xã,1581
+2025,commune,Gia Lai,21796,Vĩnh Thịnh,Xã,650
+2025,commune,Gia Lai,21805,Vĩnh Quang,Xã,418
+2025,commune,Gia Lai,21808,Tây Sơn,Xã,467
+2025,commune,Gia Lai,21817,Bình Hiệp,Xã,780
+2025,commune,Gia Lai,21820,Bình Khê,Xã,734
+2025,commune,Gia Lai,21829,Bình An,Xã,400
+2025,commune,Gia Lai,21835,Bình Phú,Xã,963
+2025,commune,Gia Lai,21853,Phù Cát,Xã,405
+2025,commune,Gia Lai,21859,Đề Gi,Xã,462
+2025,commune,Gia Lai,21868,Hội Sơn,Xã,885
+2025,commune,Gia Lai,21871,Hòa Hội,Xã,417
+2025,commune,Gia Lai,21880,Cát Tiến,Xã,500
+2025,commune,Gia Lai,21892,Xuân An,Xã,326
+2025,commune,Gia Lai,21901,Ngô Mây,Xã,298
+2025,commune,Gia Lai,21907,Bình Định,Phường,120
+2025,commune,Gia Lai,21910,An Nhơn,Phường,163
+2025,commune,Gia Lai,21925,An Nhơn Bắc,Phường,155
+2025,commune,Gia Lai,21934,An Nhơn Đông,Phường,84
+2025,commune,Gia Lai,21940,An Nhơn Tây,Xã,368
+2025,commune,Gia Lai,21943,An Nhơn Nam,Phường,289
+2025,commune,Gia Lai,21952,Tuy Phước,Xã,256
+2025,commune,Gia Lai,21964,Tuy Phước Bắc,Xã,181
+2025,commune,Gia Lai,21970,Tuy Phước Đông,Xã,288
+2025,commune,Gia Lai,21985,Tuy Phước Tây,Xã,330
+2025,commune,Gia Lai,21994,Vân Canh,Xã,726
+2025,commune,Gia Lai,21997,Canh Liên,Xã,1858
+2025,commune,Gia Lai,22006,Canh Vinh,Xã,1268
+2025,commune,Gia Lai,23563,Diên Hồng,Phường,132
+2025,commune,Gia Lai,23575,Pleiku,Phường,125
+2025,commune,Gia Lai,23584,Thống Nhất,Phường,106
+2025,commune,Gia Lai,23586,Hội Phú,Phường,167
+2025,commune,Gia Lai,23590,Biển Hồ,Xã,819
+2025,commune,Gia Lai,23602,An Phú,Phường,157
+2025,commune,Gia Lai,23611,Gào,Xã,879
+2025,commune,Gia Lai,23614,An Bình,Phường,350
+2025,commune,Gia Lai,23617,An Khê,Phường,278
+2025,commune,Gia Lai,23629,Cửu An,Xã,643
+2025,commune,Gia Lai,23638,Kbang,Xã,1396
+2025,commune,Gia Lai,23644,Đak Rong,Xã,2497
+2025,commune,Gia Lai,23647,Sơn Lang,Xã,2173
+2025,commune,Gia Lai,23650,Krong,Xã,1498
+2025,commune,Gia Lai,23668,Tơ Tung,Xã,687
+2025,commune,Gia Lai,23674,Kông Bơ La,Xã,642
+2025,commune,Gia Lai,23677,Đak Đoa,Xã,339
+2025,commune,Gia Lai,23683,Đak Sơmei,Xã,1660
+2025,commune,Gia Lai,23701,Kon Gang,Xã,762
+2025,commune,Gia Lai,23710,Ia Băng,Xã,558
+2025,commune,Gia Lai,23714,KDang,Xã,870
+2025,commune,Gia Lai,23722,Chư Păh,Xã,500
+2025,commune,Gia Lai,23728,Ia Khươl,Xã,1694
+2025,commune,Gia Lai,23734,Ia Ly,Xã,1017
+2025,commune,Gia Lai,23749,Ia Phí,Xã,1022
+2025,commune,Gia Lai,23764,Ia Grai,Xã,1158
+2025,commune,Gia Lai,23767,Ia Hrung,Xã,816
+2025,commune,Gia Lai,23776,Ia Krái,Xã,1490
+2025,commune,Gia Lai,23782,Ia O,Xã,666
+2025,commune,Gia Lai,23788,Ia Chia,Xã,831
+2025,commune,Gia Lai,23794,Mang Yang,Xã,836
+2025,commune,Gia Lai,23798,Ayun,Xã,979
+2025,commune,Gia Lai,23799,Hra,Xã,1112
+2025,commune,Gia Lai,23812,Lơ Pang,Xã,1531
+2025,commune,Gia Lai,23818,Kon Chiêng,Xã,1311
+2025,commune,Gia Lai,23824,Kông Chro,Xã,964
+2025,commune,Gia Lai,23830,Chư Krey,Xã,940
+2025,commune,Gia Lai,23833,Ya Ma,Xã,849
+2025,commune,Gia Lai,23839,SRó,Xã,1661
+2025,commune,Gia Lai,23842,Đăk Song,Xã,1577
+2025,commune,Gia Lai,23851,Chơ Long,Xã,937
+2025,commune,Gia Lai,23857,Đức Cơ,Xã,603
+2025,commune,Gia Lai,23866,Ia Krêl,Xã,708
+2025,commune,Gia Lai,23869,Ia Dơk,Xã,487
+2025,commune,Gia Lai,23872,Ia Dom,Xã,693
+2025,commune,Gia Lai,23881,Ia Pnôn,Xã,550
+2025,commune,Gia Lai,23884,Ia Nan,Xã,435
+2025,commune,Gia Lai,23887,Chư Prông,Xã,601
+2025,commune,Gia Lai,23896,Bàu Cạn,Xã,545
+2025,commune,Gia Lai,23908,Ia Tôr,Xã,489
+2025,commune,Gia Lai,23911,Ia Boòng,Xã,947
+2025,commune,Gia Lai,23917,Ia Púch,Xã,1293
+2025,commune,Gia Lai,23926,Ia Pia,Xã,1148
+2025,commune,Gia Lai,23935,Ia Lâu,Xã,1036
+2025,commune,Gia Lai,23938,Ia Mơ,Xã,2087
+2025,commune,Gia Lai,23941,Chư Sê,Xã,603
+2025,commune,Gia Lai,23942,Chư Pưh,Xã,888
+2025,commune,Gia Lai,23947,Bờ Ngoong,Xã,823
+2025,commune,Gia Lai,23954,Al Bá,Xã,523
+2025,commune,Gia Lai,23971,Ia Hrú,Xã,1165
+2025,commune,Gia Lai,23977,Ia Ko,Xã,1015
+2025,commune,Gia Lai,23986,Ia Le,Xã,1528
+2025,commune,Gia Lai,23995,Đak Pơ,Xã,1079
+2025,commune,Gia Lai,24007,Ya Hội,Xã,1042
+2025,commune,Gia Lai,24013,Pờ Tó,Xã,854
+2025,commune,Gia Lai,24022,Ia Pa,Xã,499
+2025,commune,Gia Lai,24028,Ia Tul,Xã,2828
+2025,commune,Gia Lai,24043,Phú Thiện,Xã,1267
+2025,commune,Gia Lai,24044,Ayun Pa,Phường,86
+2025,commune,Gia Lai,24049,Chư A Thai,Xã,639
+2025,commune,Gia Lai,24061,Ia Hiao,Xã,518
+2025,commune,Gia Lai,24065,Ia Rbol,Xã,745
+2025,commune,Gia Lai,24073,Ia Sao,Xã,555
+2025,commune,Gia Lai,24076,Phú Túc,Xã,1718
+2025,commune,Gia Lai,24100,Ia Dreh,Xã,1827
+2025,commune,Gia Lai,24109,Uar,Xã,1971
+2025,commune,Gia Lai,24112,Ia Rsai,Xã,2280
+2025,commune,Huế,19753,Phú Xuân,Phường,50
+2025,commune,Huế,19774,Kim Long,Phường,446
+2025,commune,Huế,19777,Vỹ Dạ,Phường,43
+2025,commune,Huế,19789,Thuận Hóa,Phường,37
+2025,commune,Huế,19804,Hương An,Phường,91
+2025,commune,Huế,19813,Thủy Xuân,Phường,180
+2025,commune,Huế,19815,An Cựu,Phường,82
+2025,commune,Huế,19819,Phong Điền,Phường,2894
+2025,commune,Huế,19828,Phong Phú,Phường,300
+2025,commune,Huế,19831,Phong Dinh,Phường,431
+2025,commune,Huế,19858,Phong Thái,Phường,908
+2025,commune,Huế,19867,Quảng Điền,Xã,226
+2025,commune,Huế,19873,Phong Quảng,Phường,203
+2025,commune,Huế,19885,Đan Điền,Xã,400
+2025,commune,Huế,19900,Thuận An,Phường,178
+2025,commune,Huế,19909,Dương Nỗ,Phường,101
+2025,commune,Huế,19918,Phú Hồ,Xã,279
+2025,commune,Huế,19930,Mỹ Thượng,Phường,143
+2025,commune,Huế,19942,Phú Vang,Xã,418
+2025,commune,Huế,19945,Phú Vinh,Xã,277
+2025,commune,Huế,19960,Phú Bài,Phường,1671
+2025,commune,Huế,19969,Thanh Thủy,Phường,239
+2025,commune,Huế,19975,Hương Thủy,Phường,172
+2025,commune,Huế,19996,Hương Trà,Phường,404
+2025,commune,Huế,20014,Hóa Châu,Phường,168
+2025,commune,Huế,20017,Kim Trà,Phường,206
+2025,commune,Huế,20035,Bình Điền,Xã,1304
+2025,commune,Huế,20044,A Lưới 2,Xã,468
+2025,commune,Huế,20050,A Lưới 5,Xã,2267
+2025,commune,Huế,20056,A Lưới 1,Xã,966
+2025,commune,Huế,20071,A Lưới 3,Xã,759
+2025,commune,Huế,20101,A Lưới 4,Xã,1137
+2025,commune,Huế,20107,Phú Lộc,Xã,578
+2025,commune,Huế,20122,Vinh Lộc,Xã,326
+2025,commune,Huế,20131,Hưng Lộc,Xã,469
+2025,commune,Huế,20137,Chân Mây - Lăng Cô,Xã,1240
+2025,commune,Huế,20140,Lộc An,Xã,866
+2025,commune,Huế,20161,Khe Tre,Xã,1244
+2025,commune,Huế,20179,Nam Đông,Xã,856
+2025,commune,Huế,20182,Long Quảng,Xã,1046
+2025,commune,Hà Nội,00004,Ba Đình,Phường,15
+2025,commune,Hà Nội,00008,Ngọc Hà,Phường,13
+2025,commune,Hà Nội,00025,Giảng Võ,Phường,14
+2025,commune,Hà Nội,00070,Hoàn Kiếm,Phường,9
+2025,commune,Hà Nội,00082,Cửa Nam,Phường,9
+2025,commune,Hà Nội,00091,Phú Thượng,Phường,36
+2025,commune,Hà Nội,00097,Hồng Hà,Phường,79
+2025,commune,Hà Nội,00103,Tây Hồ,Phường,50
+2025,commune,Hà Nội,00118,Bồ Đề,Phường,65
+2025,commune,Hà Nội,00127,Việt Hưng,Phường,64
+2025,commune,Hà Nội,00136,Phúc Lợi,Phường,51
+2025,commune,Hà Nội,00145,Long Biên,Phường,97
+2025,commune,Hà Nội,00160,Nghĩa Đô,Phường,21
+2025,commune,Hà Nội,00166,Cầu Giấy,Phường,20
+2025,commune,Hà Nội,00175,Yên Hòa,Phường,21
+2025,commune,Hà Nội,00190,Ô Chợ Dừa,Phường,9
+2025,commune,Hà Nội,00199,Láng,Phường,9
+2025,commune,Hà Nội,00226,Văn Miếu - Quốc Tử Giám,Phường,8
+2025,commune,Hà Nội,00229,Kim Liên,Phường,11
+2025,commune,Hà Nội,00235,Đống Đa,Phường,10
+2025,commune,Hà Nội,00256,Hai Bà Trưng,Phường,13
+2025,commune,Hà Nội,00283,Vĩnh Tuy,Phường,11
+2025,commune,Hà Nội,00292,Bạch Mai,Phường,15
+2025,commune,Hà Nội,00301,Vĩnh Hưng,Phường,23
+2025,commune,Hà Nội,00316,Định Công,Phường,26
+2025,commune,Hà Nội,00322,Tương Mai,Phường,16
+2025,commune,Hà Nội,00328,Lĩnh Nam,Phường,54
+2025,commune,Hà Nội,00331,Hoàng Mai,Phường,50
+2025,commune,Hà Nội,00337,Hoàng Liệt,Phường,22
+2025,commune,Hà Nội,00340,Yên Sở,Phường,26
+2025,commune,Hà Nội,00352,Phương Liệt,Phường,13
+2025,commune,Hà Nội,00364,Khương Đình,Phường,17
+2025,commune,Hà Nội,00367,Thanh Xuân,Phường,16
+2025,commune,Hà Nội,00376,Sóc Sơn,Xã,344
+2025,commune,Hà Nội,00382,Kim Anh,Xã,266
+2025,commune,Hà Nội,00385,Trung Giã,Xã,387
+2025,commune,Hà Nội,00430,Đa Phúc,Xã,278
+2025,commune,Hà Nội,00433,Nội Bài,Xã,257
+2025,commune,Hà Nội,00454,Đông Anh,Xã,247
+2025,commune,Hà Nội,00466,Phúc Thịnh,Xã,215
+2025,commune,Hà Nội,00475,Thư Lâm,Xã,215
+2025,commune,Hà Nội,00493,Thiên Lộc,Xã,146
+2025,commune,Hà Nội,00508,Vĩnh Thanh,Xã,110
+2025,commune,Hà Nội,00541,Phù Đổng,Xã,207
+2025,commune,Hà Nội,00562,Thuận An,Xã,157
+2025,commune,Hà Nội,00565,Gia Lâm,Xã,114
+2025,commune,Hà Nội,00577,Bát Tràng,Xã,110
+2025,commune,Hà Nội,00592,Từ Liêm,Phường,47
+2025,commune,Hà Nội,00598,Thượng Cát,Phường,71
+2025,commune,Hà Nội,00602,Đông Ngạc,Phường,43
+2025,commune,Hà Nội,00611,Xuân Đỉnh,Phường,28
+2025,commune,Hà Nội,00613,Tây Tựu,Phường,40
+2025,commune,Hà Nội,00619,Phú Diễn,Phường,33
+2025,commune,Hà Nội,00622,Xuân Phương,Phường,58
+2025,commune,Hà Nội,00634,Tây Mỗ,Phường,27
+2025,commune,Hà Nội,00637,Đại Mỗ,Phường,42
+2025,commune,Hà Nội,00640,Thanh Trì,Xã,53
+2025,commune,Hà Nội,00643,Thanh Liệt,Phường,32
+2025,commune,Hà Nội,00664,Đại Thanh,Xã,95
+2025,commune,Hà Nội,00679,Ngọc Hồi,Xã,65
+2025,commune,Hà Nội,00685,Nam Phù,Xã,69
+2025,commune,Hà Nội,04930,Yên Xuân,Xã,346
+2025,commune,Hà Nội,08974,Quang Minh,Xã,166
+2025,commune,Hà Nội,08980,Yên Lãng,Xã,229
+2025,commune,Hà Nội,08995,Tiến Thắng,Xã,177
+2025,commune,Hà Nội,09022,Mê Linh,Xã,171
+2025,commune,Hà Nội,09552,Kiến Hưng,Phường,32
+2025,commune,Hà Nội,09556,Hà Đông,Phường,48
+2025,commune,Hà Nội,09562,Yên Nghĩa,Phường,69
+2025,commune,Hà Nội,09568,Phú Lương,Phường,47
+2025,commune,Hà Nội,09574,Sơn Tây,Phường,116
+2025,commune,Hà Nội,09604,Tùng Thiện,Phường,161
+2025,commune,Hà Nội,09616,Đoài Phương,Xã,294
+2025,commune,Hà Nội,09619,Quảng Oai,Xã,238
+2025,commune,Hà Nội,09634,Cổ Đô,Xã,269
+2025,commune,Hà Nội,09661,Minh Châu,Xã,49
+2025,commune,Hà Nội,09664,Vật Lại,Xã,264
+2025,commune,Hà Nội,09676,Bất Bạt,Xã,278
+2025,commune,Hà Nội,09694,Suối Hai,Xã,268
+2025,commune,Hà Nội,09700,Ba Vì,Xã,406
+2025,commune,Hà Nội,09706,Yên Bài,Xã,342
+2025,commune,Hà Nội,09715,Phúc Thọ,Xã,200
+2025,commune,Hà Nội,09739,Phúc Lộc,Xã,206
+2025,commune,Hà Nội,09772,Hát Môn,Xã,184
+2025,commune,Hà Nội,09784,Đan Phượng,Xã,76
+2025,commune,Hà Nội,09787,Liên Minh,Xã,118
+2025,commune,Hà Nội,09817,Ô Diên,Xã,163
+2025,commune,Hà Nội,09832,Hoài Đức,Xã,81
+2025,commune,Hà Nội,09856,Dương Hòa,Xã,88
+2025,commune,Hà Nội,09871,Sơn Đồng,Xã,110
+2025,commune,Hà Nội,09877,An Khánh,Xã,143
+2025,commune,Hà Nội,09886,Dương Nội,Phường,39
+2025,commune,Hà Nội,09895,Quốc Oai,Xã,118
+2025,commune,Hà Nội,09910,Kiều Phú,Xã,170
+2025,commune,Hà Nội,09931,Hưng Đạo,Xã,123
+2025,commune,Hà Nội,09952,Phú Cát,Xã,254
+2025,commune,Hà Nội,09955,Thạch Thất,Xã,159
+2025,commune,Hà Nội,09982,Hạ Bằng,Xã,159
+2025,commune,Hà Nội,09988,Hòa Lạc,Xã,216
+2025,commune,Hà Nội,10003,Tây Phương,Xã,160
+2025,commune,Hà Nội,10015,Chương Mỹ,Phường,193
+2025,commune,Hà Nội,10030,Phú Nghĩa,Xã,204
+2025,commune,Hà Nội,10045,Xuân Mai,Xã,255
+2025,commune,Hà Nội,10072,Quảng Bị,Xã,185
+2025,commune,Hà Nội,10081,Trần Phú,Xã,222
+2025,commune,Hà Nội,10096,Hòa Phú,Xã,152
+2025,commune,Hà Nội,10114,Thanh Oai,Xã,138
+2025,commune,Hà Nội,10126,Bình Minh,Xã,146
+2025,commune,Hà Nội,10144,Tam Hưng,Xã,148
+2025,commune,Hà Nội,10180,Dân Hòa,Xã,188
+2025,commune,Hà Nội,10183,Thường Tín,Xã,142
+2025,commune,Hà Nội,10210,Hồng Vân,Xã,120
+2025,commune,Hà Nội,10231,Thượng Phúc,Xã,147
+2025,commune,Hà Nội,10237,Chương Dương,Xã,142
+2025,commune,Hà Nội,10273,Phú Xuyên,Xã,299
+2025,commune,Hà Nội,10279,Phượng Dực,Xã,226
+2025,commune,Hà Nội,10330,Chuyên Mỹ,Xã,179
+2025,commune,Hà Nội,10342,Đại Xuyên,Xã,257
+2025,commune,Hà Nội,10354,Vân Đình,Xã,200
+2025,commune,Hà Nội,10369,Ứng Thiên,Xã,195
+2025,commune,Hà Nội,10402,Ứng Hòa,Xã,338
+2025,commune,Hà Nội,10417,Hòa Xá,Xã,206
+2025,commune,Hà Nội,10441,Mỹ Đức,Xã,260
+2025,commune,Hà Nội,10459,Phúc Sơn,Xã,246
+2025,commune,Hà Nội,10465,Hồng Sơn,Xã,272
+2025,commune,Hà Nội,10489,Hương Sơn,Xã,345
+2025,commune,Hà Tĩnh,18073,Thành Sen,Phường,148
+2025,commune,Hà Tĩnh,18100,Trần Phú,Phường,146
+2025,commune,Hà Tĩnh,18115,Bắc Hồng Lĩnh,Phường,168
+2025,commune,Hà Tĩnh,18118,Nam Hồng Lĩnh,Phường,180
+2025,commune,Hà Tĩnh,18133,Hương Sơn,Xã,158
+2025,commune,Hà Tĩnh,18160,Sơn Hồng,Xã,1029
+2025,commune,Hà Tĩnh,18163,Sơn Tiến,Xã,402
+2025,commune,Hà Tĩnh,18172,Sơn Tây,Xã,634
+2025,commune,Hà Tĩnh,18184,Sơn Giang,Xã,427
+2025,commune,Hà Tĩnh,18196,Sơn Kim 1,Xã,1099
+2025,commune,Hà Tĩnh,18199,Sơn Kim 2,Xã,1028
+2025,commune,Hà Tĩnh,18202,Tứ Mỹ,Xã,188
+2025,commune,Hà Tĩnh,18223,Kim Hoa,Xã,442
+2025,commune,Hà Tĩnh,18229,Đức Thọ,Xã,241
+2025,commune,Hà Tĩnh,18244,Đức Minh,Xã,118
+2025,commune,Hà Tĩnh,18262,Đức Quang,Xã,147
+2025,commune,Hà Tĩnh,18277,Đức Thịnh,Xã,260
+2025,commune,Hà Tĩnh,18304,Đức Đồng,Xã,230
+2025,commune,Hà Tĩnh,18313,Vũ Quang,Xã,2626
+2025,commune,Hà Tĩnh,18322,Mai Hoa,Xã,225
+2025,commune,Hà Tĩnh,18328,Thượng Đức,Xã,286
+2025,commune,Hà Tĩnh,18352,Nghi Xuân,Xã,387
+2025,commune,Hà Tĩnh,18364,Đan Hải,Xã,176
+2025,commune,Hà Tĩnh,18373,Tiên Điền,Xã,152
+2025,commune,Hà Tĩnh,18394,Cổ Đạm,Xã,303
+2025,commune,Hà Tĩnh,18406,Can Lộc,Xã,326
+2025,commune,Hà Tĩnh,18409,Hồng Lộc,Xã,166
+2025,commune,Hà Tĩnh,18418,Tùng Lộc,Xã,180
+2025,commune,Hà Tĩnh,18436,Trường Lưu,Xã,252
+2025,commune,Hà Tĩnh,18466,Gia Hanh,Xã,223
+2025,commune,Hà Tĩnh,18481,Xuân Lộc,Xã,162
+2025,commune,Hà Tĩnh,18484,Đồng Lộc,Xã,346
+2025,commune,Hà Tĩnh,18496,Hương Khê,Xã,805
+2025,commune,Hà Tĩnh,18502,Hà Linh,Xã,693
+2025,commune,Hà Tĩnh,18523,Hương Bình,Xã,1065
+2025,commune,Hà Tĩnh,18532,Hương Phố,Xã,664
+2025,commune,Hà Tĩnh,18544,Hương Xuân,Xã,1263
+2025,commune,Hà Tĩnh,18547,Phúc Trạch,Xã,991
+2025,commune,Hà Tĩnh,18550,Hương Đô,Xã,693
+2025,commune,Hà Tĩnh,18562,Thạch Hà,Xã,150
+2025,commune,Hà Tĩnh,18568,Lộc Hà,Xã,169
+2025,commune,Hà Tĩnh,18583,Mai Phụ,Xã,158
+2025,commune,Hà Tĩnh,18586,Đông Kinh,Xã,137
+2025,commune,Hà Tĩnh,18601,Việt Xuyên,Xã,160
+2025,commune,Hà Tĩnh,18604,Thạch Khê,Xã,222
+2025,commune,Hà Tĩnh,18619,Đồng Tiến,Xã,163
+2025,commune,Hà Tĩnh,18628,Thạch Lạc,Xã,134
+2025,commune,Hà Tĩnh,18634,Toàn Lưu,Xã,298
+2025,commune,Hà Tĩnh,18652,Hà Huy Tập,Phường,150
+2025,commune,Hà Tĩnh,18667,Thạch Xuân,Xã,366
+2025,commune,Hà Tĩnh,18673,Cẩm Xuyên,Xã,411
+2025,commune,Hà Tĩnh,18676,Thiên Cầm,Xã,197
+2025,commune,Hà Tĩnh,18682,Yên Hòa,Xã,182
+2025,commune,Hà Tĩnh,18685,Cẩm Bình,Xã,162
+2025,commune,Hà Tĩnh,18736,Cẩm Hưng,Xã,511
+2025,commune,Hà Tĩnh,18739,Cẩm Duệ,Xã,952
+2025,commune,Hà Tĩnh,18742,Cẩm Trung,Xã,160
+2025,commune,Hà Tĩnh,18748,Cẩm Lạc,Xã,568
+2025,commune,Hà Tĩnh,18754,Sông Trí,Phường,349
+2025,commune,Hà Tĩnh,18766,Kỳ Xuân,Xã,354
+2025,commune,Hà Tĩnh,18775,Kỳ Anh,Xã,315
+2025,commune,Hà Tĩnh,18781,Hải Ninh,Phường,185
+2025,commune,Hà Tĩnh,18787,Kỳ Văn,Xã,662
+2025,commune,Hà Tĩnh,18790,Kỳ Khang,Xã,240
+2025,commune,Hà Tĩnh,18814,Kỳ Hoa,Xã,357
+2025,commune,Hà Tĩnh,18823,Vũng Áng,Phường,407
+2025,commune,Hà Tĩnh,18832,Hoành Sơn,Phường,336
+2025,commune,Hà Tĩnh,18838,Kỳ Lạc,Xã,820
+2025,commune,Hà Tĩnh,18844,Kỳ Thượng,Xã,1074
+2025,commune,Hưng Yên,11953,Phố Hiến,Phường,108
+2025,commune,Hưng Yên,11977,Tân Hưng,Xã,96
+2025,commune,Hưng Yên,11980,Hồng Châu,Phường,79
+2025,commune,Hưng Yên,11983,Sơn Nam,Phường,107
+2025,commune,Hưng Yên,11992,Lạc Đạo,Xã,113
+2025,commune,Hưng Yên,11995,Đại Đồng,Xã,131
+2025,commune,Hưng Yên,12004,Như Quỳnh,Xã,135
+2025,commune,Hưng Yên,12019,Văn Giang,Xã,117
+2025,commune,Hưng Yên,12025,Phụng Công,Xã,72
+2025,commune,Hưng Yên,12031,Nghĩa Trụ,Xã,114
+2025,commune,Hưng Yên,12049,Mễ Sở,Xã,88
+2025,commune,Hưng Yên,12064,Nguyễn Văn Linh,Xã,104
+2025,commune,Hưng Yên,12070,Hoàn Long,Xã,99
+2025,commune,Hưng Yên,12073,Yên Mỹ,Xã,165
+2025,commune,Hưng Yên,12091,Việt Yên,Xã,122
+2025,commune,Hưng Yên,12103,Mỹ Hào,Phường,145
+2025,commune,Hưng Yên,12127,Thượng Hồng,Phường,127
+2025,commune,Hưng Yên,12133,Đường Hào,Phường,126
+2025,commune,Hưng Yên,12142,Ân Thi,Xã,120
+2025,commune,Hưng Yên,12148,Phạm Ngũ Lão,Xã,148
+2025,commune,Hưng Yên,12166,Xuân Trúc,Xã,101
+2025,commune,Hưng Yên,12184,Nguyễn Trãi,Xã,156
+2025,commune,Hưng Yên,12196,Hồng Quang,Xã,128
+2025,commune,Hưng Yên,12205,Khoái Châu,Xã,146
+2025,commune,Hưng Yên,12223,Triệu Việt Vương,Xã,138
+2025,commune,Hưng Yên,12238,Việt Tiến,Xã,100
+2025,commune,Hưng Yên,12247,Châu Ninh,Xã,114
+2025,commune,Hưng Yên,12271,Chí Minh,Xã,102
+2025,commune,Hưng Yên,12280,Lương Bằng,Xã,146
+2025,commune,Hưng Yên,12286,Nghĩa Dân,Xã,115
+2025,commune,Hưng Yên,12313,Đức Hợp,Xã,111
+2025,commune,Hưng Yên,12322,Hiệp Cường,Xã,146
+2025,commune,Hưng Yên,12337,Hoàng Hoa Thám,Xã,160
+2025,commune,Hưng Yên,12361,Tiên Hoa,Xã,107
+2025,commune,Hưng Yên,12364,Tiên Lữ,Xã,95
+2025,commune,Hưng Yên,12391,Quang Hưng,Xã,133
+2025,commune,Hưng Yên,12406,Đoàn Đào,Xã,111
+2025,commune,Hưng Yên,12424,Tiên Tiến,Xã,129
+2025,commune,Hưng Yên,12427,Tống Trân,Xã,103
+2025,commune,Hưng Yên,12452,Trần Hưng Đạo,Phường,47
+2025,commune,Hưng Yên,12454,Trần Lãm,Phường,174
+2025,commune,Hưng Yên,12466,Vũ Phúc,Phường,119
+2025,commune,Hưng Yên,12472,Quỳnh Phụ,Xã,162
+2025,commune,Hưng Yên,12499,A Sào,Xã,104
+2025,commune,Hưng Yên,12511,Minh Thọ,Xã,109
+2025,commune,Hưng Yên,12517,Ngọc Lâm,Xã,97
+2025,commune,Hưng Yên,12523,Phụ Dực,Xã,168
+2025,commune,Hưng Yên,12526,Đồng Bằng,Xã,98
+2025,commune,Hưng Yên,12532,Nguyễn Du,Xã,82
+2025,commune,Hưng Yên,12577,Quỳnh An,Xã,130
+2025,commune,Hưng Yên,12583,Tân Tiến,Xã,95
+2025,commune,Hưng Yên,12586,Hưng Hà,Xã,192
+2025,commune,Hưng Yên,12595,Ngự Thiên,Xã,113
+2025,commune,Hưng Yên,12613,Long Hưng,Xã,171
+2025,commune,Hưng Yên,12619,Diên Hà,Xã,138
+2025,commune,Hưng Yên,12631,Thần Khê,Xã,103
+2025,commune,Hưng Yên,12634,Tiên La,Xã,110
+2025,commune,Hưng Yên,12676,Lê Quý Đôn,Xã,107
+2025,commune,Hưng Yên,12685,Hồng Minh,Xã,119
+2025,commune,Hưng Yên,12688,Đông Hưng,Xã,124
+2025,commune,Hưng Yên,12694,Bắc Đông Hưng,Xã,102
+2025,commune,Hưng Yên,12700,Bắc Tiên Hưng,Xã,140
+2025,commune,Hưng Yên,12736,Đông Tiên Hưng,Xã,79
+2025,commune,Hưng Yên,12745,Bắc Đông Quan,Xã,105
+2025,commune,Hưng Yên,12754,Tiên Hưng,Xã,113
+2025,commune,Hưng Yên,12763,Nam Tiên Hưng,Xã,123
+2025,commune,Hưng Yên,12775,Nam Đông Hưng,Xã,79
+2025,commune,Hưng Yên,12793,Đông Quan,Xã,118
+2025,commune,Hưng Yên,12817,Trà Lý,Phường,105
+2025,commune,Hưng Yên,12826,Thái Thụy,Xã,184
+2025,commune,Hưng Yên,12850,Tây Thụy Anh,Xã,83
+2025,commune,Hưng Yên,12859,Bắc Thụy Anh,Xã,86
+2025,commune,Hưng Yên,12862,Đông Thụy Anh,Xã,233
+2025,commune,Hưng Yên,12865,Thụy Anh,Xã,102
+2025,commune,Hưng Yên,12904,Nam Thụy Anh,Xã,89
+2025,commune,Hưng Yên,12916,Bắc Thái Ninh,Xã,114
+2025,commune,Hưng Yên,12919,Tây Thái Ninh,Xã,80
+2025,commune,Hưng Yên,12922,Thái Ninh,Xã,150
+2025,commune,Hưng Yên,12943,Đông Thái Ninh,Xã,166
+2025,commune,Hưng Yên,12961,Nam Thái Ninh,Xã,134
+2025,commune,Hưng Yên,12970,Tiền Hải,Xã,164
+2025,commune,Hưng Yên,12988,Đông Tiền Hải,Xã,207
+2025,commune,Hưng Yên,13003,Đồng Châu,Xã,204
+2025,commune,Hưng Yên,13021,Ái Quốc,Xã,72
+2025,commune,Hưng Yên,13039,Tây Tiền Hải,Xã,89
+2025,commune,Hưng Yên,13057,Nam Cường,Xã,254
+2025,commune,Hưng Yên,13063,Nam Tiền Hải,Xã,115
+2025,commune,Hưng Yên,13066,Hưng Phú,Xã,244
+2025,commune,Hưng Yên,13075,Kiến Xương,Xã,182
+2025,commune,Hưng Yên,13093,Trà Giang,Xã,105
+2025,commune,Hưng Yên,13096,Bình Nguyên,Xã,87
+2025,commune,Hưng Yên,13120,Lê Lợi,Xã,106
+2025,commune,Hưng Yên,13132,Quang Lịch,Xã,77
+2025,commune,Hưng Yên,13141,Vũ Quý,Xã,76
+2025,commune,Hưng Yên,13159,Hồng Vũ,Xã,94
+2025,commune,Hưng Yên,13183,Bình Thanh,Xã,108
+2025,commune,Hưng Yên,13186,Bình Định,Xã,123
+2025,commune,Hưng Yên,13192,Vũ Thư,Xã,143
+2025,commune,Hưng Yên,13219,Vạn Xuân,Xã,152
+2025,commune,Hưng Yên,13222,Thư Trì,Xã,104
+2025,commune,Hưng Yên,13225,Thái Bình,Phường,138
+2025,commune,Hưng Yên,13246,Tân Thuận,Xã,109
+2025,commune,Hưng Yên,13264,Thư Vũ,Xã,127
+2025,commune,Hưng Yên,13279,Vũ Tiên,Xã,166
+2025,commune,Hải Phòng,10507,Thành Đông,Phường,62
+2025,commune,Hải Phòng,10525,Hải Dương,Phường,39
+2025,commune,Hải Phòng,10532,Lê Thanh Nghị,Phường,35
+2025,commune,Hải Phòng,10537,Tân Hưng,Phường,68
+2025,commune,Hải Phòng,10543,Việt Hòa,Phường,84
+2025,commune,Hải Phòng,10546,Chí Linh,Phường,134
+2025,commune,Hải Phòng,10549,Chu Văn An,Phường,208
+2025,commune,Hải Phòng,10552,Nguyễn Trãi,Phường,380
+2025,commune,Hải Phòng,10570,Trần Hưng Đạo,Phường,338
+2025,commune,Hải Phòng,10573,Trần Nhân Tông,Phường,198
+2025,commune,Hải Phòng,10603,Lê Đại Hành,Phường,162
+2025,commune,Hải Phòng,10606,Nam Sách,Xã,97
+2025,commune,Hải Phòng,10615,Hợp Tiến,Xã,85
+2025,commune,Hải Phòng,10633,Trần Phú,Xã,128
+2025,commune,Hải Phòng,10642,Thái Tân,Xã,104
+2025,commune,Hải Phòng,10645,An Phú,Xã,135
+2025,commune,Hải Phòng,10660,Ái Quốc,Phường,88
+2025,commune,Hải Phòng,10675,Kinh Môn,Phường,59
+2025,commune,Hải Phòng,10678,Bắc An Phụ,Phường,127
+2025,commune,Hải Phòng,10705,Nam An Phụ,Xã,133
+2025,commune,Hải Phòng,10714,Nhị Chiểu,Phường,200
+2025,commune,Hải Phòng,10726,Phạm Sư Mạnh,Phường,109
+2025,commune,Hải Phòng,10729,Trần Liễu,Phường,119
+2025,commune,Hải Phòng,10744,Nguyễn Đại Năng,Phường,88
+2025,commune,Hải Phòng,10750,Phú Thái,Xã,139
+2025,commune,Hải Phòng,10756,Lai Khê,Xã,149
+2025,commune,Hải Phòng,10792,An Thành,Xã,121
+2025,commune,Hải Phòng,10804,Kim Thành,Xã,167
+2025,commune,Hải Phòng,10813,Thanh Hà,Xã,132
+2025,commune,Hải Phòng,10816,Hà Bắc,Xã,132
+2025,commune,Hải Phòng,10837,Nam Đồng,Phường,97
+2025,commune,Hải Phòng,10843,Hà Nam,Xã,137
+2025,commune,Hải Phòng,10846,Hà Tây,Xã,125
+2025,commune,Hải Phòng,10882,Hà Đông,Xã,162
+2025,commune,Hải Phòng,10888,Cẩm Giang,Xã,136
+2025,commune,Hải Phòng,10891,Tứ Minh,Phường,75
+2025,commune,Hải Phòng,10903,Cẩm Giàng,Xã,114
+2025,commune,Hải Phòng,10909,Tuệ Tĩnh,Xã,90
+2025,commune,Hải Phòng,10930,Mao Điền,Xã,120
+2025,commune,Hải Phòng,10945,Kẻ Sặt,Xã,125
+2025,commune,Hải Phòng,10966,Bình Giang,Xã,130
+2025,commune,Hải Phòng,10972,Đường An,Xã,124
+2025,commune,Hải Phòng,10993,Thượng Hồng,Xã,121
+2025,commune,Hải Phòng,10999,Gia Lộc,Xã,107
+2025,commune,Hải Phòng,11002,Thạch Khôi,Phường,100
+2025,commune,Hải Phòng,11020,Yết Kiêu,Xã,107
+2025,commune,Hải Phòng,11050,Gia Phúc,Xã,157
+2025,commune,Hải Phòng,11065,Trường Tân,Xã,127
+2025,commune,Hải Phòng,11074,Tứ Kỳ,Xã,157
+2025,commune,Hải Phòng,11086,Đại Sơn,Xã,116
+2025,commune,Hải Phòng,11113,Tân Kỳ,Xã,142
+2025,commune,Hải Phòng,11131,Chí Minh,Xã,169
+2025,commune,Hải Phòng,11140,Lạc Phượng,Xã,122
+2025,commune,Hải Phòng,11146,Nguyên Giáp,Xã,136
+2025,commune,Hải Phòng,11164,Vĩnh Lại,Xã,128
+2025,commune,Hải Phòng,11167,Tân An,Xã,124
+2025,commune,Hải Phòng,11203,Ninh Giang,Xã,140
+2025,commune,Hải Phòng,11218,Hồng Châu,Xã,147
+2025,commune,Hải Phòng,11224,Khúc Thừa Dụ,Xã,144
+2025,commune,Hải Phòng,11239,Thanh Miện,Xã,163
+2025,commune,Hải Phòng,11242,Nguyễn Lương Bằng,Xã,112
+2025,commune,Hải Phòng,11254,Bắc Thanh Miện,Xã,126
+2025,commune,Hải Phòng,11257,Hải Hưng,Xã,120
+2025,commune,Hải Phòng,11284,Nam Thanh Miện,Xã,120
+2025,commune,Hải Phòng,11311,Hồng Bàng,Phường,61
+2025,commune,Hải Phòng,11329,Ngô Quyền,Phường,32
+2025,commune,Hải Phòng,11359,Gia Viên,Phường,24
+2025,commune,Hải Phòng,11383,Lê Chân,Phường,20
+2025,commune,Hải Phòng,11407,An Biên,Phường,41
+2025,commune,Hải Phòng,11411,Đông Hải,Phường,260
+2025,commune,Hải Phòng,11413,Hải An,Phường,169
+2025,commune,Hải Phòng,11443,Kiến An,Phường,49
+2025,commune,Hải Phòng,11446,Phù Liễn,Phường,107
+2025,commune,Hải Phòng,11455,Đồ Sơn,Phường,116
+2025,commune,Hải Phòng,11473,Bạch Đằng,Phường,267
+2025,commune,Hải Phòng,11488,Lưu Kiếm,Phường,213
+2025,commune,Hải Phòng,11503,Việt Khê,Xã,155
+2025,commune,Hải Phòng,11506,Lê Ích Mộc,Phường,127
+2025,commune,Hải Phòng,11533,Hòa Bình,Phường,96
+2025,commune,Hải Phòng,11542,Nam Triệu,Phường,149
+2025,commune,Hải Phòng,11557,Thiên Hương,Phường,120
+2025,commune,Hải Phòng,11560,Thuỷ Nguyên,Phường,177
+2025,commune,Hải Phòng,11581,An Dương,Phường,153
+2025,commune,Hải Phòng,11593,An Phong,Phường,184
+2025,commune,Hải Phòng,11602,Hồng An,Phường,95
+2025,commune,Hải Phòng,11617,An Hải,Phường,99
+2025,commune,Hải Phòng,11629,An Lão,Xã,125
+2025,commune,Hải Phòng,11635,An Trường,Xã,127
+2025,commune,Hải Phòng,11647,An Quang,Xã,106
+2025,commune,Hải Phòng,11668,An Khánh,Xã,122
+2025,commune,Hải Phòng,11674,An Hưng,Xã,103
+2025,commune,Hải Phòng,11680,Kiến Thụy,Xã,98
+2025,commune,Hải Phòng,11689,Hưng Đạo,Phường,96
+2025,commune,Hải Phòng,11692,Dương Kinh,Phường,130
+2025,commune,Hải Phòng,11713,Nghi Dương,Xã,98
+2025,commune,Hải Phòng,11725,Kiến Minh,Xã,81
+2025,commune,Hải Phòng,11728,Kiến Hưng,Xã,105
+2025,commune,Hải Phòng,11737,Nam Đồ Sơn,Phường,106
+2025,commune,Hải Phòng,11749,Kiến Hải,Xã,159
+2025,commune,Hải Phòng,11755,Tiên Lãng,Xã,136
+2025,commune,Hải Phòng,11761,Quyết Thắng,Xã,113
+2025,commune,Hải Phòng,11779,Tân Minh,Xã,156
+2025,commune,Hải Phòng,11791,Tiên Minh,Xã,190
+2025,commune,Hải Phòng,11806,Chấn Hưng,Xã,153
+2025,commune,Hải Phòng,11809,Hùng Thắng,Xã,204
+2025,commune,Hải Phòng,11824,Vĩnh Bảo,Xã,156
+2025,commune,Hải Phòng,11836,Vĩnh Thịnh,Xã,105
+2025,commune,Hải Phòng,11842,Vĩnh Thuận,Xã,120
+2025,commune,Hải Phòng,11848,Vĩnh Hòa,Xã,109
+2025,commune,Hải Phòng,11875,Vĩnh Hải,Xã,161
+2025,commune,Hải Phòng,11887,Vĩnh Am,Xã,129
+2025,commune,Hải Phòng,11911,Nguyễn Bỉnh Khiêm,Xã,139
+2025,commune,Hải Phòng,11914,Cát Hải,Đặc khu,1017
+2025,commune,Hải Phòng,11948,Bạch Long Vĩ,Đặc khu,14
+2025,commune,Khánh Hòa,22333,Bắc Nha Trang,Phường,462
+2025,commune,Khánh Hòa,22366,Nha Trang,Phường,236
+2025,commune,Khánh Hòa,22390,Tây Nha Trang,Phường,137
+2025,commune,Khánh Hòa,22402,Nam Nha Trang,Phường,392
+2025,commune,Khánh Hòa,22411,Bắc Cam Ranh,Phường,660
+2025,commune,Khánh Hòa,22420,Cam Ranh,Phường,82
+2025,commune,Khánh Hòa,22423,Ba Ngòi,Phường,375
+2025,commune,Khánh Hòa,22432,Cam Linh,Phường,24
+2025,commune,Khánh Hòa,22435,Cam Hiệp,Xã,728
+2025,commune,Khánh Hòa,22453,Cam Lâm,Xã,532
+2025,commune,Khánh Hòa,22465,Cam An,Xã,605
+2025,commune,Khánh Hòa,22480,Nam Cam Ranh,Xã,446
+2025,commune,Khánh Hòa,22489,Vạn Ninh,Xã,626
+2025,commune,Khánh Hòa,22498,Tu Bông,Xã,508
+2025,commune,Khánh Hòa,22504,Đại Lãnh,Xã,796
+2025,commune,Khánh Hòa,22516,Vạn Thắng,Xã,363
+2025,commune,Khánh Hòa,22525,Vạn Hưng,Xã,412
+2025,commune,Khánh Hòa,22528,Ninh Hòa,Phường,171
+2025,commune,Khánh Hòa,22546,Bắc Ninh Hòa,Xã,1145
+2025,commune,Khánh Hòa,22552,Tây Ninh Hòa,Xã,1327
+2025,commune,Khánh Hòa,22558,Hòa Trí,Xã,519
+2025,commune,Khánh Hòa,22561,Đông Ninh Hòa,Phường,647
+2025,commune,Khánh Hòa,22576,Tân Định,Xã,431
+2025,commune,Khánh Hòa,22591,Hòa Thắng,Phường,378
+2025,commune,Khánh Hòa,22597,Nam Ninh Hòa,Xã,945
+2025,commune,Khánh Hòa,22609,Khánh Vĩnh,Xã,915
+2025,commune,Khánh Hòa,22612,Trung Khánh Vĩnh,Xã,1616
+2025,commune,Khánh Hòa,22615,Bắc Khánh Vĩnh,Xã,701
+2025,commune,Khánh Hòa,22624,Tây Khánh Vĩnh,Xã,1413
+2025,commune,Khánh Hòa,22648,Nam Khánh Vĩnh,Xã,942
+2025,commune,Khánh Hòa,22651,Diên Khánh,Xã,85
+2025,commune,Khánh Hòa,22657,Diên Điền,Xã,310
+2025,commune,Khánh Hòa,22660,Diên Lâm,Xã,555
+2025,commune,Khánh Hòa,22672,Diên Thọ,Xã,353
+2025,commune,Khánh Hòa,22678,Diên Lạc,Xã,72
+2025,commune,Khánh Hòa,22702,Suối Hiệp,Xã,270
+2025,commune,Khánh Hòa,22708,Suối Dầu,Xã,752
+2025,commune,Khánh Hòa,22714,Khánh Sơn,Xã,471
+2025,commune,Khánh Hòa,22720,Tây Khánh Sơn,Xã,602
+2025,commune,Khánh Hòa,22732,Đông Khánh Sơn,Xã,549
+2025,commune,Khánh Hòa,22736,Trường Sa,Đặc khu,18436
+2025,commune,Khánh Hòa,22738,Đô Vinh,Phường,292
+2025,commune,Khánh Hòa,22741,Bảo An,Phường,88
+2025,commune,Khánh Hòa,22759,Phan Rang,Phường,42
+2025,commune,Khánh Hòa,22780,Đông Hải,Phường,51
+2025,commune,Khánh Hòa,22786,Bác Ái Tây,Xã,2285
+2025,commune,Khánh Hòa,22795,Bác Ái,Xã,892
+2025,commune,Khánh Hòa,22801,Bác Ái Đông,Xã,1126
+2025,commune,Khánh Hòa,22810,Ninh Sơn,Xã,479
+2025,commune,Khánh Hòa,22813,Lâm Sơn,Xã,915
+2025,commune,Khánh Hòa,22822,Mỹ Sơn,Xã,1186
+2025,commune,Khánh Hòa,22828,Anh Dũng,Xã,1534
+2025,commune,Khánh Hòa,22834,Ninh Chử,Phường,97
+2025,commune,Khánh Hòa,22840,Công Hải,Xã,581
+2025,commune,Khánh Hòa,22846,Vĩnh Hải,Xã,774
+2025,commune,Khánh Hòa,22849,Thuận Bắc,Xã,663
+2025,commune,Khánh Hòa,22852,Ninh Hải,Xã,478
+2025,commune,Khánh Hòa,22861,Xuân Hải,Xã,209
+2025,commune,Khánh Hòa,22870,Ninh Phước,Xã,309
+2025,commune,Khánh Hòa,22873,Phước Hậu,Xã,357
+2025,commune,Khánh Hòa,22888,Phước Dinh,Xã,738
+2025,commune,Khánh Hòa,22891,Phước Hữu,Xã,851
+2025,commune,Khánh Hòa,22897,Thuận Nam,Xã,673
+2025,commune,Khánh Hòa,22900,Phước Hà,Xã,1096
+2025,commune,Khánh Hòa,22909,Cà Ná,Xã,312
+2025,commune,Lai Châu,03388,Đoàn Kết,Phường,679
+2025,commune,Lai Châu,03390,Bình Lư,Xã,879
+2025,commune,Lai Châu,03394,Sin Suối Hồ,Xã,1289
+2025,commune,Lai Châu,03405,Tả Lèng,Xã,652
+2025,commune,Lai Châu,03408,Tân Phong,Phường,538
+2025,commune,Lai Châu,03424,Bản Bo,Xã,508
+2025,commune,Lai Châu,03430,Khun Há,Xã,756
+2025,commune,Lai Châu,03433,Bum Tở,Xã,1933
+2025,commune,Lai Châu,03434,Nậm Hàng,Xã,1691
+2025,commune,Lai Châu,03439,Thu Lũm,Xã,1272
+2025,commune,Lai Châu,03442,Pa Ủ,Xã,2254
+2025,commune,Lai Châu,03445,Mường Tè,Xã,1475
+2025,commune,Lai Châu,03451,Mù Cả,Xã,1933
+2025,commune,Lai Châu,03460,Hua Bum,Xã,1804
+2025,commune,Lai Châu,03463,Tà Tổng,Xã,2585
+2025,commune,Lai Châu,03466,Bum Nưa,Xã,1590
+2025,commune,Lai Châu,03472,Mường Mô,Xã,1997
+2025,commune,Lai Châu,03478,Sìn Hồ,Xã,803
+2025,commune,Lai Châu,03487,Lê Lợi,Xã,1458
+2025,commune,Lai Châu,03503,Pa Tần,Xã,1596
+2025,commune,Lai Châu,03508,Hồng Thu,Xã,899
+2025,commune,Lai Châu,03517,Nậm Tăm,Xã,1224
+2025,commune,Lai Châu,03529,Tủa Sín Chải,Xã,1476
+2025,commune,Lai Châu,03532,Pu Sam Cáp,Xã,772
+2025,commune,Lai Châu,03538,Nậm Mạ,Xã,566
+2025,commune,Lai Châu,03544,Nậm Cuổi,Xã,892
+2025,commune,Lai Châu,03549,Phong Thổ,Xã,1349
+2025,commune,Lai Châu,03562,Sì Lở Lầu,Xã,748
+2025,commune,Lai Châu,03571,Dào San,Xã,695
+2025,commune,Lai Châu,03583,Khổng Lào,Xã,954
+2025,commune,Lai Châu,03595,Than Uyên,Xã,666
+2025,commune,Lai Châu,03598,Tân Uyên,Xã,1498
+2025,commune,Lai Châu,03601,Mường Khoa,Xã,856
+2025,commune,Lai Châu,03613,Nậm Sỏ,Xã,1321
+2025,commune,Lai Châu,03616,Pắc Ta,Xã,845
+2025,commune,Lai Châu,03618,Mường Than,Xã,777
+2025,commune,Lai Châu,03637,Mường Kim,Xã,1599
+2025,commune,Lai Châu,03640,Khoen On,Xã,948
+2025,commune,Lào Cai,02647,Lào Cai,Phường,344
+2025,commune,Lào Cai,02671,Cam Đường,Phường,296
+2025,commune,Lào Cai,02680,Hợp Thành,Xã,584
+2025,commune,Lào Cai,02683,Bát Xát,Xã,972
+2025,commune,Lào Cai,02686,A Mú Sung,Xã,523
+2025,commune,Lào Cai,02695,Trịnh Tường,Xã,741
+2025,commune,Lào Cai,02701,Y Tý,Xã,650
+2025,commune,Lào Cai,02707,Dền Sáng,Xã,751
+2025,commune,Lào Cai,02725,Bản Xèo,Xã,394
+2025,commune,Lào Cai,02728,Mường Hum,Xã,1074
+2025,commune,Lào Cai,02746,Cốc San,Xã,300
+2025,commune,Lào Cai,02752,Pha Long,Xã,532
+2025,commune,Lào Cai,02761,Mường Khương,Xã,855
+2025,commune,Lào Cai,02782,Cao Sơn,Xã,830
+2025,commune,Lào Cai,02788,Bản Lầu,Xã,637
+2025,commune,Lào Cai,02809,Si Ma Cai,Xã,549
+2025,commune,Lào Cai,02824,Sín Chéng,Xã,449
+2025,commune,Lào Cai,02839,Bắc Hà,Xã,908
+2025,commune,Lào Cai,02842,Tả Củ Tỷ,Xã,341
+2025,commune,Lào Cai,02848,Lùng Phình,Xã,522
+2025,commune,Lào Cai,02869,Bản Liền,Xã,386
+2025,commune,Lào Cai,02890,Bảo Nhai,Xã,790
+2025,commune,Lào Cai,02896,Cốc Lầu,Xã,690
+2025,commune,Lào Cai,02902,Phong Hải,Xã,605
+2025,commune,Lào Cai,02905,Bảo Thắng,Xã,812
+2025,commune,Lào Cai,02908,Tằng Loỏng,Xã,630
+2025,commune,Lào Cai,02923,Gia Phú,Xã,533
+2025,commune,Lào Cai,02926,Xuân Quang,Xã,693
+2025,commune,Lào Cai,02947,Bảo Yên,Xã,602
+2025,commune,Lào Cai,02953,Nghĩa Đô,Xã,801
+2025,commune,Lào Cai,02962,Xuân Hòa,Xã,544
+2025,commune,Lào Cai,02968,Thượng Hà,Xã,731
+2025,commune,Lào Cai,02989,Bảo Hà,Xã,1223
+2025,commune,Lào Cai,02998,Phúc Khánh,Xã,575
+2025,commune,Lào Cai,03004,Ngũ Chỉ Sơn,Xã,415
+2025,commune,Lào Cai,03006,Sa Pa,Phường,271
+2025,commune,Lào Cai,03013,Tả Phìn,Xã,383
+2025,commune,Lào Cai,03037,Tả Van,Xã,792
+2025,commune,Lào Cai,03043,Mường Bo,Xã,747
+2025,commune,Lào Cai,03046,Bản Hồ,Xã,836
+2025,commune,Lào Cai,03061,Võ Lao,Xã,775
+2025,commune,Lào Cai,03076,Nậm Chày,Xã,718
+2025,commune,Lào Cai,03082,Văn Bàn,Xã,789
+2025,commune,Lào Cai,03085,Nậm Xé,Xã,866
+2025,commune,Lào Cai,03091,Chiềng Ken,Xã,966
+2025,commune,Lào Cai,03103,Khánh Yên,Xã,873
+2025,commune,Lào Cai,03106,Dương Quỳ,Xã,789
+2025,commune,Lào Cai,03121,Minh Lương,Xã,1036
+2025,commune,Lào Cai,04252,Yên Bái,Phường,86
+2025,commune,Lào Cai,04273,Nam Cường,Phường,227
+2025,commune,Lào Cai,04279,Văn Phú,Phường,257
+2025,commune,Lào Cai,04288,Nghĩa Lộ,Phường,150
+2025,commune,Lào Cai,04303,Lục Yên,Xã,399
+2025,commune,Lào Cai,04309,Lâm Thượng,Xã,652
+2025,commune,Lào Cai,04336,Tân Lĩnh,Xã,745
+2025,commune,Lào Cai,04342,Khánh Hòa,Xã,754
+2025,commune,Lào Cai,04345,Mường Lai,Xã,719
+2025,commune,Lào Cai,04363,Phúc Lợi,Xã,816
+2025,commune,Lào Cai,04375,Mậu A,Xã,732
+2025,commune,Lào Cai,04381,Lâm Giang,Xã,903
+2025,commune,Lào Cai,04387,Châu Quế,Xã,816
+2025,commune,Lào Cai,04399,Đông Cuông,Xã,731
+2025,commune,Lào Cai,04402,Phong Dụ Hạ,Xã,692
+2025,commune,Lào Cai,04423,Phong Dụ Thượng,Xã,935
+2025,commune,Lào Cai,04429,Tân Hợp,Xã,1002
+2025,commune,Lào Cai,04441,Xuân Ái,Xã,624
+2025,commune,Lào Cai,04450,Mỏ Vàng,Xã,843
+2025,commune,Lào Cai,04456,Mù Cang Chải,Xã,741
+2025,commune,Lào Cai,04462,Nậm Có,Xã,1014
+2025,commune,Lào Cai,04465,Khao Mang,Xã,597
+2025,commune,Lào Cai,04474,Lao Chải,Xã,800
+2025,commune,Lào Cai,04489,Chế Tạo,Xã,1184
+2025,commune,Lào Cai,04492,Púng Luông,Xã,1272
+2025,commune,Lào Cai,04498,Trấn Yên,Xã,559
+2025,commune,Lào Cai,04531,Quy Mông,Xã,748
+2025,commune,Lào Cai,04537,Lương Thịnh,Xã,466
+2025,commune,Lào Cai,04543,Âu Lâu,Phường,337
+2025,commune,Lào Cai,04564,Việt Hồng,Xã,508
+2025,commune,Lào Cai,04576,Hưng Khánh,Xã,625
+2025,commune,Lào Cai,04585,Hạnh Phúc,Xã,970
+2025,commune,Lào Cai,04603,Tà Xi Láng,Xã,445
+2025,commune,Lào Cai,04606,Trạm Tấu,Xã,1204
+2025,commune,Lào Cai,04609,Phình Hồ,Xã,1126
+2025,commune,Lào Cai,04630,Tú Lệ,Xã,579
+2025,commune,Lào Cai,04636,Gia Hội,Xã,1067
+2025,commune,Lào Cai,04651,Sơn Lương,Xã,686
+2025,commune,Lào Cai,04660,Liên Sơn,Xã,119
+2025,commune,Lào Cai,04663,Trung Tâm,Phường,217
+2025,commune,Lào Cai,04672,Văn Chấn,Xã,711
+2025,commune,Lào Cai,04681,Cầu Thia,Phường,158
+2025,commune,Lào Cai,04693,Cát Thịnh,Xã,851
+2025,commune,Lào Cai,04699,Chấn Thịnh,Xã,601
+2025,commune,Lào Cai,04705,Thượng Bằng La,Xã,558
+2025,commune,Lào Cai,04711,Nghĩa Tâm,Xã,663
+2025,commune,Lào Cai,04714,Yên Bình,Xã,752
+2025,commune,Lào Cai,04717,Thác Bà,Xã,723
+2025,commune,Lào Cai,04726,Cảm Nhân,Xã,767
+2025,commune,Lào Cai,04744,Yên Thành,Xã,719
+2025,commune,Lào Cai,04750,Bảo Ái,Xã,825
+2025,commune,Lâm Đồng,22918,Mũi Né,Phường,570
+2025,commune,Lâm Đồng,22924,Phú Thủy,Phường,83
+2025,commune,Lâm Đồng,22933,Hàm Thắng,Phường,215
+2025,commune,Lâm Đồng,22945,Phan Thiết,Phường,22
+2025,commune,Lâm Đồng,22954,Tiến Thành,Phường,266
+2025,commune,Lâm Đồng,22960,Bình Thuận,Phường,210
+2025,commune,Lâm Đồng,22963,Tuyên Quang,Xã,182
+2025,commune,Lâm Đồng,22969,Liên Hương,Xã,607
+2025,commune,Lâm Đồng,22972,Phan Rí Cửa,Xã,301
+2025,commune,Lâm Đồng,22978,Tuy Phong,Xã,2132
+2025,commune,Lâm Đồng,22981,Vĩnh Hảo,Xã,667
+2025,commune,Lâm Đồng,23005,Bắc Bình,Xã,731
+2025,commune,Lâm Đồng,23008,Phan Sơn,Xã,2792
+2025,commune,Lâm Đồng,23020,Hải Ninh,Xã,1373
+2025,commune,Lâm Đồng,23023,Sông Lũy,Xã,1217
+2025,commune,Lâm Đồng,23032,Lương Sơn,Xã,759
+2025,commune,Lâm Đồng,23041,Hồng Thái,Xã,477
+2025,commune,Lâm Đồng,23053,Hòa Thắng,Xã,1572
+2025,commune,Lâm Đồng,23059,Hàm Thuận,Xã,955
+2025,commune,Lâm Đồng,23065,La Dạ,Xã,1262
+2025,commune,Lâm Đồng,23074,Đông Giang,Xã,982
+2025,commune,Lâm Đồng,23086,Hồng Sơn,Xã,896
+2025,commune,Lâm Đồng,23089,Hàm Thuận Bắc,Xã,1393
+2025,commune,Lâm Đồng,23095,Hàm Liêm,Xã,539
+2025,commune,Lâm Đồng,23110,Hàm Thuận Nam,Xã,530
+2025,commune,Lâm Đồng,23122,Hàm Thạnh,Xã,2100
+2025,commune,Lâm Đồng,23128,Hàm Kiệm,Xã,769
+2025,commune,Lâm Đồng,23134,Tân Lập,Xã,934
+2025,commune,Lâm Đồng,23143,Tân Thành,Xã,852
+2025,commune,Lâm Đồng,23149,Tánh Linh,Xã,1355
+2025,commune,Lâm Đồng,23152,Bắc Ruộng,Xã,787
+2025,commune,Lâm Đồng,23158,Nghị Đức,Xã,552
+2025,commune,Lâm Đồng,23173,Đồng Kho,Xã,1273
+2025,commune,Lâm Đồng,23188,Suối Kiết,Xã,1750
+2025,commune,Lâm Đồng,23191,Đức Linh,Xã,494
+2025,commune,Lâm Đồng,23194,Hoài Đức,Xã,505
+2025,commune,Lâm Đồng,23200,Nam Thành,Xã,964
+2025,commune,Lâm Đồng,23227,Trà Tân,Xã,646
+2025,commune,Lâm Đồng,23230,Tân Minh,Xã,1066
+2025,commune,Lâm Đồng,23231,Phước Hội,Phường,181
+2025,commune,Lâm Đồng,23235,La Gi,Phường,327
+2025,commune,Lâm Đồng,23236,Hàm Tân,Xã,940
+2025,commune,Lâm Đồng,23246,Tân Hải,Xã,365
+2025,commune,Lâm Đồng,23266,Sơn Mỹ,Xã,1206
+2025,commune,Lâm Đồng,23272,Phú Quý,Đặc khu,88
+2025,commune,Lâm Đồng,24611,Bắc Gia Nghĩa,Phường,1199
+2025,commune,Lâm Đồng,24615,Nam Gia Nghĩa,Phường,382
+2025,commune,Lâm Đồng,24616,Quảng Sơn,Xã,2173
+2025,commune,Lâm Đồng,24617,Đông Gia Nghĩa,Phường,511
+2025,commune,Lâm Đồng,24620,Quảng Hòa,Xã,415
+2025,commune,Lâm Đồng,24631,Quảng Khê,Xã,1068
+2025,commune,Lâm Đồng,24637,Tà Đùng,Xã,2545
+2025,commune,Lâm Đồng,24640,Cư Jút,Xã,489
+2025,commune,Lâm Đồng,24646,Đắk Wil,Xã,2474
+2025,commune,Lâm Đồng,24649,Nam Dong,Xã,497
+2025,commune,Lâm Đồng,24664,Đức Lập,Xã,424
+2025,commune,Lâm Đồng,24670,Đắk Mil,Xã,1036
+2025,commune,Lâm Đồng,24678,Đắk Sắk,Xã,440
+2025,commune,Lâm Đồng,24682,Thuận An,Xã,1508
+2025,commune,Lâm Đồng,24688,Krông Nô,Xã,800
+2025,commune,Lâm Đồng,24697,Nam Đà,Xã,636
+2025,commune,Lâm Đồng,24703,Nâm Nung,Xã,1055
+2025,commune,Lâm Đồng,24712,Quảng Phú,Xã,1244
+2025,commune,Lâm Đồng,24717,Đức An,Xã,774
+2025,commune,Lâm Đồng,24718,Đắk song,Xã,920
+2025,commune,Lâm Đồng,24722,Thuận Hạnh,Xã,618
+2025,commune,Lâm Đồng,24730,Trường Xuân,Xã,1542
+2025,commune,Lâm Đồng,24733,Kiến Đức,Xã,802
+2025,commune,Lâm Đồng,24736,Quảng Trực,Xã,2679
+2025,commune,Lâm Đồng,24739,Tuy Đức,Xã,1270
+2025,commune,Lâm Đồng,24748,Quảng Tân,Xã,1403
+2025,commune,Lâm Đồng,24751,Nhân Cơ,Xã,754
+2025,commune,Lâm Đồng,24760,Quảng Tín,Xã,1480
+2025,commune,Lâm Đồng,24778,Lâm Viên - Đà Lạt,Phường,163
+2025,commune,Lâm Đồng,24781,Xuân Hương - Đà Lạt,Phường,346
+2025,commune,Lâm Đồng,24787,Cam Ly - Đà Lạt,Phường,389
+2025,commune,Lâm Đồng,24805,Xuân Trường - Đà Lạt,Phường,807
+2025,commune,Lâm Đồng,24820,2 Bảo Lộc,Phường,845
+2025,commune,Lâm Đồng,24823,1 Bảo Lộc,Phường,244
+2025,commune,Lâm Đồng,24829,B’Lao,Phường,165
+2025,commune,Lâm Đồng,24841,3 Bảo Lộc,Phường,520
+2025,commune,Lâm Đồng,24846,Lang Biang - Đà Lạt,Phường,1550
+2025,commune,Lâm Đồng,24848,Lạc Dương,Xã,3959
+2025,commune,Lâm Đồng,24853,Đam Rông 4,Xã,1864
+2025,commune,Lâm Đồng,24868,Nam Ban Lâm Hà,Xã,562
+2025,commune,Lâm Đồng,24871,Đinh Văn Lâm Hà,Xã,423
+2025,commune,Lâm Đồng,24875,Đam Rông 3,Xã,670
+2025,commune,Lâm Đồng,24877,Đam Rông 2,Xã,1746
+2025,commune,Lâm Đồng,24883,Nam Hà Lâm Hà,Xã,480
+2025,commune,Lâm Đồng,24886,Đam Rông 1,Xã,825
+2025,commune,Lâm Đồng,24895,Phú Sơn Lâm Hà,Xã,1150
+2025,commune,Lâm Đồng,24907,Phúc Thọ Lâm Hà,Xã,1103
+2025,commune,Lâm Đồng,24916,Tân Hà Lâm Hà,Xã,807
+2025,commune,Lâm Đồng,24931,Đơn Dương,Xã,607
+2025,commune,Lâm Đồng,24934,D’Ran,Xã,1154
+2025,commune,Lâm Đồng,24943,Ka Đô,Xã,518
+2025,commune,Lâm Đồng,24955,Quảng Lập,Xã,643
+2025,commune,Lâm Đồng,24958,Đức Trọng,Xã,715
+2025,commune,Lâm Đồng,24967,Hiệp Thạnh,Xã,610
+2025,commune,Lâm Đồng,24976,Tân Hội,Xã,382
+2025,commune,Lâm Đồng,24985,Ninh Gia,Xã,689
+2025,commune,Lâm Đồng,24988,Tà Năng,Xã,1237
+2025,commune,Lâm Đồng,24991,Tà Hine,Xã,614
+2025,commune,Lâm Đồng,25000,Di Linh,Xã,1281
+2025,commune,Lâm Đồng,25007,Đinh Trang Thượng,Xã,970
+2025,commune,Lâm Đồng,25015,Gia Hiệp,Xã,1546
+2025,commune,Lâm Đồng,25018,Bảo Thuận,Xã,1434
+2025,commune,Lâm Đồng,25036,Hòa Ninh,Xã,450
+2025,commune,Lâm Đồng,25042,Hòa Bắc,Xã,765
+2025,commune,Lâm Đồng,25051,Sơn Điền,Xã,1248
+2025,commune,Lâm Đồng,25054,Bảo Lâm 1,Xã,981
+2025,commune,Lâm Đồng,25057,Bảo Lâm 5,Xã,2451
+2025,commune,Lâm Đồng,25063,Bảo Lâm 4,Xã,1645
+2025,commune,Lâm Đồng,25084,Bảo Lâm 2,Xã,540
+2025,commune,Lâm Đồng,25093,Bảo Lâm 3,Xã,724
+2025,commune,Lâm Đồng,25099,Đạ Huoai,Xã,546
+2025,commune,Lâm Đồng,25105,Đạ Huoai 2,Xã,1185
+2025,commune,Lâm Đồng,25114,Đạ Huoai 3,Xã,628
+2025,commune,Lâm Đồng,25126,Đạ Tẻh,Xã,699
+2025,commune,Lâm Đồng,25135,Đạ Tẻh 3,Xã,928
+2025,commune,Lâm Đồng,25138,Đạ Tẻh 2,Xã,887
+2025,commune,Lâm Đồng,25159,Cát Tiên,Xã,377
+2025,commune,Lâm Đồng,25162,Cát Tiên 3,Xã,820
+2025,commune,Lâm Đồng,25180,Cát Tiên 2,Xã,844
+2025,commune,Lạng Sơn,05977,Đông Kinh,Phường,274
+2025,commune,Lạng Sơn,05983,Lương Văn Tri,Phường,164
+2025,commune,Lạng Sơn,05986,Tam Thanh,Phường,132
+2025,commune,Lạng Sơn,06001,Đoàn Kết,Xã,855
+2025,commune,Lạng Sơn,06004,Quốc Khánh,Xã,803
+2025,commune,Lạng Sơn,06019,Tân Tiến,Xã,1015
+2025,commune,Lạng Sơn,06037,Kháng Chiến,Xã,713
+2025,commune,Lạng Sơn,06040,Thất Khê,Xã,550
+2025,commune,Lạng Sơn,06046,Tràng Định,Xã,603
+2025,commune,Lạng Sơn,06058,Quốc Việt,Xã,597
+2025,commune,Lạng Sơn,06073,Hoa Thám,Xã,755
+2025,commune,Lạng Sơn,06076,Quý Hòa,Xã,656
+2025,commune,Lạng Sơn,06079,Hồng Phong,Xã,674
+2025,commune,Lạng Sơn,06085,Thiện Hòa,Xã,804
+2025,commune,Lạng Sơn,06091,Thiện Thuật,Xã,682
+2025,commune,Lạng Sơn,06103,Thiện Long,Xã,842
+2025,commune,Lạng Sơn,06112,Bình Gia,Xã,524
+2025,commune,Lạng Sơn,06115,Tân Văn,Xã,565
+2025,commune,Lạng Sơn,06124,Na Sầm,Xã,478
+2025,commune,Lạng Sơn,06148,Thụy Hùng,Xã,551
+2025,commune,Lạng Sơn,06151,Hội Hoan,Xã,585
+2025,commune,Lạng Sơn,06154,Văn Lãng,Xã,663
+2025,commune,Lạng Sơn,06172,Hoàng Văn Thụ,Xã,577
+2025,commune,Lạng Sơn,06184,Đồng Đăng,Xã,465
+2025,commune,Lạng Sơn,06187,Kỳ Lừa,Phường,313
+2025,commune,Lạng Sơn,06196,Ba Sơn,Xã,778
+2025,commune,Lạng Sơn,06211,Cao Lộc,Xã,520
+2025,commune,Lạng Sơn,06220,Công Sơn,Xã,428
+2025,commune,Lạng Sơn,06253,Văn Quan,Xã,441
+2025,commune,Lạng Sơn,06280,Điềm He,Xã,522
+2025,commune,Lạng Sơn,06286,Khánh Khê,Xã,474
+2025,commune,Lạng Sơn,06298,Yên Phúc,Xã,596
+2025,commune,Lạng Sơn,06313,Tri Lễ,Xã,658
+2025,commune,Lạng Sơn,06316,Tân Đoàn,Xã,503
+2025,commune,Lạng Sơn,06325,Bắc Sơn,Xã,405
+2025,commune,Lạng Sơn,06337,Tân Tri,Xã,695
+2025,commune,Lạng Sơn,06349,Hưng Vũ,Xã,671
+2025,commune,Lạng Sơn,06364,Vũ Lễ,Xã,484
+2025,commune,Lạng Sơn,06367,Vũ Lăng,Xã,567
+2025,commune,Lạng Sơn,06376,Nhất Hòa,Xã,694
+2025,commune,Lạng Sơn,06385,Hữu Lũng,Xã,264
+2025,commune,Lạng Sơn,06391,Yên Bình,Xã,597
+2025,commune,Lạng Sơn,06400,Hữu Liên,Xã,617
+2025,commune,Lạng Sơn,06415,Vân Nham,Xã,405
+2025,commune,Lạng Sơn,06427,Cai Kinh,Xã,529
+2025,commune,Lạng Sơn,06436,Thiện Tân,Xã,473
+2025,commune,Lạng Sơn,06445,Tân Thành,Xã,619
+2025,commune,Lạng Sơn,06457,Tuấn Sơn,Xã,554
+2025,commune,Lạng Sơn,06463,Chi Lăng,Xã,403
+2025,commune,Lạng Sơn,06475,Bằng Mạc,Xã,594
+2025,commune,Lạng Sơn,06481,Chiến Thắng,Xã,571
+2025,commune,Lạng Sơn,06496,Nhân Lý,Xã,637
+2025,commune,Lạng Sơn,06505,Vạn Linh,Xã,630
+2025,commune,Lạng Sơn,06517,Quan Sơn,Xã,698
+2025,commune,Lạng Sơn,06526,Na Dương,Xã,553
+2025,commune,Lạng Sơn,06529,Lộc Bình,Xã,394
+2025,commune,Lạng Sơn,06541,Mẫu Sơn,Xã,688
+2025,commune,Lạng Sơn,06565,Khuất Xá,Xã,636
+2025,commune,Lạng Sơn,06577,Thống Nhất,Xã,955
+2025,commune,Lạng Sơn,06601,Lợi Bác,Xã,698
+2025,commune,Lạng Sơn,06607,Xuân Dương,Xã,1039
+2025,commune,Lạng Sơn,06613,Đình Lập,Xã,695
+2025,commune,Lạng Sơn,06616,Thái Bình,Xã,1533
+2025,commune,Lạng Sơn,06625,Kiên Mộc,Xã,2308
+2025,commune,Lạng Sơn,06637,Châu Sơn,Xã,1440
+2025,commune,Nghệ An,16681,Thành Vinh,Phường,75
+2025,commune,Nghệ An,16690,Trường Vinh,Phường,166
+2025,commune,Nghệ An,16702,Vinh Phú,Phường,119
+2025,commune,Nghệ An,16708,Vinh Lộc,Phường,188
+2025,commune,Nghệ An,16732,Cửa Lò,Phường,130
+2025,commune,Nghệ An,16738,Quế Phong,Xã,1316
+2025,commune,Nghệ An,16744,Thông Thụ,Xã,3524
+2025,commune,Nghệ An,16750,Tiền Phong,Xã,1607
+2025,commune,Nghệ An,16756,Tri Lễ,Xã,1284
+2025,commune,Nghệ An,16774,Mường Quàng,Xã,1642
+2025,commune,Nghệ An,16777,Quỳ Châu,Xã,1626
+2025,commune,Nghệ An,16792,Châu Tiến,Xã,1223
+2025,commune,Nghệ An,16801,Hùng Chân,Xã,1749
+2025,commune,Nghệ An,16804,Châu Bình,Xã,647
+2025,commune,Nghệ An,16813,Mường Xén,Xã,901
+2025,commune,Nghệ An,16816,Mỹ Lý,Xã,1052
+2025,commune,Nghệ An,16819,Bắc Lý,Xã,542
+2025,commune,Nghệ An,16822,Keng Đu,Xã,482
+2025,commune,Nghệ An,16828,Huồi Tụ,Xã,542
+2025,commune,Nghệ An,16831,Mường Lống,Xã,787
+2025,commune,Nghệ An,16834,Na Loi,Xã,704
+2025,commune,Nghệ An,16837,Nậm Cắn,Xã,728
+2025,commune,Nghệ An,16849,Hữu Kiệm,Xã,935
+2025,commune,Nghệ An,16855,Chiêu Lưu,Xã,966
+2025,commune,Nghệ An,16858,Mường Típ,Xã,1077
+2025,commune,Nghệ An,16870,Na Ngoi,Xã,1690
+2025,commune,Nghệ An,16876,Tương Dương,Xã,1699
+2025,commune,Nghệ An,16882,Nhôn Mai,Xã,1513
+2025,commune,Nghệ An,16885,Hữu Khuông,Xã,1311
+2025,commune,Nghệ An,16903,Nga My,Xã,1496
+2025,commune,Nghệ An,16906,Lượng Minh,Xã,1107
+2025,commune,Nghệ An,16909,Yên Hòa,Xã,1044
+2025,commune,Nghệ An,16912,Yên Na,Xã,1473
+2025,commune,Nghệ An,16933,Tam Quang,Xã,2502
+2025,commune,Nghệ An,16936,Tam Thái,Xã,1697
+2025,commune,Nghệ An,16939,Thái Hòa,Phường,129
+2025,commune,Nghệ An,16941,Nghĩa Đàn,Xã,235
+2025,commune,Nghệ An,16951,Nghĩa Lâm,Xã,611
+2025,commune,Nghệ An,16969,Nghĩa Thọ,Xã,460
+2025,commune,Nghệ An,16972,Nghĩa Hưng,Xã,340
+2025,commune,Nghệ An,16975,Nghĩa Mai,Xã,734
+2025,commune,Nghệ An,17011,Tây Hiếu,Phường,217
+2025,commune,Nghệ An,17017,Đông Hiếu,Xã,317
+2025,commune,Nghệ An,17029,Nghĩa Lộc,Xã,307
+2025,commune,Nghệ An,17032,Nghĩa Khánh,Xã,388
+2025,commune,Nghệ An,17035,Quỳ Hợp,Xã,446
+2025,commune,Nghệ An,17044,Châu Hồng,Xã,657
+2025,commune,Nghệ An,17056,Châu Lộc,Xã,422
+2025,commune,Nghệ An,17059,Tam Hợp,Xã,674
+2025,commune,Nghệ An,17071,Minh Hợp,Xã,801
+2025,commune,Nghệ An,17077,Mường Ham,Xã,792
+2025,commune,Nghệ An,17089,Mường Chọng,Xã,867
+2025,commune,Nghệ An,17110,Hoàng Mai,Phường,400
+2025,commune,Nghệ An,17125,Quỳnh Mai,Phường,198
+2025,commune,Nghệ An,17128,Tân Mai,Phường,255
+2025,commune,Nghệ An,17143,Quỳnh Văn,Xã,268
+2025,commune,Nghệ An,17149,Quỳnh Tam,Xã,507
+2025,commune,Nghệ An,17170,Quỳnh Sơn,Xã,310
+2025,commune,Nghệ An,17176,Quỳnh Anh,Xã,200
+2025,commune,Nghệ An,17179,Quỳnh Lưu,Xã,190
+2025,commune,Nghệ An,17212,Quỳnh Phú,Xã,163
+2025,commune,Nghệ An,17224,Quỳnh Thắng,Xã,532
+2025,commune,Nghệ An,17230,Bình Chuẩn,Xã,903
+2025,commune,Nghệ An,17239,Mậu Thạch,Xã,814
+2025,commune,Nghệ An,17242,Cam Phục,Xã,806
+2025,commune,Nghệ An,17248,Châu Khê,Xã,2701
+2025,commune,Nghệ An,17254,Con Cuông,Xã,772
+2025,commune,Nghệ An,17263,Môn Sơn,Xã,2617
+2025,commune,Nghệ An,17266,Tân Kỳ,Xã,579
+2025,commune,Nghệ An,17272,Tân Phú,Xã,460
+2025,commune,Nghệ An,17278,Giai Xuân,Xã,586
+2025,commune,Nghệ An,17284,Nghĩa Đồng,Xã,358
+2025,commune,Nghệ An,17287,Tiên Đồng,Xã,594
+2025,commune,Nghệ An,17305,Tân An,Xã,461
+2025,commune,Nghệ An,17326,Nghĩa Hành,Xã,536
+2025,commune,Nghệ An,17329,Anh Sơn,Xã,970
+2025,commune,Nghệ An,17335,Thành Bình Thọ,Xã,434
+2025,commune,Nghệ An,17344,Nhân Hòa,Xã,428
+2025,commune,Nghệ An,17357,Vĩnh Tường,Xã,379
+2025,commune,Nghệ An,17365,Anh Sơn Đông,Xã,324
+2025,commune,Nghệ An,17380,Yên Xuân,Xã,502
+2025,commune,Nghệ An,17395,Hùng Châu,Xã,346
+2025,commune,Nghệ An,17416,Đức Châu,Xã,103
+2025,commune,Nghệ An,17419,Hải Châu,Xã,145
+2025,commune,Nghệ An,17443,Quảng Châu,Xã,134
+2025,commune,Nghệ An,17464,Diễn Châu,Xã,112
+2025,commune,Nghệ An,17476,Minh Châu,Xã,190
+2025,commune,Nghệ An,17479,An Châu,Xã,173
+2025,commune,Nghệ An,17488,Tân Châu,Xã,317
+2025,commune,Nghệ An,17506,Yên Thành,Xã,189
+2025,commune,Nghệ An,17515,Bình Minh,Xã,456
+2025,commune,Nghệ An,17521,Quang Đồng,Xã,388
+2025,commune,Nghệ An,17524,Giai Lạc,Xã,423
+2025,commune,Nghệ An,17530,Đông Thành,Xã,147
+2025,commune,Nghệ An,17560,Vân Du,Xã,412
+2025,commune,Nghệ An,17569,Quan Thành,Xã,184
+2025,commune,Nghệ An,17605,Hợp Minh,Xã,273
+2025,commune,Nghệ An,17611,Vân Tụ,Xã,243
+2025,commune,Nghệ An,17623,Bạch Ngọc,Xã,360
+2025,commune,Nghệ An,17641,Lương Sơn,Xã,235
+2025,commune,Nghệ An,17662,Đô Lương,Xã,249
+2025,commune,Nghệ An,17677,Văn Hiến,Xã,271
+2025,commune,Nghệ An,17689,Thuần Trung,Xã,245
+2025,commune,Nghệ An,17707,Bạch Hà,Xã,396
+2025,commune,Nghệ An,17713,Đại Đồng,Xã,384
+2025,commune,Nghệ An,17722,Hạnh Lâm,Xã,1311
+2025,commune,Nghệ An,17728,Cát Ngạn,Xã,277
+2025,commune,Nghệ An,17743,Tam Đồng,Xã,264
+2025,commune,Nghệ An,17759,Sơn Lâm,Xã,811
+2025,commune,Nghệ An,17770,Hoa Quân,Xã,528
+2025,commune,Nghệ An,17779,Xuân Lâm,Xã,299
+2025,commune,Nghệ An,17791,Kim Bảng,Xã,911
+2025,commune,Nghệ An,17818,Bích Hào,Xã,729
+2025,commune,Nghệ An,17827,Nghi Lộc,Xã,159
+2025,commune,Nghệ An,17833,Hải Lộc,Xã,207
+2025,commune,Nghệ An,17842,Thần Lĩnh,Xã,222
+2025,commune,Nghệ An,17854,Văn Kiều,Xã,309
+2025,commune,Nghệ An,17857,Phúc Lộc,Xã,346
+2025,commune,Nghệ An,17866,Trung Lộc,Xã,157
+2025,commune,Nghệ An,17878,Đông Lộc,Xã,147
+2025,commune,Nghệ An,17920,Vinh Hưng,Phường,128
+2025,commune,Nghệ An,17935,Nam Đàn,Xã,333
+2025,commune,Nghệ An,17944,Đại Huệ,Xã,182
+2025,commune,Nghệ An,17950,Vạn An,Xã,277
+2025,commune,Nghệ An,17971,Kim Liên,Xã,300
+2025,commune,Nghệ An,17989,Thiên Nhẫn,Xã,346
+2025,commune,Nghệ An,18001,Hưng Nguyên,Xã,224
+2025,commune,Nghệ An,18007,Yên Trung,Xã,185
+2025,commune,Nghệ An,18028,Hưng Nguyên Nam,Xã,178
+2025,commune,Nghệ An,18040,Lam Thành,Xã,196
+2025,commune,Ninh Bình,13285,Phủ Lý,Phường,61
+2025,commune,Ninh Bình,13291,Phù Vân,Phường,72
+2025,commune,Ninh Bình,13318,Châu Sơn,Phường,84
+2025,commune,Ninh Bình,13324,Duy Tiên,Phường,133
+2025,commune,Ninh Bình,13330,Duy Tân,Phường,159
+2025,commune,Ninh Bình,13336,Duy Hà,Phường,72
+2025,commune,Ninh Bình,13348,Đồng Văn,Phường,97
+2025,commune,Ninh Bình,13363,Tiên Sơn,Phường,114
+2025,commune,Ninh Bình,13366,Hà Nam,Phường,159
+2025,commune,Ninh Bình,13384,Kim Bảng,Phường,72
+2025,commune,Ninh Bình,13393,Lê Hồ,Phường,111
+2025,commune,Ninh Bình,13396,Nguyễn Uý,Phường,123
+2025,commune,Ninh Bình,13402,Kim Thanh,Phường,70
+2025,commune,Ninh Bình,13420,Tam Chúc,Phường,231
+2025,commune,Ninh Bình,13435,Lý Thường Kiệt,Phường,294
+2025,commune,Ninh Bình,13444,Liêm Tuyền,Phường,105
+2025,commune,Ninh Bình,13456,Liêm Hà,Xã,102
+2025,commune,Ninh Bình,13474,Tân Thanh,Xã,181
+2025,commune,Ninh Bình,13483,Thanh Bình,Xã,119
+2025,commune,Ninh Bình,13489,Thanh Lâm,Xã,260
+2025,commune,Ninh Bình,13495,Thanh Liêm,Xã,116
+2025,commune,Ninh Bình,13501,Bình Mỹ,Xã,153
+2025,commune,Ninh Bình,13504,Bình Lục,Xã,119
+2025,commune,Ninh Bình,13531,Bình Giang,Xã,122
+2025,commune,Ninh Bình,13540,Bình An,Xã,186
+2025,commune,Ninh Bình,13558,Bình Sơn,Xã,139
+2025,commune,Ninh Bình,13573,Lý Nhân,Xã,93
+2025,commune,Ninh Bình,13579,Bắc Lý,Xã,157
+2025,commune,Ninh Bình,13591,Nam Xang,Xã,114
+2025,commune,Ninh Bình,13594,Trần Thương,Xã,125
+2025,commune,Ninh Bình,13597,Vĩnh Trụ,Xã,90
+2025,commune,Ninh Bình,13609,Nhân Hà,Xã,123
+2025,commune,Ninh Bình,13627,Nam Lý,Xã,143
+2025,commune,Ninh Bình,13669,Nam Định,Phường,101
+2025,commune,Ninh Bình,13684,Thiên Trường,Phường,103
+2025,commune,Ninh Bình,13693,Đông A,Phường,110
+2025,commune,Ninh Bình,13699,Thành Nam,Phường,79
+2025,commune,Ninh Bình,13708,Mỹ Lộc,Phường,176
+2025,commune,Ninh Bình,13741,Vụ Bản,Xã,106
+2025,commune,Ninh Bình,13750,Minh Tân,Xã,167
+2025,commune,Ninh Bình,13753,Hiển Khánh,Xã,152
+2025,commune,Ninh Bình,13777,Trường Thi,Phường,155
+2025,commune,Ninh Bình,13786,Liên Minh,Xã,156
+2025,commune,Ninh Bình,13795,Ý Yên,Xã,230
+2025,commune,Ninh Bình,13807,Tân Minh,Xã,222
+2025,commune,Ninh Bình,13822,Phong Doanh,Xã,178
+2025,commune,Ninh Bình,13834,Vũ Dương,Xã,151
+2025,commune,Ninh Bình,13864,Vạn Thắng,Xã,134
+2025,commune,Ninh Bình,13870,Yên Cường,Xã,163
+2025,commune,Ninh Bình,13879,Yên Đồng,Xã,150
+2025,commune,Ninh Bình,13891,Nghĩa Hưng,Xã,131
+2025,commune,Ninh Bình,13894,Rạng Đông,Xã,356
+2025,commune,Ninh Bình,13900,Đồng Thịnh,Xã,153
+2025,commune,Ninh Bình,13918,Nghĩa Sơn,Xã,128
+2025,commune,Ninh Bình,13927,Hồng Phong,Xã,143
+2025,commune,Ninh Bình,13939,Quỹ Nhất,Xã,162
+2025,commune,Ninh Bình,13957,Nghĩa Lâm,Xã,142
+2025,commune,Ninh Bình,13966,Nam Trực,Xã,101
+2025,commune,Ninh Bình,13972,Vị Khê,Phường,123
+2025,commune,Ninh Bình,13984,Hồng Quang,Phường,140
+2025,commune,Ninh Bình,13987,Nam Hồng,Xã,147
+2025,commune,Ninh Bình,14005,Nam Ninh,Xã,128
+2025,commune,Ninh Bình,14011,Nam Minh,Xã,118
+2025,commune,Ninh Bình,14014,Nam Đồng,Xã,123
+2025,commune,Ninh Bình,14026,Cổ Lễ,Xã,91
+2025,commune,Ninh Bình,14038,Ninh Giang,Xã,115
+2025,commune,Ninh Bình,14053,Trực Ninh,Xã,88
+2025,commune,Ninh Bình,14056,Cát Thành,Xã,115
+2025,commune,Ninh Bình,14062,Quang Hưng,Xã,78
+2025,commune,Ninh Bình,14071,Minh Thái,Xã,117
+2025,commune,Ninh Bình,14077,Ninh Cường,Xã,109
+2025,commune,Ninh Bình,14089,Xuân Trường,Xã,167
+2025,commune,Ninh Bình,14095,Xuân Hồng,Xã,137
+2025,commune,Ninh Bình,14104,Xuân Giang,Xã,162
+2025,commune,Ninh Bình,14122,Xuân Hưng,Xã,113
+2025,commune,Ninh Bình,14161,Giao Minh,Xã,367
+2025,commune,Ninh Bình,14167,Giao Thuỷ,Xã,117
+2025,commune,Ninh Bình,14179,Giao Hưng,Xã,120
+2025,commune,Ninh Bình,14182,Giao Hòa,Xã,217
+2025,commune,Ninh Bình,14194,Giao Bình,Xã,110
+2025,commune,Ninh Bình,14203,Giao Phúc,Xã,126
+2025,commune,Ninh Bình,14212,Giao Ninh,Xã,126
+2025,commune,Ninh Bình,14215,Hải Hậu,Xã,120
+2025,commune,Ninh Bình,14218,Hải Tiến,Xã,121
+2025,commune,Ninh Bình,14221,Hải Thịnh,Xã,160
+2025,commune,Ninh Bình,14236,Hải Anh,Xã,131
+2025,commune,Ninh Bình,14248,Hải Hưng,Xã,198
+2025,commune,Ninh Bình,14281,Hải An,Xã,128
+2025,commune,Ninh Bình,14287,Hải Quang,Xã,124
+2025,commune,Ninh Bình,14308,Hải Xuân,Xã,155
+2025,commune,Ninh Bình,14329,Hoa Lư,Phường,256
+2025,commune,Ninh Bình,14359,Nam Hoa Lư,Phường,269
+2025,commune,Ninh Bình,14362,Tam Điệp,Phường,204
+2025,commune,Ninh Bình,14365,Trung Sơn,Phường,184
+2025,commune,Ninh Bình,14371,Yên Sơn,Phường,181
+2025,commune,Ninh Bình,14389,Gia Lâm,Xã,181
+2025,commune,Ninh Bình,14401,Gia Tường,Xã,140
+2025,commune,Ninh Bình,14404,Cúc Phương,Xã,666
+2025,commune,Ninh Bình,14407,Phú Sơn,Xã,204
+2025,commune,Ninh Bình,14428,Nho Quan,Xã,161
+2025,commune,Ninh Bình,14434,Thanh Sơn,Xã,179
+2025,commune,Ninh Bình,14452,Quỳnh Lưu,Xã,129
+2025,commune,Ninh Bình,14458,Phú Long,Xã,376
+2025,commune,Ninh Bình,14464,Gia Viễn,Xã,200
+2025,commune,Ninh Bình,14482,Gia Hưng,Xã,142
+2025,commune,Ninh Bình,14488,Gia Vân,Xã,142
+2025,commune,Ninh Bình,14494,Gia Trấn,Xã,86
+2025,commune,Ninh Bình,14500,Đại Hoàng,Xã,115
+2025,commune,Ninh Bình,14524,Gia Phong,Xã,92
+2025,commune,Ninh Bình,14533,Tây Hoa Lư,Phường,438
+2025,commune,Ninh Bình,14560,Yên Khánh,Xã,143
+2025,commune,Ninh Bình,14563,Khánh Thiện,Xã,129
+2025,commune,Ninh Bình,14566,Đông Hoa Lư,Phường,129
+2025,commune,Ninh Bình,14608,Khánh Trung,Xã,128
+2025,commune,Ninh Bình,14611,Khánh Nhạc,Xã,98
+2025,commune,Ninh Bình,14614,Khánh Hội,Xã,109
+2025,commune,Ninh Bình,14620,Phát Diệm,Xã,114
+2025,commune,Ninh Bình,14623,Bình Minh,Xã,167
+2025,commune,Ninh Bình,14638,Kim Sơn,Xã,88
+2025,commune,Ninh Bình,14647,Quang Thiện,Xã,108
+2025,commune,Ninh Bình,14653,Chất Bình,Xã,95
+2025,commune,Ninh Bình,14674,Lai Thành,Xã,111
+2025,commune,Ninh Bình,14677,Định Hóa,Xã,106
+2025,commune,Ninh Bình,14698,Kim Đông,Xã,184
+2025,commune,Ninh Bình,14701,Yên Mô,Xã,142
+2025,commune,Ninh Bình,14725,Yên Thắng,Phường,162
+2025,commune,Ninh Bình,14728,Yên Từ,Xã,122
+2025,commune,Ninh Bình,14743,Yên Mạc,Xã,103
+2025,commune,Ninh Bình,14746,Đồng Thái,Xã,237
+2025,commune,Phú Thọ,04792,Tân Hòa,Phường,286
+2025,commune,Phú Thọ,04795,Hòa Bình,Phường,195
+2025,commune,Phú Thọ,04828,Thống Nhất,Phường,241
+2025,commune,Phú Thọ,04831,Đà Bắc,Xã,683
+2025,commune,Phú Thọ,04846,Đức Nhàn,Xã,532
+2025,commune,Phú Thọ,04849,Tân Pheo,Xã,714
+2025,commune,Phú Thọ,04873,Quy Đức,Xã,722
+2025,commune,Phú Thọ,04876,Cao Sơn,Xã,631
+2025,commune,Phú Thọ,04891,Tiền Phong,Xã,608
+2025,commune,Phú Thọ,04894,Kỳ Sơn,Phường,581
+2025,commune,Phú Thọ,04897,Thịnh Minh,Xã,446
+2025,commune,Phú Thọ,04924,Lương Sơn,Xã,500
+2025,commune,Phú Thọ,04960,Liên Sơn,Xã,753
+2025,commune,Phú Thọ,04978,Kim Bôi,Xã,323
+2025,commune,Phú Thọ,04990,Nật Sơn,Xã,770
+2025,commune,Phú Thọ,05014,Mường Động,Xã,727
+2025,commune,Phú Thọ,05047,Cao Dương,Xã,564
+2025,commune,Phú Thọ,05068,Hợp Kim,Xã,434
+2025,commune,Phú Thọ,05086,Dũng Tiến,Xã,506
+2025,commune,Phú Thọ,05089,Cao Phong,Xã,391
+2025,commune,Phú Thọ,05092,Thung Nai,Xã,436
+2025,commune,Phú Thọ,05116,Mường Thàng,Xã,449
+2025,commune,Phú Thọ,05128,Tân Lạc,Xã,707
+2025,commune,Phú Thọ,05134,Mường Hoa,Xã,527
+2025,commune,Phú Thọ,05152,Vân Sơn,Xã,602
+2025,commune,Phú Thọ,05158,Mường Bi,Xã,475
+2025,commune,Phú Thọ,05191,Toàn Thắng,Xã,352
+2025,commune,Phú Thọ,05200,Mai Châu,Xã,774
+2025,commune,Phú Thọ,05206,Tân Mai,Xã,624
+2025,commune,Phú Thọ,05212,Pà Cò,Xã,526
+2025,commune,Phú Thọ,05245,Bao La,Xã,533
+2025,commune,Phú Thọ,05251,Mai Hạ,Xã,356
+2025,commune,Phú Thọ,05266,Lạc Sơn,Xã,288
+2025,commune,Phú Thọ,05287,Mường Vang,Xã,350
+2025,commune,Phú Thọ,05290,Nhân Nghĩa,Xã,402
+2025,commune,Phú Thọ,05293,Thượng Cốc,Xã,293
+2025,commune,Phú Thọ,05305,Yên Phú,Xã,316
+2025,commune,Phú Thọ,05323,Quyết Thắng,Xã,300
+2025,commune,Phú Thọ,05329,Ngọc Sơn,Xã,564
+2025,commune,Phú Thọ,05347,Đại Đồng,Xã,403
+2025,commune,Phú Thọ,05353,Yên Thủy,Xã,379
+2025,commune,Phú Thọ,05362,Lạc Lương,Xã,648
+2025,commune,Phú Thọ,05386,Yên Trị,Xã,410
+2025,commune,Phú Thọ,05392,Lạc Thủy,Xã,450
+2025,commune,Phú Thọ,05395,An Nghĩa,Xã,471
+2025,commune,Phú Thọ,05425,An Bình,Xã,639
+2025,commune,Phú Thọ,07894,Nông Trang,Phường,78
+2025,commune,Phú Thọ,07900,Việt Trì,Phường,127
+2025,commune,Phú Thọ,07909,Thanh Miếu,Phường,95
+2025,commune,Phú Thọ,07918,Vân Phú,Phường,131
+2025,commune,Phú Thọ,07942,Phú Thọ,Phường,115
+2025,commune,Phú Thọ,07948,Âu Cơ,Phường,66
+2025,commune,Phú Thọ,07954,Phong Châu,Phường,147
+2025,commune,Phú Thọ,07969,Đoan Hùng,Xã,223
+2025,commune,Phú Thọ,07996,Bằng Luân,Xã,301
+2025,commune,Phú Thọ,07999,Chí Đám,Xã,249
+2025,commune,Phú Thọ,08023,Tây Cốc,Xã,298
+2025,commune,Phú Thọ,08038,Chân Mộng,Xã,449
+2025,commune,Phú Thọ,08053,Hạ Hòa,Xã,212
+2025,commune,Phú Thọ,08071,Đan Thượng,Xã,421
+2025,commune,Phú Thọ,08110,Hiền Lương,Xã,407
+2025,commune,Phú Thọ,08113,Yên Kỳ,Xã,268
+2025,commune,Phú Thọ,08134,Văn Lang,Xã,272
+2025,commune,Phú Thọ,08143,Vĩnh Chân,Xã,133
+2025,commune,Phú Thọ,08152,Thanh Ba,Xã,202
+2025,commune,Phú Thọ,08173,Quảng Yên,Xã,198
+2025,commune,Phú Thọ,08203,Hoàng Cương,Xã,194
+2025,commune,Phú Thọ,08209,Đông Thành,Xã,161
+2025,commune,Phú Thọ,08218,Chí Tiên,Xã,115
+2025,commune,Phú Thọ,08227,Liên Minh,Xã,104
+2025,commune,Phú Thọ,08230,Phù Ninh,Xã,196
+2025,commune,Phú Thọ,08236,Phú Mỹ,Xã,139
+2025,commune,Phú Thọ,08245,Trạm Thản,Xã,164
+2025,commune,Phú Thọ,08254,Dân Chủ,Xã,149
+2025,commune,Phú Thọ,08275,Bình Phú,Xã,144
+2025,commune,Phú Thọ,08290,Yên Lập,Xã,350
+2025,commune,Phú Thọ,08296,Sơn Lương,Xã,484
+2025,commune,Phú Thọ,08305,Xuân Viên,Xã,232
+2025,commune,Phú Thọ,08311,Trung Sơn,Xã,490
+2025,commune,Phú Thọ,08323,Thượng Long,Xã,304
+2025,commune,Phú Thọ,08338,Minh Hòa,Xã,338
+2025,commune,Phú Thọ,08341,Cẩm Khê,Xã,254
+2025,commune,Phú Thọ,08344,Tiên Lương,Xã,276
+2025,commune,Phú Thọ,08377,Vân Bán,Xã,115
+2025,commune,Phú Thọ,08398,Phú Khê,Xã,184
+2025,commune,Phú Thọ,08416,Hùng Việt,Xã,165
+2025,commune,Phú Thọ,08431,Đồng Lương,Xã,185
+2025,commune,Phú Thọ,08434,Tam Nông,Xã,142
+2025,commune,Phú Thọ,08443,Hiền Quan,Xã,163
+2025,commune,Phú Thọ,08467,Vạn Xuân,Xã,261
+2025,commune,Phú Thọ,08479,Thọ Văn,Xã,218
+2025,commune,Phú Thọ,08494,Lâm Thao,Xã,77
+2025,commune,Phú Thọ,08500,Xuân Lũng,Xã,122
+2025,commune,Phú Thọ,08515,Hy Cương,Xã,123
+2025,commune,Phú Thọ,08521,Phùng Nguyên,Xã,149
+2025,commune,Phú Thọ,08527,Bản Nguyên,Xã,140
+2025,commune,Phú Thọ,08542,Thanh Sơn,Xã,427
+2025,commune,Phú Thọ,08545,Thu Cúc,Xã,508
+2025,commune,Phú Thọ,08560,Lai Đồng,Xã,547
+2025,commune,Phú Thọ,08566,Tân Sơn,Xã,593
+2025,commune,Phú Thọ,08584,Võ Miếu,Xã,480
+2025,commune,Phú Thọ,08590,Xuân Đài,Xã,1028
+2025,commune,Phú Thọ,08593,Minh Đài,Xã,422
+2025,commune,Phú Thọ,08611,Văn Miếu,Xã,454
+2025,commune,Phú Thọ,08614,Cự Đồng,Xã,233
+2025,commune,Phú Thọ,08620,Long Cốc,Xã,353
+2025,commune,Phú Thọ,08632,Hương Cần,Xã,397
+2025,commune,Phú Thọ,08635,Khả Cửu,Xã,737
+2025,commune,Phú Thọ,08656,Yên Sơn,Xã,380
+2025,commune,Phú Thọ,08662,Đào Xá,Xã,227
+2025,commune,Phú Thọ,08674,Thanh Thủy,Xã,153
+2025,commune,Phú Thọ,08686,Tu Vũ,Xã,248
+2025,commune,Phú Thọ,08707,Vĩnh Yên,Phường,118
+2025,commune,Phú Thọ,08716,Vĩnh Phúc,Phường,127
+2025,commune,Phú Thọ,08740,Phúc Yên,Phường,119
+2025,commune,Phú Thọ,08746,Xuân Hòa,Phường,478
+2025,commune,Phú Thọ,08761,Lập Thạch,Xã,199
+2025,commune,Phú Thọ,08770,Hợp Lý,Xã,172
+2025,commune,Phú Thọ,08773,Yên Lãng,Xã,190
+2025,commune,Phú Thọ,08782,Hải Lựu,Xã,194
+2025,commune,Phú Thọ,08788,Thái Hòa,Xã,146
+2025,commune,Phú Thọ,08812,Liên Hòa,Xã,89
+2025,commune,Phú Thọ,08824,Tam Sơn,Xã,166
+2025,commune,Phú Thọ,08842,Tiên Lữ,Xã,161
+2025,commune,Phú Thọ,08848,Sông Lô,Xã,169
+2025,commune,Phú Thọ,08866,Sơn Đông,Xã,135
+2025,commune,Phú Thọ,08869,Tam Dương,Xã,225
+2025,commune,Phú Thọ,08872,Tam Dương Bắc,Xã,229
+2025,commune,Phú Thọ,08896,Hoàng An,Xã,105
+2025,commune,Phú Thọ,08905,Hội Thịnh,Xã,131
+2025,commune,Phú Thọ,08911,Tam Đảo,Xã,396
+2025,commune,Phú Thọ,08914,Đạo Trù,Xã,417
+2025,commune,Phú Thọ,08923,Đại Đình,Xã,224
+2025,commune,Phú Thọ,08935,Bình Nguyên,Xã,154
+2025,commune,Phú Thọ,08944,Bình Tuyền,Xã,295
+2025,commune,Phú Thọ,08950,Bình Xuyên,Xã,148
+2025,commune,Phú Thọ,08971,Xuân Lãng,Xã,151
+2025,commune,Phú Thọ,09025,Yên Lạc,Xã,112
+2025,commune,Phú Thọ,09040,Tề Lỗ,Xã,92
+2025,commune,Phú Thọ,09043,Tam Hồng,Xã,111
+2025,commune,Phú Thọ,09052,Nguyệt Đức,Xã,94
+2025,commune,Phú Thọ,09064,Liên Châu,Xã,130
+2025,commune,Phú Thọ,09076,Vĩnh Tường,Xã,132
+2025,commune,Phú Thọ,09079,Vĩnh An,Xã,107
+2025,commune,Phú Thọ,09100,Vĩnh Hưng,Xã,92
+2025,commune,Phú Thọ,09106,Vĩnh Thành,Xã,107
+2025,commune,Phú Thọ,09112,Thổ Tang,Xã,107
+2025,commune,Phú Thọ,09154,Vĩnh Phú,Xã,174
+2025,commune,Quảng Ngãi,21025,Cẩm Thành,Phường,39
+2025,commune,Quảng Ngãi,21028,Nghĩa Lộ,Phường,82
+2025,commune,Quảng Ngãi,21034,An Phú,Xã,163
+2025,commune,Quảng Ngãi,21040,Bình Sơn,Xã,490
+2025,commune,Quảng Ngãi,21061,Vạn Tường,Xã,531
+2025,commune,Quảng Ngãi,21085,Bình Minh,Xã,625
+2025,commune,Quảng Ngãi,21100,Bình Chương,Xã,154
+2025,commune,Quảng Ngãi,21109,Đông Sơn,Xã,561
+2025,commune,Quảng Ngãi,21115,Trà Bồng,Xã,678
+2025,commune,Quảng Ngãi,21124,Thanh Bồng,Xã,637
+2025,commune,Quảng Ngãi,21127,Đông Trà Bồng,Xã,364
+2025,commune,Quảng Ngãi,21136,Cà Đam,Xã,589
+2025,commune,Quảng Ngãi,21154,Tây Trà,Xã,826
+2025,commune,Quảng Ngãi,21157,Tây Trà Bồng,Xã,579
+2025,commune,Quảng Ngãi,21172,Trương Quang Trọng,Phường,169
+2025,commune,Quảng Ngãi,21181,Thọ Phong,Xã,317
+2025,commune,Quảng Ngãi,21196,Trường Giang,Xã,250
+2025,commune,Quảng Ngãi,21205,Ba Gia,Xã,320
+2025,commune,Quảng Ngãi,21211,Tịnh Khê,Xã,222
+2025,commune,Quảng Ngãi,21220,Sơn Tịnh,Xã,290
+2025,commune,Quảng Ngãi,21235,Tư Nghĩa,Xã,195
+2025,commune,Quảng Ngãi,21238,Vệ Giang,Xã,122
+2025,commune,Quảng Ngãi,21244,Trà Giang,Xã,447
+2025,commune,Quảng Ngãi,21250,Nghĩa Giang,Xã,232
+2025,commune,Quảng Ngãi,21289,Sơn Hà,Xã,825
+2025,commune,Quảng Ngãi,21292,Sơn Hạ,Xã,722
+2025,commune,Quảng Ngãi,21307,Sơn Linh,Xã,724
+2025,commune,Quảng Ngãi,21319,Sơn Thủy,Xã,448
+2025,commune,Quảng Ngãi,21325,Sơn Kỳ,Xã,928
+2025,commune,Quảng Ngãi,21334,Sơn Tây Thượng,Xã,599
+2025,commune,Quảng Ngãi,21340,Sơn Tây,Xã,587
+2025,commune,Quảng Ngãi,21343,Sơn Tây Hạ,Xã,667
+2025,commune,Quảng Ngãi,21349,Sơn Mai,Xã,504
+2025,commune,Quảng Ngãi,21361,Minh Long,Xã,548
+2025,commune,Quảng Ngãi,21364,Nghĩa Hành,Xã,120
+2025,commune,Quảng Ngãi,21370,Phước Giang,Xã,275
+2025,commune,Quảng Ngãi,21385,Đình Cương,Xã,263
+2025,commune,Quảng Ngãi,21388,Thiện Tín,Xã,476
+2025,commune,Quảng Ngãi,21400,Mộ Đức,Xã,368
+2025,commune,Quảng Ngãi,21409,Long Phụng,Xã,174
+2025,commune,Quảng Ngãi,21421,Mỏ Cày,Xã,216
+2025,commune,Quảng Ngãi,21433,Lân Phong,Xã,280
+2025,commune,Quảng Ngãi,21439,Đức Phổ,Phường,334
+2025,commune,Quảng Ngãi,21451,Trà Câu,Phường,263
+2025,commune,Quảng Ngãi,21457,Nguyễn Nghiêm,Xã,476
+2025,commune,Quảng Ngãi,21472,Khánh Cường,Xã,512
+2025,commune,Quảng Ngãi,21478,Sa Huỳnh,Phường,237
+2025,commune,Quảng Ngãi,21484,Ba Tơ,Xã,561
+2025,commune,Quảng Ngãi,21490,Ba Vinh,Xã,558
+2025,commune,Quảng Ngãi,21496,Ba Động,Xã,485
+2025,commune,Quảng Ngãi,21499,Ba Dinh,Xã,486
+2025,commune,Quảng Ngãi,21520,Đặng Thùy Trâm,Xã,962
+2025,commune,Quảng Ngãi,21523,Ba Tô,Xã,1317
+2025,commune,Quảng Ngãi,21529,Ba Vì,Xã,611
+2025,commune,Quảng Ngãi,21538,Ba Xa,Xã,499
+2025,commune,Quảng Ngãi,21548,Lý Sơn,Đặc khu,52
+2025,commune,Quảng Ngãi,23284,Đăk Cấm,Phường,268
+2025,commune,Quảng Ngãi,23293,Kon Tum,Phường,87
+2025,commune,Quảng Ngãi,23302,Đăk BLa,Phường,71
+2025,commune,Quảng Ngãi,23317,Ngọk Bay,Xã,361
+2025,commune,Quảng Ngãi,23326,Ia Chim,Xã,558
+2025,commune,Quảng Ngãi,23332,Đăk Rơ Wa,Xã,762
+2025,commune,Quảng Ngãi,23341,Đăk Pék,Xã,890
+2025,commune,Quảng Ngãi,23344,Đăk Plô,Xã,2101
+2025,commune,Quảng Ngãi,23356,Xốp,Xã,1289
+2025,commune,Quảng Ngãi,23365,Ngọc Linh,Xã,873
+2025,commune,Quảng Ngãi,23368,Đăk Long,Xã,1357
+2025,commune,Quảng Ngãi,23374,Đăk Môn,Xã,729
+2025,commune,Quảng Ngãi,23377,Bờ Y,Xã,1170
+2025,commune,Quảng Ngãi,23383,Dục Nông,Xã,1550
+2025,commune,Quảng Ngãi,23392,Sa Loong,Xã,1321
+2025,commune,Quảng Ngãi,23401,Đăk Tô,Xã,1049
+2025,commune,Quảng Ngãi,23416,Đăk Sao,Xã,837
+2025,commune,Quảng Ngãi,23419,Đăk Tờ Kan,Xã,645
+2025,commune,Quảng Ngãi,23425,Tu Mơ Rông,Xã,733
+2025,commune,Quảng Ngãi,23428,Ngọk Tụ,Xã,778
+2025,commune,Quảng Ngãi,23430,Kon Đào,Xã,634
+2025,commune,Quảng Ngãi,23446,Măng Ri,Xã,1936
+2025,commune,Quảng Ngãi,23455,Măng Bút,Xã,2020
+2025,commune,Quảng Ngãi,23473,Măng Đen,Xã,1903
+2025,commune,Quảng Ngãi,23476,Kon Plông,Xã,2704
+2025,commune,Quảng Ngãi,23479,Đăk Rve,Xã,1028
+2025,commune,Quảng Ngãi,23485,Đăk Kôi,Xã,2185
+2025,commune,Quảng Ngãi,23497,Kon Braih,Xã,1211
+2025,commune,Quảng Ngãi,23500,Đăk Hà,Xã,501
+2025,commune,Quảng Ngãi,23504,Đăk Pxi,Xã,1575
+2025,commune,Quảng Ngãi,23510,Đăk Ui,Xã,638
+2025,commune,Quảng Ngãi,23512,Đăk Mar,Xã,549
+2025,commune,Quảng Ngãi,23515,Ngọk Réo,Xã,824
+2025,commune,Quảng Ngãi,23527,Sa Thầy,Xã,651
+2025,commune,Quảng Ngãi,23530,Rờ Kơi,Xã,1448
+2025,commune,Quảng Ngãi,23534,Sa Bình,Xã,696
+2025,commune,Quảng Ngãi,23535,Ia Đal,Xã,1452
+2025,commune,Quảng Ngãi,23536,Mô Rai,Xã,2799
+2025,commune,Quảng Ngãi,23538,Ia Tơi,Xã,3259
+2025,commune,Quảng Ngãi,23548,Ya Ly,Xã,1300
+2025,commune,Quảng Ninh,06652,Hà Tu,Phường,162
+2025,commune,Quảng Ninh,06658,Cao Xanh,Phường,182
+2025,commune,Quảng Ninh,06661,Việt Hưng,Phường,225
+2025,commune,Quảng Ninh,06673,Bãi Cháy,Phường,113
+2025,commune,Quảng Ninh,06676,Hà Lầm,Phường,61
+2025,commune,Quảng Ninh,06685,Hồng Gai,Phường,27
+2025,commune,Quảng Ninh,06688,Hạ Long,Phường,278
+2025,commune,Quảng Ninh,06706,Tuần Châu,Phường,289
+2025,commune,Quảng Ninh,06709,Móng Cái 2,Phường,211
+2025,commune,Quảng Ninh,06712,Móng Cái 1,Phường,335
+2025,commune,Quảng Ninh,06724,Hải Sơn,Xã,662
+2025,commune,Quảng Ninh,06733,Hải Ninh,Xã,426
+2025,commune,Quảng Ninh,06736,Móng Cái 3,Phường,392
+2025,commune,Quảng Ninh,06757,Vĩnh Thực,Xã,192
+2025,commune,Quảng Ninh,06760,Mông Dương,Phường,828
+2025,commune,Quảng Ninh,06778,Quang Hanh,Phường,297
+2025,commune,Quảng Ninh,06781,Cửa Ông,Phường,201
+2025,commune,Quảng Ninh,06793,Cẩm Phả,Phường,86
+2025,commune,Quảng Ninh,06799,Hải Hòa,Xã,483
+2025,commune,Quảng Ninh,06811,Uông Bí,Phường,249
+2025,commune,Quảng Ninh,06820,Vàng Danh,Phường,466
+2025,commune,Quảng Ninh,06832,Yên Tử,Phường,567
+2025,commune,Quảng Ninh,06838,Bình Liêu,Xã,1132
+2025,commune,Quảng Ninh,06841,Hoành Mô,Xã,696
+2025,commune,Quảng Ninh,06856,Lục Hồn,Xã,540
+2025,commune,Quảng Ninh,06862,Tiên Yên,Xã,805
+2025,commune,Quảng Ninh,06874,Điền Xá,Xã,1031
+2025,commune,Quảng Ninh,06877,Đông Ngũ,Xã,693
+2025,commune,Quảng Ninh,06886,Hải Lạng,Xã,636
+2025,commune,Quảng Ninh,06895,Đầm Hà,Xã,488
+2025,commune,Quảng Ninh,06913,Quảng Tân,Xã,934
+2025,commune,Quảng Ninh,06922,Quảng Hà,Xã,404
+2025,commune,Quảng Ninh,06931,Quảng Đức,Xã,658
+2025,commune,Quảng Ninh,06946,Đường Hoa,Xã,1083
+2025,commune,Quảng Ninh,06967,Cái Chiên,Xã,115
+2025,commune,Quảng Ninh,06970,Ba Chẽ,Xã,1675
+2025,commune,Quảng Ninh,06979,Kỳ Thượng,Xã,1372
+2025,commune,Quảng Ninh,06985,Lương Minh,Xã,1128
+2025,commune,Quảng Ninh,06994,Vân Đồn,Đặc khu,2423
+2025,commune,Quảng Ninh,07030,Hoành Bồ,Phường,617
+2025,commune,Quảng Ninh,07054,Quảng La,Xã,833
+2025,commune,Quảng Ninh,07060,Thống Nhất,Xã,1619
+2025,commune,Quảng Ninh,07069,Mạo Khê,Phường,235
+2025,commune,Quảng Ninh,07081,Bình Khê,Phường,695
+2025,commune,Quảng Ninh,07090,An Sinh,Phường,534
+2025,commune,Quảng Ninh,07093,Đông Triều,Phường,205
+2025,commune,Quảng Ninh,07114,Hoàng Quế,Phường,321
+2025,commune,Quảng Ninh,07132,Quảng Yên,Phường,99
+2025,commune,Quảng Ninh,07135,Đông Mai,Phường,251
+2025,commune,Quảng Ninh,07147,Hiệp Hòa,Phường,182
+2025,commune,Quảng Ninh,07168,Hà An,Phường,359
+2025,commune,Quảng Ninh,07180,Liên Hòa,Phường,294
+2025,commune,Quảng Ninh,07183,Phong Cốc,Phường,209
+2025,commune,Quảng Ninh,07192,Cô Tô,Đặc khu,222
+2025,commune,Quảng Trị,18859,Đồng Thuận,Phường,130
+2025,commune,Quảng Trị,18871,Đồng Sơn,Phường,433
+2025,commune,Quảng Trị,18880,Đồng Hới,Phường,199
+2025,commune,Quảng Trị,18901,Minh Hóa,Xã,766
+2025,commune,Quảng Trị,18904,Dân Hóa,Xã,1787
+2025,commune,Quảng Trị,18919,Tân Thành,Xã,440
+2025,commune,Quảng Trị,18922,Kim Điền,Xã,1147
+2025,commune,Quảng Trị,18943,Kim Phú,Xã,2695
+2025,commune,Quảng Trị,18949,Đồng Lê,Xã,1421
+2025,commune,Quảng Trị,18952,Tuyên Sơn,Xã,652
+2025,commune,Quảng Trị,18958,Tuyên Lâm,Xã,1152
+2025,commune,Quảng Trị,18985,Tuyên Phú,Xã,762
+2025,commune,Quảng Trị,18991,Tuyên Bình,Xã,584
+2025,commune,Quảng Trị,18997,Tuyên Hóa,Xã,961
+2025,commune,Quảng Trị,19009,Ba Đồn,Phường,95
+2025,commune,Quảng Trị,19021,Phú Trạch,Xã,972
+2025,commune,Quảng Trị,19030,Trung Thuần,Xã,482
+2025,commune,Quảng Trị,19033,Hòa Trạch,Xã,260
+2025,commune,Quảng Trị,19051,Tân Gianh,Xã,202
+2025,commune,Quảng Trị,19057,Quảng Trạch,Xã,278
+2025,commune,Quảng Trị,19066,Bắc Gianh,Phường,153
+2025,commune,Quảng Trị,19075,Nam Ba Đồn,Xã,375
+2025,commune,Quảng Trị,19093,Nam Gianh,Xã,171
+2025,commune,Quảng Trị,19111,Hoàn Lão,Xã,484
+2025,commune,Quảng Trị,19126,Bắc Trạch,Xã,481
+2025,commune,Quảng Trị,19138,Phong Nha,Xã,1771
+2025,commune,Quảng Trị,19141,Bố Trạch,Xã,1466
+2025,commune,Quảng Trị,19147,Thượng Trạch,Xã,5350
+2025,commune,Quảng Trị,19159,Đông Trạch,Xã,167
+2025,commune,Quảng Trị,19198,Nam Trạch,Xã,637
+2025,commune,Quảng Trị,19204,Trường Sơn,Xã,4581
+2025,commune,Quảng Trị,19207,Quảng Ninh,Xã,490
+2025,commune,Quảng Trị,19225,Ninh Châu,Xã,423
+2025,commune,Quảng Trị,19237,Trường Ninh,Xã,349
+2025,commune,Quảng Trị,19246,Lệ Ninh,Xã,264
+2025,commune,Quảng Trị,19249,Lệ Thủy,Xã,272
+2025,commune,Quảng Trị,19255,Cam Hồng,Xã,435
+2025,commune,Quảng Trị,19288,Sen Ngư,Xã,588
+2025,commune,Quảng Trị,19291,Tân Mỹ,Xã,494
+2025,commune,Quảng Trị,19309,Trường Phú,Xã,475
+2025,commune,Quảng Trị,19318,Kim Ngân,Xã,4303
+2025,commune,Quảng Trị,19333,Đông Hà,Phường,185
+2025,commune,Quảng Trị,19351,Nam Đông Hà,Phường,172
+2025,commune,Quảng Trị,19360,Quảng Trị,Phường,362
+2025,commune,Quảng Trị,19363,Vĩnh Linh,Xã,448
+2025,commune,Quảng Trị,19366,Bến Quan,Xã,1363
+2025,commune,Quảng Trị,19372,Vĩnh Hoàng,Xã,430
+2025,commune,Quảng Trị,19405,Vĩnh Thủy,Xã,503
+2025,commune,Quảng Trị,19414,Cửa Tùng,Xã,288
+2025,commune,Quảng Trị,19429,Khe Sanh,Xã,664
+2025,commune,Quảng Trị,19432,Lao Bảo,Xã,408
+2025,commune,Quảng Trị,19435,Hướng Lập,Xã,1070
+2025,commune,Quảng Trị,19441,Hướng Phùng,Xã,2168
+2025,commune,Quảng Trị,19462,Tân Lập,Xã,403
+2025,commune,Quảng Trị,19483,A Dơi,Xã,549
+2025,commune,Quảng Trị,19489,Lìa,Xã,348
+2025,commune,Quảng Trị,19495,Gio Linh,Xã,473
+2025,commune,Quảng Trị,19496,Cửa Việt,Xã,247
+2025,commune,Quảng Trị,19501,Bến Hải,Xã,271
+2025,commune,Quảng Trị,19537,Cồn Tiên,Xã,1317
+2025,commune,Quảng Trị,19555,Hướng Hiệp,Xã,906
+2025,commune,Quảng Trị,19564,Đakrông,Xã,1754
+2025,commune,Quảng Trị,19567,Ba Lòng,Xã,1023
+2025,commune,Quảng Trị,19588,Tà Rụt,Xã,1356
+2025,commune,Quảng Trị,19594,La Lay,Xã,739
+2025,commune,Quảng Trị,19597,Cam Lộ,Xã,817
+2025,commune,Quảng Trị,19603,Hiếu Giang,Xã,864
+2025,commune,Quảng Trị,19624,Triệu Phong,Xã,386
+2025,commune,Quảng Trị,19639,Nam Cửa Việt,Xã,376
+2025,commune,Quảng Trị,19645,Triệu Bình,Xã,179
+2025,commune,Quảng Trị,19654,Triệu Cơ,Xã,212
+2025,commune,Quảng Trị,19669,Ái Tử,Xã,581
+2025,commune,Quảng Trị,19681,Diên Sanh,Xã,428
+2025,commune,Quảng Trị,19699,Vĩnh Định,Xã,307
+2025,commune,Quảng Trị,19702,Hải Lăng,Xã,565
+2025,commune,Quảng Trị,19735,Nam Hải Lăng,Xã,558
+2025,commune,Quảng Trị,19741,Mỹ Thủy,Xã,217
+2025,commune,Quảng Trị,19742,Cồn Cỏ,Đặc khu,9
+2025,commune,Sơn La,03646,Tô Hiệu,Phường,59
+2025,commune,Sơn La,03664,Chiềng An,Phường,755
+2025,commune,Sơn La,03670,Chiềng Cơi,Phường,464
+2025,commune,Sơn La,03679,Chiềng Sinh,Phường,342
+2025,commune,Sơn La,03688,Mường Chiên,Xã,1933
+2025,commune,Sơn La,03694,Mường Giôn,Xã,1460
+2025,commune,Sơn La,03703,Quỳnh Nhai,Xã,1243
+2025,commune,Sơn La,03712,Mường Sại,Xã,617
+2025,commune,Sơn La,03721,Thuận Châu,Xã,540
+2025,commune,Sơn La,03724,Bình Thuận,Xã,588
+2025,commune,Sơn La,03727,Mường É,Xã,705
+2025,commune,Sơn La,03754,Chiềng La,Xã,629
+2025,commune,Sơn La,03757,Mường Khiêng,Xã,1029
+2025,commune,Sơn La,03760,Mường Bám,Xã,380
+2025,commune,Sơn La,03763,Long Hẹ,Xã,797
+2025,commune,Sơn La,03781,Co Mạ,Xã,1074
+2025,commune,Sơn La,03784,Nậm Lầu,Xã,1366
+2025,commune,Sơn La,03799,Muổi Nọi,Xã,646
+2025,commune,Sơn La,03808,Mường La,Xã,1714
+2025,commune,Sơn La,03814,Chiềng Lao,Xã,1794
+2025,commune,Sơn La,03820,Ngọc Chiến,Xã,1069
+2025,commune,Sơn La,03847,Mường Bú,Xã,1073
+2025,commune,Sơn La,03850,Chiềng Hoa,Xã,1494
+2025,commune,Sơn La,03856,Bắc Yên,Xã,987
+2025,commune,Sơn La,03862,Xím Vàng,Xã,1168
+2025,commune,Sơn La,03868,Tà Xùa,Xã,1169
+2025,commune,Sơn La,03871,Pắc Ngà,Xã,609
+2025,commune,Sơn La,03880,Tạ Khoa,Xã,957
+2025,commune,Sơn La,03892,Chiềng Sại,Xã,627
+2025,commune,Sơn La,03901,Suối Tọ,Xã,704
+2025,commune,Sơn La,03907,Mường Cơi,Xã,984
+2025,commune,Sơn La,03910,Phù Yên,Xã,775
+2025,commune,Sơn La,03922,Gia Phù,Xã,553
+2025,commune,Sơn La,03943,Mường Bang,Xã,1357
+2025,commune,Sơn La,03958,Tường Hạ,Xã,602
+2025,commune,Sơn La,03961,Kim Bon,Xã,526
+2025,commune,Sơn La,03970,Tân Phong,Xã,675
+2025,commune,Sơn La,03979,Mộc Sơn,Phường,252
+2025,commune,Sơn La,03980,Mộc Châu,Phường,999
+2025,commune,Sơn La,03982,Thảo Nguyên,Phường,306
+2025,commune,Sơn La,03985,Chiềng Sơn,Xã,844
+2025,commune,Sơn La,03997,Tân Yên,Xã,964
+2025,commune,Sơn La,04000,Đoàn Kết,Xã,1027
+2025,commune,Sơn La,04006,Song Khủa,Xã,960
+2025,commune,Sơn La,04018,Tô Múa,Xã,907
+2025,commune,Sơn La,04033,Vân Sơn,Phường,380
+2025,commune,Sơn La,04045,Lóng Sập,Xã,965
+2025,commune,Sơn La,04048,Vân Hồ,Xã,1359
+2025,commune,Sơn La,04057,Xuân Nha,Xã,1309
+2025,commune,Sơn La,04075,Yên Châu,Xã,1234
+2025,commune,Sơn La,04078,Chiềng Hặc,Xã,1201
+2025,commune,Sơn La,04087,Yên Sơn,Xã,579
+2025,commune,Sơn La,04096,Lóng Phiêng,Xã,739
+2025,commune,Sơn La,04099,Phiêng Khoài,Xã,518
+2025,commune,Sơn La,04105,Mai Sơn,Xã,826
+2025,commune,Sơn La,04108,Chiềng Sung,Xã,547
+2025,commune,Sơn La,04117,Mường Chanh,Xã,513
+2025,commune,Sơn La,04123,Chiềng Mung,Xã,722
+2025,commune,Sơn La,04132,Chiềng Mai,Xã,757
+2025,commune,Sơn La,04136,Tà Hộc,Xã,749
+2025,commune,Sơn La,04144,Phiêng Cằm,Xã,1400
+2025,commune,Sơn La,04159,Phiêng Pằn,Xã,1605
+2025,commune,Sơn La,04168,Sông Mã,Xã,528
+2025,commune,Sơn La,04171,Bó Sinh,Xã,768
+2025,commune,Sơn La,04183,Mường Lầm,Xã,835
+2025,commune,Sơn La,04186,Nậm Ty,Xã,1014
+2025,commune,Sơn La,04195,Chiềng Sơ,Xã,706
+2025,commune,Sơn La,04204,Chiềng Khoong,Xã,1275
+2025,commune,Sơn La,04210,Huổi Một,Xã,1204
+2025,commune,Sơn La,04219,Mường Hung,Xã,1131
+2025,commune,Sơn La,04222,Chiềng Khương,Xã,748
+2025,commune,Sơn La,04228,Púng Bánh,Xã,1824
+2025,commune,Sơn La,04231,Sốp Cộp,Xã,2336
+2025,commune,Sơn La,04240,Mường Lèo,Xã,1876
+2025,commune,Sơn La,04246,Mường Lạn,Xã,1327
+2025,commune,TP. Hồ Chí Minh,25747,Thủ Dầu Một,Phường,68
+2025,commune,TP. Hồ Chí Minh,25750,Phú Lợi,Phường,86
+2025,commune,TP. Hồ Chí Minh,25760,Bình Dương,Phường,276
+2025,commune,TP. Hồ Chí Minh,25768,Phú An,Phường,164
+2025,commune,TP. Hồ Chí Minh,25771,Chánh Hiệp,Phường,107
+2025,commune,TP. Hồ Chí Minh,25777,Dầu Tiếng,Xã,866
+2025,commune,TP. Hồ Chí Minh,25780,Minh Thạnh,Xã,787
+2025,commune,TP. Hồ Chí Minh,25792,Long Hòa,Xã,772
+2025,commune,TP. Hồ Chí Minh,25807,Thanh An,Xã,623
+2025,commune,TP. Hồ Chí Minh,25813,Bến Cát,Phường,463
+2025,commune,TP. Hồ Chí Minh,25819,Trừ Văn Thố,Xã,412
+2025,commune,TP. Hồ Chí Minh,25822,Bàu Bàng,Xã,354
+2025,commune,TP. Hồ Chí Minh,25837,Chánh Phú Hòa,Phường,326
+2025,commune,TP. Hồ Chí Minh,25840,Long Nguyên,Phường,535
+2025,commune,TP. Hồ Chí Minh,25843,Tây Nam,Phường,600
+2025,commune,TP. Hồ Chí Minh,25846,Thới Hòa,Phường,185
+2025,commune,TP. Hồ Chí Minh,25849,Hòa Lợi,Phường,163
+2025,commune,TP. Hồ Chí Minh,25858,Phú Giáo,Xã,941
+2025,commune,TP. Hồ Chí Minh,25864,Phước Thành,Xã,592
+2025,commune,TP. Hồ Chí Minh,25867,An Long,Xã,474
+2025,commune,TP. Hồ Chí Minh,25882,Phước Hòa,Xã,584
+2025,commune,TP. Hồ Chí Minh,25888,Tân Uyên,Phường,450
+2025,commune,TP. Hồ Chí Minh,25891,Tân Khánh,Phường,182
+2025,commune,TP. Hồ Chí Minh,25906,Bắc Tân Uyên,Xã,686
+2025,commune,TP. Hồ Chí Minh,25909,Thường Tân,Xã,587
+2025,commune,TP. Hồ Chí Minh,25912,Vĩnh Tân,Phường,290
+2025,commune,TP. Hồ Chí Minh,25915,Bình Cơ,Phường,347
+2025,commune,TP. Hồ Chí Minh,25920,Tân Hiệp,Phường,226
+2025,commune,TP. Hồ Chí Minh,25942,Dĩ An,Phường,116
+2025,commune,TP. Hồ Chí Minh,25945,Tân Đông Hiệp,Phường,86
+2025,commune,TP. Hồ Chí Minh,25951,Đông Hòa,Phường,104
+2025,commune,TP. Hồ Chí Minh,25966,Lái Thiêu,Phường,77
+2025,commune,TP. Hồ Chí Minh,25969,Thuận Giao,Phường,83
+2025,commune,TP. Hồ Chí Minh,25975,An Phú,Phường,77
+2025,commune,TP. Hồ Chí Minh,25978,Thuận An,Phường,75
+2025,commune,TP. Hồ Chí Minh,25987,Bình Hòa,Phường,83
+2025,commune,TP. Hồ Chí Minh,26506,Vũng Tàu,Phường,72
+2025,commune,TP. Hồ Chí Minh,26526,Tam Thắng,Phường,54
+2025,commune,TP. Hồ Chí Minh,26536,Rạch Dừa,Phường,54
+2025,commune,TP. Hồ Chí Minh,26542,Phước Thắng,Phường,223
+2025,commune,TP. Hồ Chí Minh,26545,Long Sơn,Xã,248
+2025,commune,TP. Hồ Chí Minh,26560,Bà Rịa,Phường,73
+2025,commune,TP. Hồ Chí Minh,26566,Long Hương,Phường,194
+2025,commune,TP. Hồ Chí Minh,26572,Tam Long,Phường,165
+2025,commune,TP. Hồ Chí Minh,26575,Ngãi Giao,Xã,326
+2025,commune,TP. Hồ Chí Minh,26584,Xuân Sơn,Xã,354
+2025,commune,TP. Hồ Chí Minh,26590,Bình Giã,Xã,320
+2025,commune,TP. Hồ Chí Minh,26596,Châu Đức,Xã,406
+2025,commune,TP. Hồ Chí Minh,26608,Kim Long,Xã,308
+2025,commune,TP. Hồ Chí Minh,26617,Nghĩa Thành,Xã,312
+2025,commune,TP. Hồ Chí Minh,26620,Hồ Tràm,Xã,440
+2025,commune,TP. Hồ Chí Minh,26632,Xuyên Mộc,Xã,489
+2025,commune,TP. Hồ Chí Minh,26638,Bàu Lâm,Xã,587
+2025,commune,TP. Hồ Chí Minh,26641,Hòa Hội,Xã,641
+2025,commune,TP. Hồ Chí Minh,26647,Hòa Hiệp,Xã,478
+2025,commune,TP. Hồ Chí Minh,26656,Bình Châu,Xã,412
+2025,commune,TP. Hồ Chí Minh,26659,Long Điền,Xã,247
+2025,commune,TP. Hồ Chí Minh,26662,Long Hải,Xã,133
+2025,commune,TP. Hồ Chí Minh,26680,Đất Đỏ,Xã,564
+2025,commune,TP. Hồ Chí Minh,26686,Phước Hải,Xã,318
+2025,commune,TP. Hồ Chí Minh,26704,Phú Mỹ,Phường,333
+2025,commune,TP. Hồ Chí Minh,26710,Tân Hải,Phường,250
+2025,commune,TP. Hồ Chí Minh,26713,Tân Phước,Phường,390
+2025,commune,TP. Hồ Chí Minh,26725,Tân Thành,Phường,295
+2025,commune,TP. Hồ Chí Minh,26728,Châu Pha,Xã,309
+2025,commune,TP. Hồ Chí Minh,26732,Côn Đảo,Đặc khu,388
+2025,commune,TP. Hồ Chí Minh,26737,Tân Định,Phường,5
+2025,commune,TP. Hồ Chí Minh,26740,Sài Gòn,Phường,17
+2025,commune,TP. Hồ Chí Minh,26743,Bến Thành,Phường,8
+2025,commune,TP. Hồ Chí Minh,26758,Cầu Ông Lãnh,Phường,9
+2025,commune,TP. Hồ Chí Minh,26767,An Phú Đông,Phường,67
+2025,commune,TP. Hồ Chí Minh,26773,Thới An,Phường,74
+2025,commune,TP. Hồ Chí Minh,26782,Tân Thới Hiệp,Phường,37
+2025,commune,TP. Hồ Chí Minh,26785,Trung Mỹ Tây,Phường,33
+2025,commune,TP. Hồ Chí Minh,26791,Đông Hưng Thuận,Phường,39
+2025,commune,TP. Hồ Chí Minh,26800,Linh Xuân,Phường,56
+2025,commune,TP. Hồ Chí Minh,26803,Tam Bình,Phường,45
+2025,commune,TP. Hồ Chí Minh,26809,Hiệp Bình,Phường,76
+2025,commune,TP. Hồ Chí Minh,26824,Thủ Đức,Phường,47
+2025,commune,TP. Hồ Chí Minh,26833,Long Bình,Phường,116
+2025,commune,TP. Hồ Chí Minh,26842,Tăng Nhơn Phú,Phường,101
+2025,commune,TP. Hồ Chí Minh,26848,Phước Long,Phường,44
+2025,commune,TP. Hồ Chí Minh,26857,Long Phước,Phường,165
+2025,commune,TP. Hồ Chí Minh,26860,Long Trường,Phường,116
+2025,commune,TP. Hồ Chí Minh,26876,An Nhơn,Phường,15
+2025,commune,TP. Hồ Chí Minh,26878,An Hội Đông,Phường,16
+2025,commune,TP. Hồ Chí Minh,26882,An Hội Tây,Phường,19
+2025,commune,TP. Hồ Chí Minh,26884,Gò Vấp,Phường,13
+2025,commune,TP. Hồ Chí Minh,26890,Hạnh Thông,Phường,19
+2025,commune,TP. Hồ Chí Minh,26898,Thông Tây Hội,Phường,15
+2025,commune,TP. Hồ Chí Minh,26905,Bình Lợi Trung,Phường,20
+2025,commune,TP. Hồ Chí Minh,26911,Bình Quới,Phường,31
+2025,commune,TP. Hồ Chí Minh,26929,Bình Thạnh,Phường,16
+2025,commune,TP. Hồ Chí Minh,26944,Gia Định,Phường,10
+2025,commune,TP. Hồ Chí Minh,26956,Thạnh Mỹ Tây,Phường,22
+2025,commune,TP. Hồ Chí Minh,26968,Tân Sơn Nhất,Phường,15
+2025,commune,TP. Hồ Chí Minh,26977,Tân Sơn Hòa,Phường,15
+2025,commune,TP. Hồ Chí Minh,26983,Bảy Hiền,Phường,12
+2025,commune,TP. Hồ Chí Minh,26995,Tân Hòa,Phường,6
+2025,commune,TP. Hồ Chí Minh,27004,Tân Bình,Phường,11
+2025,commune,TP. Hồ Chí Minh,27007,Tân Sơn,Phường,47
+2025,commune,TP. Hồ Chí Minh,27013,Tây Thạnh,Phường,23
+2025,commune,TP. Hồ Chí Minh,27019,Tân Sơn Nhì,Phường,11
+2025,commune,TP. Hồ Chí Minh,27022,Phú Thọ Hòa,Phường,14
+2025,commune,TP. Hồ Chí Minh,27028,Phú Thạnh,Phường,15
+2025,commune,TP. Hồ Chí Minh,27031,Tân Phú,Phường,11
+2025,commune,TP. Hồ Chí Minh,27043,Đức Nhuận,Phường,11
+2025,commune,TP. Hồ Chí Minh,27058,Cầu Kiệu,Phường,7
+2025,commune,TP. Hồ Chí Minh,27073,Phú Nhuận,Phường,6
+2025,commune,TP. Hồ Chí Minh,27094,An Khánh,Phường,85
+2025,commune,TP. Hồ Chí Minh,27097,Bình Trưng,Phường,58
+2025,commune,TP. Hồ Chí Minh,27112,Cát Lái,Phường,94
+2025,commune,TP. Hồ Chí Minh,27139,Xuân Hòa,Phường,11
+2025,commune,TP. Hồ Chí Minh,27142,Nhiêu Lộc,Phường,9
+2025,commune,TP. Hồ Chí Minh,27154,Bàn Cờ,Phường,3
+2025,commune,TP. Hồ Chí Minh,27163,Hòa Hưng,Phường,13
+2025,commune,TP. Hồ Chí Minh,27169,Diên Hồng,Phường,9
+2025,commune,TP. Hồ Chí Minh,27190,Vườn Lài,Phường,5
+2025,commune,TP. Hồ Chí Minh,27211,Hòa Bình,Phường,5
+2025,commune,TP. Hồ Chí Minh,27226,Phú Thọ,Phường,6
+2025,commune,TP. Hồ Chí Minh,27232,Bình Thới,Phường,7
+2025,commune,TP. Hồ Chí Minh,27238,Minh Phụng,Phường,8
+2025,commune,TP. Hồ Chí Minh,27259,Xóm Chiếu,Phường,9
+2025,commune,TP. Hồ Chí Minh,27265,Khánh Hội,Phường,6
+2025,commune,TP. Hồ Chí Minh,27286,Vĩnh Hội,Phường,5
+2025,commune,TP. Hồ Chí Minh,27301,Chợ Quán,Phường,5
+2025,commune,TP. Hồ Chí Minh,27316,An Đông,Phường,8
+2025,commune,TP. Hồ Chí Minh,27343,Chợ Lớn,Phường,7
+2025,commune,TP. Hồ Chí Minh,27349,Phú Lâm,Phường,9
+2025,commune,TP. Hồ Chí Minh,27364,Bình Phú,Phường,14
+2025,commune,TP. Hồ Chí Minh,27367,Bình Tây,Phường,5
+2025,commune,TP. Hồ Chí Minh,27373,Bình Tiên,Phường,8
+2025,commune,TP. Hồ Chí Minh,27418,Chánh Hưng,Phường,24
+2025,commune,TP. Hồ Chí Minh,27424,Bình Đông,Phường,42
+2025,commune,TP. Hồ Chí Minh,27427,Phú Định,Phường,28
+2025,commune,TP. Hồ Chí Minh,27439,Bình Hưng Hòa,Phường,29
+2025,commune,TP. Hồ Chí Minh,27442,Bình Tân,Phường,49
+2025,commune,TP. Hồ Chí Minh,27448,Bình Trị Đông,Phường,50
+2025,commune,TP. Hồ Chí Minh,27457,Tân Tạo,Phường,96
+2025,commune,TP. Hồ Chí Minh,27460,An Lạc,Phường,48
+2025,commune,TP. Hồ Chí Minh,27475,Tân Hưng,Phường,40
+2025,commune,TP. Hồ Chí Minh,27478,Tân Thuận,Phường,49
+2025,commune,TP. Hồ Chí Minh,27484,Phú Thuận,Phường,51
+2025,commune,TP. Hồ Chí Minh,27487,Tân Mỹ,Phường,32
+2025,commune,TP. Hồ Chí Minh,27496,Tân An Hội,Xã,260
+2025,commune,TP. Hồ Chí Minh,27508,An Nhơn Tây,Xã,370
+2025,commune,TP. Hồ Chí Minh,27511,Nhuận Đức,Xã,293
+2025,commune,TP. Hồ Chí Minh,27526,Thái Mỹ,Xã,294
+2025,commune,TP. Hồ Chí Minh,27541,Phú Hòa Đông,Xã,281
+2025,commune,TP. Hồ Chí Minh,27544,Bình Mỹ,Xã,259
+2025,commune,TP. Hồ Chí Minh,27553,Củ Chi,Xã,313
+2025,commune,TP. Hồ Chí Minh,27559,Hóc Môn,Xã,77
+2025,commune,TP. Hồ Chí Minh,27568,Đông Thạnh,Xã,141
+2025,commune,TP. Hồ Chí Minh,27577,Xuân Thới Sơn,Xã,170
+2025,commune,TP. Hồ Chí Minh,27592,Bà Điểm,Xã,127
+2025,commune,TP. Hồ Chí Minh,27595,Tân Nhựt,Xã,181
+2025,commune,TP. Hồ Chí Minh,27601,Vĩnh Lộc,Xã,166
+2025,commune,TP. Hồ Chí Minh,27604,Tân Vĩnh Lộc,Xã,143
+2025,commune,TP. Hồ Chí Minh,27610,Bình Lợi,Xã,259
+2025,commune,TP. Hồ Chí Minh,27619,Bình Hưng,Xã,156
+2025,commune,TP. Hồ Chí Minh,27628,Hưng Long,Xã,166
+2025,commune,TP. Hồ Chí Minh,27637,Bình Chánh,Xã,104
+2025,commune,TP. Hồ Chí Minh,27655,Nhà Bè,Xã,176
+2025,commune,TP. Hồ Chí Minh,27658,Hiệp Phước,Xã,306
+2025,commune,TP. Hồ Chí Minh,27664,Cần Giờ,Xã,631
+2025,commune,TP. Hồ Chí Minh,27667,Bình Khánh,Xã,762
+2025,commune,TP. Hồ Chí Minh,27673,An Thới Đông,Xã,1119
+2025,commune,TP. Hồ Chí Minh,27676,Thạnh An,Xã,525
+2025,commune,Thanh Hóa,14758,Hàm Rồng,Phường,115
+2025,commune,Thanh Hóa,14797,Hạc Thành,Phường,111
+2025,commune,Thanh Hóa,14812,Bỉm Sơn,Phường,259
+2025,commune,Thanh Hóa,14818,Quang Trung,Phường,144
+2025,commune,Thanh Hóa,14845,Mường Lát,Xã,644
+2025,commune,Thanh Hóa,14848,Tam Chung,Xã,611
+2025,commune,Thanh Hóa,14854,Mường Lý,Xã,411
+2025,commune,Thanh Hóa,14857,Trung Lý,Xã,985
+2025,commune,Thanh Hóa,14860,Quang Chiểu,Xã,551
+2025,commune,Thanh Hóa,14863,Pù Nhi,Xã,329
+2025,commune,Thanh Hóa,14864,Nhi Sơn,Xã,197
+2025,commune,Thanh Hóa,14866,Mường Chanh,Xã,325
+2025,commune,Thanh Hóa,14869,Hồi Xuân,Xã,582
+2025,commune,Thanh Hóa,14872,Trung Thành,Xã,670
+2025,commune,Thanh Hóa,14875,Trung Sơn,Xã,388
+2025,commune,Thanh Hóa,14878,Phú Lệ,Xã,670
+2025,commune,Thanh Hóa,14890,Phú Xuân,Xã,510
+2025,commune,Thanh Hóa,14896,Hiền Kiệt,Xã,701
+2025,commune,Thanh Hóa,14902,Nam Xuân,Xã,660
+2025,commune,Thanh Hóa,14908,Thiên Phủ,Xã,739
+2025,commune,Thanh Hóa,14923,Bá Thước,Xã,531
+2025,commune,Thanh Hóa,14932,Điền Quang,Xã,509
+2025,commune,Thanh Hóa,14950,Điền Lư,Xã,335
+2025,commune,Thanh Hóa,14953,Quý Lương,Xã,668
+2025,commune,Thanh Hóa,14956,Pù Luông,Xã,413
+2025,commune,Thanh Hóa,14959,Cổ Lũng,Xã,621
+2025,commune,Thanh Hóa,14974,Văn Nho,Xã,332
+2025,commune,Thanh Hóa,14980,Thiết Ống,Xã,469
+2025,commune,Thanh Hóa,15001,Trung Hạ,Xã,616
+2025,commune,Thanh Hóa,15007,Tam Thanh,Xã,463
+2025,commune,Thanh Hóa,15010,Sơn Thủy,Xã,653
+2025,commune,Thanh Hóa,15013,Na Mèo,Xã,632
+2025,commune,Thanh Hóa,15016,Quan Sơn,Xã,544
+2025,commune,Thanh Hóa,15019,Tam Lư,Xã,787
+2025,commune,Thanh Hóa,15022,Sơn Điện,Xã,469
+2025,commune,Thanh Hóa,15025,Mường Mìn,Xã,444
+2025,commune,Thanh Hóa,15031,Yên Khương,Xã,484
+2025,commune,Thanh Hóa,15034,Yên Thắng,Xã,474
+2025,commune,Thanh Hóa,15043,Giao An,Xã,571
+2025,commune,Thanh Hóa,15049,Văn Phú,Xã,524
+2025,commune,Thanh Hóa,15055,Linh Sơn,Xã,479
+2025,commune,Thanh Hóa,15058,Đồng Lương,Xã,379
+2025,commune,Thanh Hóa,15061,Ngọc Lặc,Xã,448
+2025,commune,Thanh Hóa,15085,Thạch Lập,Xã,420
+2025,commune,Thanh Hóa,15091,Ngọc Liên,Xã,400
+2025,commune,Thanh Hóa,15106,Nguyệt Ấn,Xã,493
+2025,commune,Thanh Hóa,15112,Kiên Thọ,Xã,277
+2025,commune,Thanh Hóa,15124,Minh Sơn,Xã,409
+2025,commune,Thanh Hóa,15127,Cẩm Thủy,Xã,319
+2025,commune,Thanh Hóa,15142,Cẩm Thạch,Xã,532
+2025,commune,Thanh Hóa,15148,Cẩm Tú,Xã,489
+2025,commune,Thanh Hóa,15163,Cẩm Vân,Xã,453
+2025,commune,Thanh Hóa,15178,Cẩm Tân,Xã,323
+2025,commune,Thanh Hóa,15187,Kim Tân,Xã,306
+2025,commune,Thanh Hóa,15190,Vân Du,Xã,435
+2025,commune,Thanh Hóa,15199,Thạch Quảng,Xã,615
+2025,commune,Thanh Hóa,15211,Thạch Bình,Xã,448
+2025,commune,Thanh Hóa,15229,Thành Vinh,Xã,573
+2025,commune,Thanh Hóa,15250,Ngọc Trạo,Xã,401
+2025,commune,Thanh Hóa,15271,Hà Trung,Xã,158
+2025,commune,Thanh Hóa,15274,Hà Long,Xã,326
+2025,commune,Thanh Hóa,15286,Hoạt Giang,Xã,142
+2025,commune,Thanh Hóa,15298,Lĩnh Toại,Xã,152
+2025,commune,Thanh Hóa,15316,Tống Sơn,Xã,352
+2025,commune,Thanh Hóa,15349,Vĩnh Lộc,Xã,284
+2025,commune,Thanh Hóa,15361,Tây Đô,Xã,178
+2025,commune,Thanh Hóa,15382,Biện Thượng,Xã,323
+2025,commune,Thanh Hóa,15409,Yên Phú,Xã,209
+2025,commune,Thanh Hóa,15412,Quý Lộc,Xã,186
+2025,commune,Thanh Hóa,15421,Yên Trường,Xã,133
+2025,commune,Thanh Hóa,15442,Yên Ninh,Xã,122
+2025,commune,Thanh Hóa,15448,Định Hòa,Xã,182
+2025,commune,Thanh Hóa,15457,Định Tân,Xã,154
+2025,commune,Thanh Hóa,15469,Yên Định,Xã,146
+2025,commune,Thanh Hóa,15499,Thọ Xuân,Xã,135
+2025,commune,Thanh Hóa,15505,Thọ Long,Xã,108
+2025,commune,Thanh Hóa,15520,Xuân Hòa,Xã,139
+2025,commune,Thanh Hóa,15544,Lam Sơn,Xã,123
+2025,commune,Thanh Hóa,15553,Sao Vàng,Xã,445
+2025,commune,Thanh Hóa,15568,Thọ Lập,Xã,165
+2025,commune,Thanh Hóa,15574,Xuân Tín,Xã,166
+2025,commune,Thanh Hóa,15592,Xuân Lập,Xã,171
+2025,commune,Thanh Hóa,15607,Bát Mọt,Xã,1020
+2025,commune,Thanh Hóa,15610,Yên Nhân,Xã,934
+2025,commune,Thanh Hóa,15622,Vạn Xuân,Xã,689
+2025,commune,Thanh Hóa,15628,Lương Sơn,Xã,405
+2025,commune,Thanh Hóa,15634,Luận Thành,Xã,354
+2025,commune,Thanh Hóa,15643,Thắng Lộc,Xã,368
+2025,commune,Thanh Hóa,15646,Thường Xuân,Xã,411
+2025,commune,Thanh Hóa,15658,Xuân Chinh,Xã,858
+2025,commune,Thanh Hóa,15661,Tân Thành,Xã,464
+2025,commune,Thanh Hóa,15664,Triệu Sơn,Xã,207
+2025,commune,Thanh Hóa,15667,Thọ Bình,Xã,232
+2025,commune,Thanh Hóa,15682,Hợp Tiến,Xã,215
+2025,commune,Thanh Hóa,15715,Tân Ninh,Xã,268
+2025,commune,Thanh Hóa,15724,Đồng Tiến,Xã,103
+2025,commune,Thanh Hóa,15754,Thọ Ngọc,Xã,135
+2025,commune,Thanh Hóa,15763,Thọ Phú,Xã,173
+2025,commune,Thanh Hóa,15766,An Nông,Xã,110
+2025,commune,Thanh Hóa,15772,Thiệu Hóa,Xã,184
+2025,commune,Thanh Hóa,15778,Thiệu Tiến,Xã,111
+2025,commune,Thanh Hóa,15796,Thiệu Quang,Xã,184
+2025,commune,Thanh Hóa,15820,Thiệu Toán,Xã,143
+2025,commune,Thanh Hóa,15835,Thiệu Trung,Xã,110
+2025,commune,Thanh Hóa,15853,Đông Tiến,Phường,218
+2025,commune,Thanh Hóa,15865,Hoằng Hóa,Xã,175
+2025,commune,Thanh Hóa,15880,Hoằng Giang,Xã,148
+2025,commune,Thanh Hóa,15889,Hoằng Phú,Xã,76
+2025,commune,Thanh Hóa,15910,Hoằng Sơn,Xã,108
+2025,commune,Thanh Hóa,15925,Nguyệt Viên,Phường,111
+2025,commune,Thanh Hóa,15961,Hoằng Lộc,Xã,105
+2025,commune,Thanh Hóa,15976,Hoằng Châu,Xã,165
+2025,commune,Thanh Hóa,15991,Hoằng Tiến,Xã,116
+2025,commune,Thanh Hóa,16000,Hoằng Thanh,Xã,108
+2025,commune,Thanh Hóa,16012,Hậu Lộc,Xã,124
+2025,commune,Thanh Hóa,16021,Triệu Lộc,Xã,147
+2025,commune,Thanh Hóa,16033,Đông Thành,Xã,130
+2025,commune,Thanh Hóa,16072,Hoa Lộc,Xã,174
+2025,commune,Thanh Hóa,16078,Vạn Lộc,Xã,130
+2025,commune,Thanh Hóa,16093,Nga Sơn,Xã,135
+2025,commune,Thanh Hóa,16108,Tân Tiến,Xã,108
+2025,commune,Thanh Hóa,16114,Nga Thắng,Xã,138
+2025,commune,Thanh Hóa,16138,Hồ Vương,Xã,96
+2025,commune,Thanh Hóa,16144,Nga An,Xã,139
+2025,commune,Thanh Hóa,16171,Ba Đình,Xã,136
+2025,commune,Thanh Hóa,16174,Như Xuân,Xã,355
+2025,commune,Thanh Hóa,16177,Xuân Bình,Xã,896
+2025,commune,Thanh Hóa,16186,Hóa Quỳ,Xã,573
+2025,commune,Thanh Hóa,16213,Thanh Phong,Xã,763
+2025,commune,Thanh Hóa,16222,Thanh Quân,Xã,530
+2025,commune,Thanh Hóa,16225,Thượng Ninh,Xã,463
+2025,commune,Thanh Hóa,16228,Như Thanh,Xã,412
+2025,commune,Thanh Hóa,16234,Xuân Du,Xã,458
+2025,commune,Thanh Hóa,16249,Mậu Lâm,Xã,318
+2025,commune,Thanh Hóa,16258,Xuân Thái,Xã,599
+2025,commune,Thanh Hóa,16264,Yên Thọ,Xã,400
+2025,commune,Thanh Hóa,16273,Thanh Kỳ,Xã,719
+2025,commune,Thanh Hóa,16279,Nông Cống,Xã,254
+2025,commune,Thanh Hóa,16297,Trung Chính,Xã,220
+2025,commune,Thanh Hóa,16309,Thắng Lợi,Xã,199
+2025,commune,Thanh Hóa,16342,Thăng Bình,Xã,173
+2025,commune,Thanh Hóa,16348,Trường Văn,Xã,140
+2025,commune,Thanh Hóa,16363,Tượng Lĩnh,Xã,163
+2025,commune,Thanh Hóa,16369,Công Chính,Xã,262
+2025,commune,Thanh Hóa,16378,Đông Sơn,Phường,194
+2025,commune,Thanh Hóa,16417,Đông Quang,Phường,238
+2025,commune,Thanh Hóa,16438,Lưu Vệ,Xã,134
+2025,commune,Thanh Hóa,16480,Quảng Yên,Xã,121
+2025,commune,Thanh Hóa,16489,Quảng Chính,Xã,130
+2025,commune,Thanh Hóa,16498,Quảng Ngọc,Xã,174
+2025,commune,Thanh Hóa,16516,Nam Sầm Sơn,Phường,88
+2025,commune,Thanh Hóa,16522,Quảng Phú,Phường,208
+2025,commune,Thanh Hóa,16531,Sầm Sơn,Phường,147
+2025,commune,Thanh Hóa,16540,Quảng Ninh,Xã,86
+2025,commune,Thanh Hóa,16543,Quảng Bình,Xã,115
+2025,commune,Thanh Hóa,16549,Tiên Trang,Xã,92
+2025,commune,Thanh Hóa,16561,Tĩnh Gia,Phường,166
+2025,commune,Thanh Hóa,16576,Ngọc Sơn,Phường,183
+2025,commune,Thanh Hóa,16591,Các Sơn,Xã,239
+2025,commune,Thanh Hóa,16594,Tân Dân,Phường,120
+2025,commune,Thanh Hóa,16597,Hải Lĩnh,Phường,197
+2025,commune,Thanh Hóa,16609,Đào Duy Từ,Phường,205
+2025,commune,Thanh Hóa,16624,Trúc Lâm,Phường,394
+2025,commune,Thanh Hóa,16636,Trường Lâm,Xã,336
+2025,commune,Thanh Hóa,16645,Hải Bình,Phường,207
+2025,commune,Thanh Hóa,16654,Nghi Sơn,Phường,187
+2025,commune,Thái Nguyên,01840,Đức Xuân,Phường,172
+2025,commune,Thái Nguyên,01843,Bắc Kạn,Phường,388
+2025,commune,Thái Nguyên,01849,Phong Quang,Xã,776
+2025,commune,Thái Nguyên,01864,Bằng Thành,Xã,1051
+2025,commune,Thái Nguyên,01879,Cao Minh,Xã,686
+2025,commune,Thái Nguyên,01882,Nghiên Loan,Xã,660
+2025,commune,Thái Nguyên,01894,Phúc Lộc,Xã,823
+2025,commune,Thái Nguyên,01906,Ba Bể,Xã,747
+2025,commune,Thái Nguyên,01912,Chợ Rã,Xã,473
+2025,commune,Thái Nguyên,01921,Thượng Minh,Xã,661
+2025,commune,Thái Nguyên,01933,Đồng Phúc,Xã,1012
+2025,commune,Thái Nguyên,01936,Nà Phặc,Xã,512
+2025,commune,Thái Nguyên,01942,Bằng Vân,Xã,674
+2025,commune,Thái Nguyên,01954,Ngân Sơn,Xã,732
+2025,commune,Thái Nguyên,01957,Thượng Quan,Xã,783
+2025,commune,Thái Nguyên,01960,Hiệp Lực,Xã,527
+2025,commune,Thái Nguyên,01969,Phủ Thông,Xã,490
+2025,commune,Thái Nguyên,01981,Vĩnh Thông,Xã,652
+2025,commune,Thái Nguyên,02008,Cẩm Giàng,Xã,561
+2025,commune,Thái Nguyên,02014,Bạch Thông,Xã,643
+2025,commune,Thái Nguyên,02020,Chợ Đồn,Xã,720
+2025,commune,Thái Nguyên,02026,Nam Cường,Xã,771
+2025,commune,Thái Nguyên,02038,Quảng Bạch,Xã,365
+2025,commune,Thái Nguyên,02044,Yên Thịnh,Xã,836
+2025,commune,Thái Nguyên,02071,Nghĩa Tá,Xã,833
+2025,commune,Thái Nguyên,02083,Yên Phong,Xã,580
+2025,commune,Thái Nguyên,02086,Chợ Mới,Xã,599
+2025,commune,Thái Nguyên,02101,Thanh Mai,Xã,576
+2025,commune,Thái Nguyên,02104,Tân Kỳ,Xã,825
+2025,commune,Thái Nguyên,02107,Thanh Thịnh,Xã,545
+2025,commune,Thái Nguyên,02116,Yên Bình,Xã,509
+2025,commune,Thái Nguyên,02143,Văn Lang,Xã,874
+2025,commune,Thái Nguyên,02152,Cường Lợi,Xã,597
+2025,commune,Thái Nguyên,02155,Na Rì,Xã,567
+2025,commune,Thái Nguyên,02176,Trần Phú,Xã,730
+2025,commune,Thái Nguyên,02185,Côn Minh,Xã,736
+2025,commune,Thái Nguyên,02191,Xuân Dương,Xã,812
+2025,commune,Thái Nguyên,05443,Phan Đình Phùng,Phường,76
+2025,commune,Thái Nguyên,05455,Quyết Thắng,Phường,123
+2025,commune,Thái Nguyên,05467,Gia Sàng,Phường,126
+2025,commune,Thái Nguyên,05482,Quan Triều,Phường,123
+2025,commune,Thái Nguyên,05488,Đại Phúc,Xã,536
+2025,commune,Thái Nguyên,05500,Tích Lương,Phường,116
+2025,commune,Thái Nguyên,05503,Tân Cương,Xã,291
+2025,commune,Thái Nguyên,05518,Sông Công,Phường,70
+2025,commune,Thái Nguyên,05528,Bách Quang,Phường,179
+2025,commune,Thái Nguyên,05533,Bá Xuyên,Phường,107
+2025,commune,Thái Nguyên,05542,Lam Vỹ,Xã,368
+2025,commune,Thái Nguyên,05551,Kim Phượng,Xã,389
+2025,commune,Thái Nguyên,05563,Phượng Tiến,Xã,519
+2025,commune,Thái Nguyên,05569,Định Hóa,Xã,336
+2025,commune,Thái Nguyên,05581,Trung Hội,Xã,277
+2025,commune,Thái Nguyên,05587,Bình Yên,Xã,245
+2025,commune,Thái Nguyên,05602,Phú Đình,Xã,241
+2025,commune,Thái Nguyên,05605,Bình Thành,Xã,215
+2025,commune,Thái Nguyên,05611,Phú Lương,Xã,567
+2025,commune,Thái Nguyên,05620,Yên Trạch,Xã,562
+2025,commune,Thái Nguyên,05632,Hợp Thành,Xã,207
+2025,commune,Thái Nguyên,05641,Vô Tranh,Xã,419
+2025,commune,Thái Nguyên,05662,Trại Cau,Xã,413
+2025,commune,Thái Nguyên,05674,Quang Sơn,Xã,290
+2025,commune,Thái Nguyên,05680,Văn Hán,Xã,479
+2025,commune,Thái Nguyên,05692,Đồng Hỷ,Xã,270
+2025,commune,Thái Nguyên,05707,Nam Hòa,Xã,328
+2025,commune,Thái Nguyên,05710,Linh Sơn,Phường,201
+2025,commune,Thái Nguyên,05716,Võ Nhai,Xã,504
+2025,commune,Thái Nguyên,05719,Sảng Mộc,Xã,489
+2025,commune,Thái Nguyên,05722,Nghinh Tường,Xã,799
+2025,commune,Thái Nguyên,05725,Thần Sa,Xã,735
+2025,commune,Thái Nguyên,05740,La Hiên,Xã,363
+2025,commune,Thái Nguyên,05746,Tràng Xá,Xã,599
+2025,commune,Thái Nguyên,05755,Dân Tiến,Xã,734
+2025,commune,Thái Nguyên,05773,Phú Xuyên,Xã,312
+2025,commune,Thái Nguyên,05776,Đức Lương,Xã,303
+2025,commune,Thái Nguyên,05788,Phú Lạc,Xã,298
+2025,commune,Thái Nguyên,05800,Phú Thịnh,Xã,242
+2025,commune,Thái Nguyên,05809,An Khánh,Xã,225
+2025,commune,Thái Nguyên,05818,La Bằng,Xã,307
+2025,commune,Thái Nguyên,05830,Đại Từ,Xã,352
+2025,commune,Thái Nguyên,05845,Vạn Phú,Xã,259
+2025,commune,Thái Nguyên,05851,Quân Chu,Xã,399
+2025,commune,Thái Nguyên,05857,Phúc Thuận,Phường,370
+2025,commune,Thái Nguyên,05860,Phổ Yên,Phường,203
+2025,commune,Thái Nguyên,05881,Thành Công,Xã,225
+2025,commune,Thái Nguyên,05890,Vạn Xuân,Phường,203
+2025,commune,Thái Nguyên,05899,Trung Thành,Phường,126
+2025,commune,Thái Nguyên,05908,Phú Bình,Xã,224
+2025,commune,Thái Nguyên,05917,Tân Khánh,Xã,241
+2025,commune,Thái Nguyên,05923,Tân Thành,Xã,340
+2025,commune,Thái Nguyên,05941,Điềm Thụy,Xã,210
+2025,commune,Thái Nguyên,05953,Kha Sơn,Xã,188
+2025,commune,Thái Nguyên,5665,Văn Lăng,Xã,380
+2025,commune,Tuyên Quang,00691,Hà Giang 2,Phường,309
+2025,commune,Tuyên Quang,00694,Hà Giang 1,Phường,415
+2025,commune,Tuyên Quang,00700,Ngọc Đường,Xã,543
+2025,commune,Tuyên Quang,00706,Phú Linh,Xã,576
+2025,commune,Tuyên Quang,00715,Lũng Cú,Xã,480
+2025,commune,Tuyên Quang,00721,Đồng Văn,Xã,624
+2025,commune,Tuyên Quang,00733,Sà Phìn,Xã,427
+2025,commune,Tuyên Quang,00745,Phố Bảng,Xã,396
+2025,commune,Tuyên Quang,00763,Lũng Phìn,Xã,346
+2025,commune,Tuyên Quang,00769,Mèo Vạc,Xã,466
+2025,commune,Tuyên Quang,00778,Sơn Vĩ,Xã,561
+2025,commune,Tuyên Quang,00787,Sủng Máng,Xã,385
+2025,commune,Tuyên Quang,00802,Khâu Vai,Xã,546
+2025,commune,Tuyên Quang,00808,Tát Ngà,Xã,463
+2025,commune,Tuyên Quang,00817,Niêm Sơn,Xã,413
+2025,commune,Tuyên Quang,00820,Yên Minh,Xã,793
+2025,commune,Tuyên Quang,00829,Thắng Mố,Xã,344
+2025,commune,Tuyên Quang,00832,Bạch Đích,Xã,482
+2025,commune,Tuyên Quang,00847,Mậu Duệ,Xã,826
+2025,commune,Tuyên Quang,00859,Ngọc Long,Xã,428
+2025,commune,Tuyên Quang,00865,Đường Thượng,Xã,525
+2025,commune,Tuyên Quang,00871,Du Già,Xã,645
+2025,commune,Tuyên Quang,00874,Quản Bạ,Xã,523
+2025,commune,Tuyên Quang,00883,Cán Tỷ,Xã,431
+2025,commune,Tuyên Quang,00889,Nghĩa Thuận,Xã,408
+2025,commune,Tuyên Quang,00892,Tùng Vài,Xã,759
+2025,commune,Tuyên Quang,00901,Lùng Tám,Xã,628
+2025,commune,Tuyên Quang,00913,Vị Xuyên,Xã,396
+2025,commune,Tuyên Quang,00919,Minh Tân,Xã,535
+2025,commune,Tuyên Quang,00922,Thuận Hòa,Xã,553
+2025,commune,Tuyên Quang,00925,Tùng Bá,Xã,614
+2025,commune,Tuyên Quang,00928,Thanh Thuỷ,Xã,511
+2025,commune,Tuyên Quang,00937,Lao Chải,Xã,502
+2025,commune,Tuyên Quang,00952,Cao Bồ,Xã,563
+2025,commune,Tuyên Quang,00958,Thượng Sơn,Xã,724
+2025,commune,Tuyên Quang,00967,Việt Lâm,Xã,483
+2025,commune,Tuyên Quang,00970,Linh Hồ,Xã,917
+2025,commune,Tuyên Quang,00976,Bạch Ngọc,Xã,933
+2025,commune,Tuyên Quang,00982,Minh Sơn,Xã,741
+2025,commune,Tuyên Quang,00985,Giáp Trung,Xã,370
+2025,commune,Tuyên Quang,00991,Bắc Mê,Xã,785
+2025,commune,Tuyên Quang,00994,Minh Ngọc,Xã,763
+2025,commune,Tuyên Quang,01006,Yên Cường,Xã,593
+2025,commune,Tuyên Quang,01012,Đường Hồng,Xã,688
+2025,commune,Tuyên Quang,01021,Hoàng Su Phì,Xã,438
+2025,commune,Tuyên Quang,01024,Bản Máy,Xã,387
+2025,commune,Tuyên Quang,01033,Thàng Tín,Xã,362
+2025,commune,Tuyên Quang,01051,Tân Tiến,Xã,424
+2025,commune,Tuyên Quang,01057,Pờ Ly Ngài,Xã,251
+2025,commune,Tuyên Quang,01075,Nậm Dịch,Xã,493
+2025,commune,Tuyên Quang,01084,Hồ Thầu,Xã,695
+2025,commune,Tuyên Quang,01090,Thông Nguyên,Xã,553
+2025,commune,Tuyên Quang,01096,Pà Vầy Sủ,Xã,425
+2025,commune,Tuyên Quang,01108,Xín Mần,Xã,632
+2025,commune,Tuyên Quang,01117,Trung Thịnh,Xã,361
+2025,commune,Tuyên Quang,01141,Nấm Dẩn,Xã,437
+2025,commune,Tuyên Quang,01144,Quảng Nguyên,Xã,502
+2025,commune,Tuyên Quang,01147,Khuôn Lùng,Xã,615
+2025,commune,Tuyên Quang,01153,Bắc Quang,Xã,718
+2025,commune,Tuyên Quang,01156,Vĩnh Tuy,Xã,583
+2025,commune,Tuyên Quang,01165,Đồng Tâm,Xã,788
+2025,commune,Tuyên Quang,01171,Tân Quang,Xã,878
+2025,commune,Tuyên Quang,01180,Bằng Hành,Xã,771
+2025,commune,Tuyên Quang,01192,Liên Hiệp,Xã,846
+2025,commune,Tuyên Quang,01201,Hùng An,Xã,602
+2025,commune,Tuyên Quang,01216,Đồng Yên,Xã,404
+2025,commune,Tuyên Quang,01225,Tiên Nguyên,Xã,456
+2025,commune,Tuyên Quang,01234,Yên Thành,Xã,398
+2025,commune,Tuyên Quang,01237,Quang Bình,Xã,658
+2025,commune,Tuyên Quang,01243,Tân Trịnh,Xã,573
+2025,commune,Tuyên Quang,01246,Bằng Lang,Xã,587
+2025,commune,Tuyên Quang,01255,Xuân Giang,Xã,432
+2025,commune,Tuyên Quang,01261,Tiên Yên,Xã,487
+2025,commune,Tuyên Quang,02212,Nông Tiến,Phường,129
+2025,commune,Tuyên Quang,02215,Minh Xuân,Phường,125
+2025,commune,Tuyên Quang,02221,Nà Hang,Xã,1291
+2025,commune,Tuyên Quang,02239,Thượng Nông,Xã,408
+2025,commune,Tuyên Quang,02245,Côn Lôn,Xã,800
+2025,commune,Tuyên Quang,02248,Yên Hoa,Xã,737
+2025,commune,Tuyên Quang,02260,Hồng Thái,Xã,1116
+2025,commune,Tuyên Quang,02266,Lâm Bình,Xã,1655
+2025,commune,Tuyên Quang,02269,Thượng Lâm,Xã,1404
+2025,commune,Tuyên Quang,02287,Chiêm Hoá,Xã,563
+2025,commune,Tuyên Quang,02296,Bình An,Xã,620
+2025,commune,Tuyên Quang,02302,Minh Quang,Xã,959
+2025,commune,Tuyên Quang,02305,Trung Hà,Xã,513
+2025,commune,Tuyên Quang,02308,Tân Mỹ,Xã,695
+2025,commune,Tuyên Quang,02317,Yên Lập,Xã,523
+2025,commune,Tuyên Quang,02320,Tân An,Xã,677
+2025,commune,Tuyên Quang,02332,Kiên Đài,Xã,653
+2025,commune,Tuyên Quang,02350,Kim Bình,Xã,466
+2025,commune,Tuyên Quang,02353,Hòa An,Xã,342
+2025,commune,Tuyên Quang,02359,Tri Phú,Xã,856
+2025,commune,Tuyên Quang,02365,Yên Nguyên,Xã,485
+2025,commune,Tuyên Quang,02374,Hàm Yên,Xã,639
+2025,commune,Tuyên Quang,02380,Bạch Xa,Xã,640
+2025,commune,Tuyên Quang,02392,Phù Lưu,Xã,606
+2025,commune,Tuyên Quang,02398,Yên Phú,Xã,1124
+2025,commune,Tuyên Quang,02404,Bình Xa,Xã,459
+2025,commune,Tuyên Quang,02407,Thái Sơn,Xã,476
+2025,commune,Tuyên Quang,02419,Thái Hòa,Xã,283
+2025,commune,Tuyên Quang,02425,Hùng Đức,Xã,311
+2025,commune,Tuyên Quang,02434,Lực Hành,Xã,444
+2025,commune,Tuyên Quang,02437,Kiến Thiết,Xã,554
+2025,commune,Tuyên Quang,02449,Xuân Vân,Xã,525
+2025,commune,Tuyên Quang,02455,Hùng Lợi,Xã,852
+2025,commune,Tuyên Quang,02458,Trung Sơn,Xã,685
+2025,commune,Tuyên Quang,02470,Tân Long,Xã,478
+2025,commune,Tuyên Quang,02473,Yên Sơn,Xã,592
+2025,commune,Tuyên Quang,02494,Thái Bình,Xã,520
+2025,commune,Tuyên Quang,02509,Mỹ Lâm,Phường,453
+2025,commune,Tuyên Quang,02512,An Tường,Phường,269
+2025,commune,Tuyên Quang,02524,Bình Thuận,Phường,232
+2025,commune,Tuyên Quang,02530,Nhữ Khê,Xã,302
+2025,commune,Tuyên Quang,02536,Sơn Dương,Xã,619
+2025,commune,Tuyên Quang,02545,Tân Trào,Xã,494
+2025,commune,Tuyên Quang,02548,Bình Ca,Xã,350
+2025,commune,Tuyên Quang,02554,Minh Thanh,Xã,392
+2025,commune,Tuyên Quang,02572,Đông Thọ,Xã,378
+2025,commune,Tuyên Quang,02578,Tân Thanh,Xã,572
+2025,commune,Tuyên Quang,02608,Hồng Sơn,Xã,225
+2025,commune,Tuyên Quang,02611,Phú Lương,Xã,432
+2025,commune,Tuyên Quang,02620,Sơn Thủy,Xã,381
+2025,commune,Tuyên Quang,02623,Trường Sinh,Xã,257
+2025,commune,Tây Ninh,25459,Tân Ninh,Phường,97
+2025,commune,Tây Ninh,25480,Bình Minh,Phường,499
+2025,commune,Tây Ninh,25486,Tân Biên,Xã,1158
+2025,commune,Tây Ninh,25489,Tân Lập,Xã,1238
+2025,commune,Tây Ninh,25498,Thạnh Bình,Xã,835
+2025,commune,Tây Ninh,25510,Trà Vong,Xã,440
+2025,commune,Tây Ninh,25516,Tân Châu,Xã,228
+2025,commune,Tây Ninh,25522,Tân Đông,Xã,635
+2025,commune,Tây Ninh,25525,Tân Hội,Xã,684
+2025,commune,Tây Ninh,25531,Tân Hòa,Xã,1994
+2025,commune,Tây Ninh,25534,Tân Thành,Xã,1227
+2025,commune,Tây Ninh,25549,Tân Phú,Xã,491
+2025,commune,Tây Ninh,25552,Dương Minh Châu,Xã,755
+2025,commune,Tây Ninh,25567,Ninh Thạnh,Phường,166
+2025,commune,Tây Ninh,25573,Cầu Khởi,Xã,520
+2025,commune,Tây Ninh,25579,Lộc Ninh,Xã,528
+2025,commune,Tây Ninh,25585,Châu Thành,Xã,449
+2025,commune,Tây Ninh,25588,Hảo Đước,Xã,450
+2025,commune,Tây Ninh,25591,Phước Vinh,Xã,783
+2025,commune,Tây Ninh,25606,Hòa Hội,Xã,530
+2025,commune,Tây Ninh,25621,Ninh Điền,Xã,728
+2025,commune,Tây Ninh,25630,Long Hoa,Phường,262
+2025,commune,Tây Ninh,25633,Thanh Điền,Phường,146
+2025,commune,Tây Ninh,25645,Hòa Thành,Phường,98
+2025,commune,Tây Ninh,25654,Gò Dầu,Phường,207
+2025,commune,Tây Ninh,25657,Thạnh Đức,Xã,470
+2025,commune,Tây Ninh,25663,Phước Thạnh,Xã,342
+2025,commune,Tây Ninh,25666,Truông Mít,Xã,356
+2025,commune,Tây Ninh,25672,Gia Lộc,Phường,239
+2025,commune,Tây Ninh,25681,Bến Cầu,Xã,532
+2025,commune,Tây Ninh,25684,Long Chữ,Xã,438
+2025,commune,Tây Ninh,25702,Long Thuận,Xã,312
+2025,commune,Tây Ninh,25708,Trảng Bàng,Phường,173
+2025,commune,Tây Ninh,25711,Hưng Thuận,Xã,489
+2025,commune,Tây Ninh,25729,Phước Chỉ,Xã,382
+2025,commune,Tây Ninh,25732,An Tịnh,Phường,379
+2025,commune,Tây Ninh,27694,Long An,Phường,165
+2025,commune,Tây Ninh,27712,Tân An,Phường,124
+2025,commune,Tây Ninh,27715,Khánh Hậu,Phường,107
+2025,commune,Tây Ninh,27721,Tân Hưng,Xã,507
+2025,commune,Tây Ninh,27727,Hưng Điền,Xã,613
+2025,commune,Tây Ninh,27736,Vĩnh Thạnh,Xã,573
+2025,commune,Tây Ninh,27748,Vĩnh Châu,Xã,658
+2025,commune,Tây Ninh,27757,Vĩnh Hưng,Xã,458
+2025,commune,Tây Ninh,27763,Khánh Hưng,Xã,693
+2025,commune,Tây Ninh,27775,Tuyên Bình,Xã,691
+2025,commune,Tây Ninh,27787,Kiến Tường,Phường,117
+2025,commune,Tây Ninh,27793,Bình Hiệp,Xã,576
+2025,commune,Tây Ninh,27811,Bình Hòa,Xã,553
+2025,commune,Tây Ninh,27817,Tuyên Thạnh,Xã,512
+2025,commune,Tây Ninh,27823,Mộc Hóa,Xã,642
+2025,commune,Tây Ninh,27826,Tân Thạnh,Xã,563
+2025,commune,Tây Ninh,27838,Nhơn Hòa Lập,Xã,527
+2025,commune,Tây Ninh,27841,Hậu Thạnh,Xã,437
+2025,commune,Tây Ninh,27856,Nhơn Ninh,Xã,442
+2025,commune,Tây Ninh,27865,Thạnh Hóa,Xã,517
+2025,commune,Tây Ninh,27868,Bình Thành,Xã,636
+2025,commune,Tây Ninh,27877,Thạnh Phước,Xã,695
+2025,commune,Tây Ninh,27889,Tân Tây,Xã,540
+2025,commune,Tây Ninh,27898,Đông Thành,Xã,604
+2025,commune,Tây Ninh,27907,Mỹ Quý,Xã,642
+2025,commune,Tây Ninh,27925,Đức Huệ,Xã,641
+2025,commune,Tây Ninh,27931,Hậu Nghĩa,Xã,317
+2025,commune,Tây Ninh,27937,Đức Hòa,Xã,307
+2025,commune,Tây Ninh,27943,An Ninh,Xã,276
+2025,commune,Tây Ninh,27952,Hiệp Hòa,Xã,264
+2025,commune,Tây Ninh,27964,Đức Lập,Xã,307
+2025,commune,Tây Ninh,27976,Mỹ Hạnh,Xã,273
+2025,commune,Tây Ninh,27979,Hòa Khánh,Xã,282
+2025,commune,Tây Ninh,27991,Bến Lức,Xã,234
+2025,commune,Tây Ninh,27994,Thạnh Lợi,Xã,453
+2025,commune,Tây Ninh,28003,Lương Hòa,Xã,293
+2025,commune,Tây Ninh,28015,Bình Đức,Xã,241
+2025,commune,Tây Ninh,28018,Mỹ Yên,Xã,141
+2025,commune,Tây Ninh,28036,Thủ Thừa,Xã,192
+2025,commune,Tây Ninh,28051,Mỹ Thạnh,Xã,360
+2025,commune,Tây Ninh,28066,Mỹ An,Xã,157
+2025,commune,Tây Ninh,28072,Tân Long,Xã,708
+2025,commune,Tây Ninh,28075,Tân Trụ,Xã,144
+2025,commune,Tây Ninh,28087,Nhựt Tảo,Xã,169
+2025,commune,Tây Ninh,28093,Vàm Cỏ,Xã,199
+2025,commune,Tây Ninh,28108,Cần Đước,Xã,233
+2025,commune,Tây Ninh,28114,Rạch Kiến,Xã,115
+2025,commune,Tây Ninh,28126,Long Cang,Xã,150
+2025,commune,Tây Ninh,28132,Mỹ Lệ,Xã,189
+2025,commune,Tây Ninh,28138,Tân Lân,Xã,186
+2025,commune,Tây Ninh,28144,Long Hựu,Xã,179
+2025,commune,Tây Ninh,28159,Cần Giuộc,Xã,270
+2025,commune,Tây Ninh,28165,Phước Lý,Xã,131
+2025,commune,Tây Ninh,28177,Mỹ Lộc,Xã,168
+2025,commune,Tây Ninh,28201,Phước Vĩnh Tây,Xã,167
+2025,commune,Tây Ninh,28207,Tân Tập,Xã,291
+2025,commune,Tây Ninh,28210,Tầm Vu,Xã,208
+2025,commune,Tây Ninh,28222,Vĩnh Công,Xã,116
+2025,commune,Tây Ninh,28225,Thuận Mỹ,Xã,250
+2025,commune,Tây Ninh,28243,An Lục Long,Xã,160
+2025,commune,Vĩnh Long,28756,Phú Khương,Phường,120
+2025,commune,Vĩnh Long,28777,An Hội,Phường,158
+2025,commune,Vĩnh Long,28783,Sơn Đông,Phường,114
+2025,commune,Vĩnh Long,28789,Bến Tre,Phường,145
+2025,commune,Vĩnh Long,28807,Giao Long,Xã,204
+2025,commune,Vĩnh Long,28810,Phú Túc,Xã,299
+2025,commune,Vĩnh Long,28840,Tân Phú,Xã,240
+2025,commune,Vĩnh Long,28858,Phú Tân,Phường,125
+2025,commune,Vĩnh Long,28861,Tiên Thủy,Xã,167
+2025,commune,Vĩnh Long,28870,Chợ Lách,Xã,234
+2025,commune,Vĩnh Long,28879,Phú Phụng,Xã,221
+2025,commune,Vĩnh Long,28894,Vĩnh Thành,Xã,244
+2025,commune,Vĩnh Long,28901,Hưng Khánh Trung,Xã,152
+2025,commune,Vĩnh Long,28903,Mỏ Cày,Xã,184
+2025,commune,Vĩnh Long,28915,Phước Mỹ Trung,Xã,186
+2025,commune,Vĩnh Long,28921,Tân Thành Bình,Xã,248
+2025,commune,Vĩnh Long,28945,Đồng Khởi,Xã,198
+2025,commune,Vĩnh Long,28948,Nhuận Phú Tân,Xã,200
+2025,commune,Vĩnh Long,28957,An Định,Xã,219
+2025,commune,Vĩnh Long,28969,Thành Thới,Xã,235
+2025,commune,Vĩnh Long,28981,Hương Mỹ,Xã,262
+2025,commune,Vĩnh Long,28984,Giồng Trôm,Xã,202
+2025,commune,Vĩnh Long,28987,Lương Hòa,Xã,177
+2025,commune,Vĩnh Long,28993,Lương Phú,Xã,131
+2025,commune,Vĩnh Long,28996,Châu Hòa,Xã,249
+2025,commune,Vĩnh Long,29020,Phước Long,Xã,188
+2025,commune,Vĩnh Long,29029,Tân Hào,Xã,214
+2025,commune,Vĩnh Long,29044,Hưng Nhượng,Xã,254
+2025,commune,Vĩnh Long,29050,Bình Đại,Xã,204
+2025,commune,Vĩnh Long,29062,Phú Thuận,Xã,137
+2025,commune,Vĩnh Long,29077,Lộc Thuận,Xã,200
+2025,commune,Vĩnh Long,29083,Châu Hưng,Xã,167
+2025,commune,Vĩnh Long,29089,Thạnh Trị,Xã,334
+2025,commune,Vĩnh Long,29104,Thạnh Phước,Xã,369
+2025,commune,Vĩnh Long,29107,Thới Thuận,Xã,429
+2025,commune,Vĩnh Long,29110,Ba Tri,Xã,231
+2025,commune,Vĩnh Long,29122,Mỹ Chánh Hòa,Xã,245
+2025,commune,Vĩnh Long,29125,Bảo Thạnh,Xã,276
+2025,commune,Vĩnh Long,29137,Tân Xuân,Xã,238
+2025,commune,Vĩnh Long,29143,An Ngãi Trung,Xã,158
+2025,commune,Vĩnh Long,29158,An Hiệp,Xã,271
+2025,commune,Vĩnh Long,29167,Tân Thủy,Xã,242
+2025,commune,Vĩnh Long,29182,Thạnh Phú,Xã,335
+2025,commune,Vĩnh Long,29191,Quới Điền,Xã,238
+2025,commune,Vĩnh Long,29194,Đại Điền,Xã,280
+2025,commune,Vĩnh Long,29221,Thạnh Hải,Xã,378
+2025,commune,Vĩnh Long,29224,An Qui,Xã,340
+2025,commune,Vĩnh Long,29227,Thạnh Phong,Xã,319
+2025,commune,Vĩnh Long,29242,Trà Vinh,Phường,69
+2025,commune,Vĩnh Long,29254,Nguyệt Hóa,Phường,99
+2025,commune,Vĩnh Long,29263,Long Đức,Phường,190
+2025,commune,Vĩnh Long,29266,Càng Long,Xã,223
+2025,commune,Vĩnh Long,29275,An Trường,Xã,348
+2025,commune,Vĩnh Long,29278,Tân An,Xã,267
+2025,commune,Vĩnh Long,29287,Bình Phú,Xã,283
+2025,commune,Vĩnh Long,29302,Nhị Long,Xã,279
+2025,commune,Vĩnh Long,29308,Cầu Kè,Xã,260
+2025,commune,Vĩnh Long,29317,An Phú Tân,Xã,256
+2025,commune,Vĩnh Long,29329,Phong Thạnh,Xã,364
+2025,commune,Vĩnh Long,29335,Tam Ngãi,Xã,291
+2025,commune,Vĩnh Long,29341,Tiểu Cần,Xã,236
+2025,commune,Vĩnh Long,29362,Hùng Hòa,Xã,268
+2025,commune,Vĩnh Long,29365,Tập Ngãi,Xã,280
+2025,commune,Vĩnh Long,29371,Tân Hòa,Xã,299
+2025,commune,Vĩnh Long,29374,Châu Thành,Xã,412
+2025,commune,Vĩnh Long,29386,Song Lộc,Xã,386
+2025,commune,Vĩnh Long,29398,Hòa Thuận,Phường,78
+2025,commune,Vĩnh Long,29407,Hưng Mỹ,Xã,321
+2025,commune,Vĩnh Long,29410,Hòa Minh,Xã,171
+2025,commune,Vĩnh Long,29413,Long Hòa,Xã,219
+2025,commune,Vĩnh Long,29416,Cầu Ngang,Xã,168
+2025,commune,Vĩnh Long,29419,Mỹ Long,Xã,250
+2025,commune,Vĩnh Long,29431,Vinh Kim,Xã,271
+2025,commune,Vĩnh Long,29446,Nhị Trường,Xã,345
+2025,commune,Vĩnh Long,29455,Hiệp Mỹ,Xã,319
+2025,commune,Vĩnh Long,29461,Trà Cú,Xã,177
+2025,commune,Vĩnh Long,29467,Tập Sơn,Xã,322
+2025,commune,Vĩnh Long,29476,Lưu Nghiệp Anh,Xã,251
+2025,commune,Vĩnh Long,29489,Hàm Giang,Xã,291
+2025,commune,Vĩnh Long,29491,Đại An,Xã,152
+2025,commune,Vĩnh Long,29497,Đôn Châu,Xã,279
+2025,commune,Vĩnh Long,29506,Long Hiệp,Xã,308
+2025,commune,Vĩnh Long,29512,Duyên Hải,Phường,335
+2025,commune,Vĩnh Long,29513,Long Thành,Xã,253
+2025,commune,Vĩnh Long,29516,Trường Long Hòa,Phường,231
+2025,commune,Vĩnh Long,29518,Long Hữu,Xã,263
+2025,commune,Vĩnh Long,29530,Ngũ Lạc,Xã,274
+2025,commune,Vĩnh Long,29533,Long Vĩnh,Xã,325
+2025,commune,Vĩnh Long,29536,Đông Hải,Xã,282
+2025,commune,Vĩnh Long,29551,Long Châu,Phường,62
+2025,commune,Vĩnh Long,29557,Phước Hậu,Phường,73
+2025,commune,Vĩnh Long,29566,Tân Ngãi,Phường,102
+2025,commune,Vĩnh Long,29584,An Bình,Xã,295
+2025,commune,Vĩnh Long,29590,Thanh Đức,Phường,80
+2025,commune,Vĩnh Long,29593,Tân Hạnh,Phường,84
+2025,commune,Vĩnh Long,29602,Long Hồ,Xã,229
+2025,commune,Vĩnh Long,29611,Phú Quới,Xã,239
+2025,commune,Vĩnh Long,29623,Nhơn Phú,Xã,182
+2025,commune,Vĩnh Long,29638,Bình Phước,Xã,170
+2025,commune,Vĩnh Long,29641,Cái Nhum,Xã,252
+2025,commune,Vĩnh Long,29653,Tân Long Hội,Xã,173
+2025,commune,Vĩnh Long,29659,Trung Thành,Xã,169
+2025,commune,Vĩnh Long,29668,Quới An,Xã,213
+2025,commune,Vĩnh Long,29677,Quới Thiện,Xã,227
+2025,commune,Vĩnh Long,29683,Trung Hiệp,Xã,221
+2025,commune,Vĩnh Long,29698,Trung Ngãi,Xã,184
+2025,commune,Vĩnh Long,29701,Hiếu Phụng,Xã,203
+2025,commune,Vĩnh Long,29713,Hiếu Thành,Xã,252
+2025,commune,Vĩnh Long,29719,Tam Bình,Xã,176
+2025,commune,Vĩnh Long,29728,Cái Ngang,Xã,301
+2025,commune,Vĩnh Long,29734,Hòa Hiệp,Xã,205
+2025,commune,Vĩnh Long,29740,Song Phú,Xã,363
+2025,commune,Vĩnh Long,29767,Ngãi Tứ,Xã,330
+2025,commune,Vĩnh Long,29770,Cái Vồn,Phường,107
+2025,commune,Vĩnh Long,29771,Bình Minh,Phường,121
+2025,commune,Vĩnh Long,29785,Tân Lược,Xã,266
+2025,commune,Vĩnh Long,29788,Mỹ Thuận,Xã,264
+2025,commune,Vĩnh Long,29800,Tân Quới,Xã,219
+2025,commune,Vĩnh Long,29812,Đông Thành,Phường,214
+2025,commune,Vĩnh Long,29821,Trà Ôn,Xã,202
+2025,commune,Vĩnh Long,29830,Hòa Bình,Xã,313
+2025,commune,Vĩnh Long,29836,Trà Côn,Xã,274
+2025,commune,Vĩnh Long,29845,Vĩnh Xuân,Xã,275
+2025,commune,Vĩnh Long,29857,Lục Sĩ Thành,Xã,207
+2025,commune,Điện Biên,03127,Điện Biên Phủ,Phường,288
+2025,commune,Điện Biên,03151,Mường Lay,Phường,1121
+2025,commune,Điện Biên,03158,Sín Thầu,Xã,2613
+2025,commune,Điện Biên,03160,Mường Nhé,Xã,2466
+2025,commune,Điện Biên,03162,Nậm Kè,Xã,1053
+2025,commune,Điện Biên,03163,Mường Toong,Xã,1148
+2025,commune,Điện Biên,03164,Quảng Lâm,Xã,1268
+2025,commune,Điện Biên,03166,Mường Chà,Xã,2327
+2025,commune,Điện Biên,03169,Nà Hỳ,Xã,1441
+2025,commune,Điện Biên,03172,Na Sang,Xã,1813
+2025,commune,Điện Biên,03175,Chà Tở,Xã,1150
+2025,commune,Điện Biên,03176,Nà Bủng,Xã,765
+2025,commune,Điện Biên,03181,Mường Tùng,Xã,1404
+2025,commune,Điện Biên,03193,Pa Ham,Xã,687
+2025,commune,Điện Biên,03194,Nậm Nèn,Xã,889
+2025,commune,Điện Biên,03199,Si Pa Phìn,Xã,1216
+2025,commune,Điện Biên,03202,Mường Pồn,Xã,1297
+2025,commune,Điện Biên,03203,Na Son,Xã,1141
+2025,commune,Điện Biên,03208,Xa Dung,Xã,1084
+2025,commune,Điện Biên,03214,Mường Luân,Xã,862
+2025,commune,Điện Biên,03217,Tủa Chùa,Xã,540
+2025,commune,Điện Biên,03220,Tủa Thàng,Xã,813
+2025,commune,Điện Biên,03226,Sín Chải,Xã,954
+2025,commune,Điện Biên,03241,Sính Phình,Xã,877
+2025,commune,Điện Biên,03244,Sáng Nhè,Xã,955
+2025,commune,Điện Biên,03253,Tuần Giáo,Xã,528
+2025,commune,Điện Biên,03256,Mường Ảng,Xã,434
+2025,commune,Điện Biên,03260,Pú Nhung,Xã,1070
+2025,commune,Điện Biên,03268,Mường Mùn,Xã,1247
+2025,commune,Điện Biên,03283,Chiềng Sinh,Xã,1047
+2025,commune,Điện Biên,03295,Quài Tở,Xã,921
+2025,commune,Điện Biên,03301,Búng Lao,Xã,761
+2025,commune,Điện Biên,03313,Mường Lạn,Xã,673
+2025,commune,Điện Biên,03316,Nà Tấu,Xã,1003
+2025,commune,Điện Biên,03325,Mường Phăng,Xã,816
+2025,commune,Điện Biên,03328,Thanh Nưa,Xã,883
+2025,commune,Điện Biên,03334,Mường Thanh,Phường,137
+2025,commune,Điện Biên,03349,Thanh Yên,Xã,650
+2025,commune,Điện Biên,03352,Thanh An,Xã,293
+2025,commune,Điện Biên,03356,Sam Mứn,Xã,780
+2025,commune,Điện Biên,03358,Núa Ngam,Xã,1328
+2025,commune,Điện Biên,03368,Mường Nhà,Xã,2322
+2025,commune,Điện Biên,03370,Pu Nhi,Xã,908
+2025,commune,Điện Biên,03382,Phình Giàng,Xã,1142
+2025,commune,Điện Biên,03385,Tìa Dình,Xã,898
+2025,commune,Đà Nẵng,20194,Hải Vân,Phường,1938
+2025,commune,Đà Nẵng,20197,Liên Chiểu,Phường,239
+2025,commune,Đà Nẵng,20200,Hòa Khánh,Phường,203
+2025,commune,Đà Nẵng,20209,Thanh Khê,Phường,34
+2025,commune,Đà Nẵng,20242,Hải Châu,Phường,31
+2025,commune,Đà Nẵng,20257,Hòa Cường,Phường,77
+2025,commune,Đà Nẵng,20260,Cẩm Lệ,Phường,67
+2025,commune,Đà Nẵng,20263,Sơn Trà,Phường,268
+2025,commune,Đà Nẵng,20275,An Hải,Phường,35
+2025,commune,Đà Nẵng,20285,Ngũ Hành Sơn,Phường,194
+2025,commune,Đà Nẵng,20305,An Khê,Phường,60
+2025,commune,Đà Nẵng,20308,Bà Nà,Xã,672
+2025,commune,Đà Nẵng,20314,Hòa Xuân,Phường,132
+2025,commune,Đà Nẵng,20320,Hòa Vang,Xã,520
+2025,commune,Đà Nẵng,20332,Hòa Tiến,Xã,322
+2025,commune,Đà Nẵng,20333,Hoàng Sa,Đặc khu,3488
+2025,commune,Đà Nẵng,20335,Bàn Thạch,Phường,167
+2025,commune,Đà Nẵng,20341,Tam Kỳ,Phường,42
+2025,commune,Đà Nẵng,20350,Hương Trà,Phường,69
+2025,commune,Đà Nẵng,20356,Quảng Phú,Phường,176
+2025,commune,Đà Nẵng,20364,Chiên Đàn,Xã,240
+2025,commune,Đà Nẵng,20380,Tây Hồ,Xã,366
+2025,commune,Đà Nẵng,20392,Phú Ninh,Xã,631
+2025,commune,Đà Nẵng,20401,Hội An Tây,Phường,86
+2025,commune,Đà Nẵng,20410,Hội An,Phường,52
+2025,commune,Đà Nẵng,20413,Hội An Đông,Phường,83
+2025,commune,Đà Nẵng,20434,Tân Hiệp,Xã,78
+2025,commune,Đà Nẵng,20443,Hùng Sơn,Xã,1286
+2025,commune,Đà Nẵng,20455,Tây Giang,Xã,2061
+2025,commune,Đà Nẵng,20458,Avương,Xã,1098
+2025,commune,Đà Nẵng,20467,Đông Giang,Xã,824
+2025,commune,Đà Nẵng,20476,Sông Kôn,Xã,1034
+2025,commune,Đà Nẵng,20485,Sông Vàng,Xã,890
+2025,commune,Đà Nẵng,20494,Bến Hiên,Xã,1244
+2025,commune,Đà Nẵng,20500,Đại Lộc,Xã,356
+2025,commune,Đà Nẵng,20506,Thượng Đức,Xã,1053
+2025,commune,Đà Nẵng,20515,Hà Nha,Xã,645
+2025,commune,Đà Nẵng,20539,Vu Gia,Xã,119
+2025,commune,Đà Nẵng,20542,Phú Thuận,Xã,637
+2025,commune,Đà Nẵng,20551,Điện Bàn,Phường,94
+2025,commune,Đà Nẵng,20557,Điện Bàn Bắc,Phường,179
+2025,commune,Đà Nẵng,20569,Điện Bàn Tây,Xã,212
+2025,commune,Đà Nẵng,20575,An Thắng,Phường,94
+2025,commune,Đà Nẵng,20579,Điện Bàn Đông,Phường,297
+2025,commune,Đà Nẵng,20587,Gò Nổi,Xã,177
+2025,commune,Đà Nẵng,20599,Nam Phước,Xã,192
+2025,commune,Đà Nẵng,20611,Thu Bồn,Xã,535
+2025,commune,Đà Nẵng,20623,Duy Xuyên,Xã,613
+2025,commune,Đà Nẵng,20635,Duy Nghĩa,Xã,177
+2025,commune,Đà Nẵng,20641,Quế Sơn,Xã,455
+2025,commune,Đà Nẵng,20650,Xuân Phú,Xã,251
+2025,commune,Đà Nẵng,20656,Nông Sơn,Xã,546
+2025,commune,Đà Nẵng,20662,Quế Sơn Trung,Xã,545
+2025,commune,Đà Nẵng,20669,Quế Phước,Xã,1745
+2025,commune,Đà Nẵng,20695,Thạnh Mỹ,Xã,1006
+2025,commune,Đà Nẵng,20698,La Êê,Xã,1179
+2025,commune,Đà Nẵng,20704,La Dêê,Xã,894
+2025,commune,Đà Nẵng,20707,Nam Giang,Xã,1283
+2025,commune,Đà Nẵng,20710,Bến Giằng,Xã,2599
+2025,commune,Đà Nẵng,20716,Đắc Pring,Xã,1998
+2025,commune,Đà Nẵng,20722,Khâm Đức,Xã,790
+2025,commune,Đà Nẵng,20728,Phước Hiệp,Xã,1641
+2025,commune,Đà Nẵng,20734,Phước Năng,Xã,1249
+2025,commune,Đà Nẵng,20740,Phước Chánh,Xã,522
+2025,commune,Đà Nẵng,20752,Phước Thành,Xã,1386
+2025,commune,Đà Nẵng,20767,Việt An,Xã,728
+2025,commune,Đà Nẵng,20770,Phước Trà,Xã,951
+2025,commune,Đà Nẵng,20779,Hiệp Đức,Xã,732
+2025,commune,Đà Nẵng,20791,Thăng Bình,Xã,333
+2025,commune,Đà Nẵng,20794,Thăng An,Xã,396
+2025,commune,Đà Nẵng,20818,Đồng Dương,Xã,377
+2025,commune,Đà Nẵng,20827,Thăng Phú,Xã,289
+2025,commune,Đà Nẵng,20836,Thăng Trường,Xã,301
+2025,commune,Đà Nẵng,20848,Thăng Điền,Xã,307
+2025,commune,Đà Nẵng,20854,Tiên Phước,Xã,368
+2025,commune,Đà Nẵng,20857,Sơn Cẩm Hà,Xã,570
+2025,commune,Đà Nẵng,20875,Lãnh Ngọc,Xã,779
+2025,commune,Đà Nẵng,20878,Thạnh Bình,Xã,493
+2025,commune,Đà Nẵng,20900,Trà My,Xã,635
+2025,commune,Đà Nẵng,20908,Trà Liên,Xã,864
+2025,commune,Đà Nẵng,20920,Trà Đốc,Xã,1134
+2025,commune,Đà Nẵng,20923,Trà Tân,Xã,894
+2025,commune,Đà Nẵng,20929,Trà Giáp,Xã,586
+2025,commune,Đà Nẵng,20938,Trà Leng,Xã,1077
+2025,commune,Đà Nẵng,20941,Trà Tập,Xã,891
+2025,commune,Đà Nẵng,20944,Nam Trà My,Xã,855
+2025,commune,Đà Nẵng,20950,Trà Linh,Xã,762
+2025,commune,Đà Nẵng,20959,Trà Vân,Xã,415
+2025,commune,Đà Nẵng,20965,Núi Thành,Xã,602
+2025,commune,Đà Nẵng,20971,Tam Xuân,Xã,327
+2025,commune,Đà Nẵng,20977,Đức Phú,Xã,529
+2025,commune,Đà Nẵng,20984,Tam Anh,Xã,330
+2025,commune,Đà Nẵng,20992,Tam Hải,Xã,66
+2025,commune,Đà Nẵng,21004,Tam Mỹ,Xã,840
+2025,commune,Đắk Lắk,22015,Tuy Hòa,Phường,161
+2025,commune,Đắk Lắk,22045,Bình Kiến,Phường,358
+2025,commune,Đắk Lắk,22051,Sông Cầu,Phường,422
+2025,commune,Đắk Lắk,22057,Xuân Lộc,Xã,550
+2025,commune,Đắk Lắk,22060,Xuân Cảnh,Xã,396
+2025,commune,Đắk Lắk,22075,Xuân Thọ,Xã,925
+2025,commune,Đắk Lắk,22076,Xuân Đài,Phường,61
+2025,commune,Đắk Lắk,22081,Đồng Xuân,Xã,995
+2025,commune,Đắk Lắk,22090,Xuân Lãnh,Xã,868
+2025,commune,Đắk Lắk,22096,Phú Mỡ,Xã,2623
+2025,commune,Đắk Lắk,22111,Xuân Phước,Xã,491
+2025,commune,Đắk Lắk,22114,Tuy An Bắc,Xã,252
+2025,commune,Đắk Lắk,22120,Tuy An Đông,Xã,221
+2025,commune,Đắk Lắk,22132,Tuy An Tây,Xã,655
+2025,commune,Đắk Lắk,22147,Ô Loan,Xã,492
+2025,commune,Đắk Lắk,22153,Tuy An Nam,Xã,334
+2025,commune,Đắk Lắk,22165,Sơn Hòa,Xã,1275
+2025,commune,Đắk Lắk,22171,Tây Sơn,Xã,1614
+2025,commune,Đắk Lắk,22177,Vân Hòa,Xã,729
+2025,commune,Đắk Lắk,22192,Suối Trai,Xã,900
+2025,commune,Đắk Lắk,22207,Sông Hinh,Xã,2246
+2025,commune,Đắk Lắk,22222,Đức Bình,Xã,743
+2025,commune,Đắk Lắk,22225,Ea Bá,Xã,684
+2025,commune,Đắk Lắk,22237,Ea Ly,Xã,621
+2025,commune,Đắk Lắk,22240,Phú Yên,Phường,190
+2025,commune,Đắk Lắk,22250,Sơn Thành,Xã,1045
+2025,commune,Đắk Lắk,22255,Tây Hòa,Xã,280
+2025,commune,Đắk Lắk,22258,Đông Hòa,Phường,367
+2025,commune,Đắk Lắk,22261,Hòa Hiệp,Phường,197
+2025,commune,Đắk Lắk,22276,Hòa Thịnh,Xã,762
+2025,commune,Đắk Lắk,22285,Hòa Mỹ,Xã,914
+2025,commune,Đắk Lắk,22291,Hòa Xuân,Xã,628
+2025,commune,Đắk Lắk,22303,Phú Hòa 2,Xã,462
+2025,commune,Đắk Lắk,22319,Phú Hòa 1,Xã,680
+2025,commune,Đắk Lắk,24121,Tân Lập,Phường,226
+2025,commune,Đắk Lắk,24133,Buôn Ma Thuột,Phường,348
+2025,commune,Đắk Lắk,24154,Thành Nhất,Phường,154
+2025,commune,Đắk Lắk,24163,Tân An,Phường,270
+2025,commune,Đắk Lắk,24169,Ea Kao,Phường,294
+2025,commune,Đắk Lắk,24175,Hòa Phú,Xã,519
+2025,commune,Đắk Lắk,24181,Ea Drăng,Xã,814
+2025,commune,Đắk Lắk,24184,Ea H’leo,Xã,1618
+2025,commune,Đắk Lắk,24187,Ea Hiao,Xã,1741
+2025,commune,Đắk Lắk,24193,Ea Wy,Xã,1031
+2025,commune,Đắk Lắk,24208,Ea Khăl,Xã,1195
+2025,commune,Đắk Lắk,24211,Ea Súp,Xã,1990
+2025,commune,Đắk Lắk,24214,Ia Lốp,Xã,937
+2025,commune,Đắk Lắk,24217,Ea Rốk,Xã,2609
+2025,commune,Đắk Lắk,24221,Ia Rvê,Xã,1076
+2025,commune,Đắk Lắk,24229,Ea Bung,Xã,1858
+2025,commune,Đắk Lắk,24235,Buôn Đôn,Xã,5360
+2025,commune,Đắk Lắk,24241,Ea Wer,Xã,876
+2025,commune,Đắk Lắk,24250,Ea Nuôl,Xã,527
+2025,commune,Đắk Lắk,24259,Quảng Phú,Xã,524
+2025,commune,Đắk Lắk,24265,Ea Kiết,Xã,977
+2025,commune,Đắk Lắk,24277,Ea Tul,Xã,764
+2025,commune,Đắk Lắk,24280,Cư M’gar,Xã,545
+2025,commune,Đắk Lắk,24286,Ea M’Droh,Xã,644
+2025,commune,Đắk Lắk,24301,Cuôr Đăng,Xã,503
+2025,commune,Đắk Lắk,24305,Buôn Hồ,Phường,321
+2025,commune,Đắk Lắk,24310,Krông Búk,Xã,641
+2025,commune,Đắk Lắk,24313,Cư Pơng,Xã,655
+2025,commune,Đắk Lắk,24316,Pơng Drang,Xã,409
+2025,commune,Đắk Lắk,24328,Ea Drông,Xã,535
+2025,commune,Đắk Lắk,24340,Cư Bao,Phường,480
+2025,commune,Đắk Lắk,24343,Krông Năng,Xã,481
+2025,commune,Đắk Lắk,24346,Dliê Ya,Xã,860
+2025,commune,Đắk Lắk,24352,Tam Giang,Xã,934
+2025,commune,Đắk Lắk,24364,Phú Xuân,Xã,679
+2025,commune,Đắk Lắk,24373,Ea Kar,Xã,949
+2025,commune,Đắk Lắk,24376,Ea Knốp,Xã,2156
+2025,commune,Đắk Lắk,24400,Ea Păl,Xã,496
+2025,commune,Đắk Lắk,24403,Ea Ô,Xã,661
+2025,commune,Đắk Lắk,24406,Cư Yang,Xã,724
+2025,commune,Đắk Lắk,24412,M’Drắk,Xã,722
+2025,commune,Đắk Lắk,24415,Cư Prao,Xã,988
+2025,commune,Đắk Lắk,24433,Ea Riêng,Xã,806
+2025,commune,Đắk Lắk,24436,Cư M’ta,Xã,1325
+2025,commune,Đắk Lắk,24444,Krông Á,Xã,1396
+2025,commune,Đắk Lắk,24445,Ea Trang,Xã,910
+2025,commune,Đắk Lắk,24448,Krông Bông,Xã,798
+2025,commune,Đắk Lắk,24454,Dang Kang,Xã,510
+2025,commune,Đắk Lắk,24472,Hòa Sơn,Xã,526
+2025,commune,Đắk Lắk,24478,Cư Pui,Xã,1500
+2025,commune,Đắk Lắk,24484,Yang Mao,Xã,2693
+2025,commune,Đắk Lắk,24490,Krông Pắc,Xã,554
+2025,commune,Đắk Lắk,24496,Ea Kly,Xã,522
+2025,commune,Đắk Lắk,24502,Ea Phê,Xã,401
+2025,commune,Đắk Lắk,24505,Ea Knuếc,Xã,585
+2025,commune,Đắk Lắk,24526,Tân Tiến,Xã,429
+2025,commune,Đắk Lắk,24529,Vụ Bổn,Xã,524
+2025,commune,Đắk Lắk,24538,Krông Ana,Xã,513
+2025,commune,Đắk Lắk,24540,Ea Ning,Xã,417
+2025,commune,Đắk Lắk,24544,Ea Ktur,Xã,472
+2025,commune,Đắk Lắk,24559,Ea Na,Xã,647
+2025,commune,Đắk Lắk,24561,Dray Bhăng,Xã,491
+2025,commune,Đắk Lắk,24568,Dur Kmăl,Xã,554
+2025,commune,Đắk Lắk,24580,Liên Sơn Lắk,Xã,1905
+2025,commune,Đắk Lắk,24595,Đắk Liêng,Xã,644
+2025,commune,Đắk Lắk,24598,Đắk Phơi,Xã,1280
+2025,commune,Đắk Lắk,24604,Krông Nô,Xã,1347
+2025,commune,Đắk Lắk,24607,Nam Ka,Xã,839
+2025,commune,Đồng Nai,25195,Bình Phước,Phường,416
+2025,commune,Đồng Nai,25210,Đồng Xoài,Phường,387
+2025,commune,Đồng Nai,25217,Phước Long,Phường,344
+2025,commune,Đồng Nai,25220,Phước Bình,Phường,344
+2025,commune,Đồng Nai,25222,Bù Gia Mập,Xã,1690
+2025,commune,Đồng Nai,25225,Đăk Ơ,Xã,1186
+2025,commune,Đồng Nai,25231,Đa Kia,Xã,941
+2025,commune,Đồng Nai,25246,Bình Tân,Xã,917
+2025,commune,Đồng Nai,25252,Phú Riềng,Xã,557
+2025,commune,Đồng Nai,25255,Long Hà,Xã,806
+2025,commune,Đồng Nai,25261,Phú Trung,Xã,821
+2025,commune,Đồng Nai,25267,Phú Nghĩa,Xã,1277
+2025,commune,Đồng Nai,25270,Lộc Ninh,Xã,318
+2025,commune,Đồng Nai,25279,Lộc Tấn,Xã,869
+2025,commune,Đồng Nai,25280,Lộc Thạnh,Xã,596
+2025,commune,Đồng Nai,25292,Lộc Quang,Xã,504
+2025,commune,Đồng Nai,25294,Lộc Thành,Xã,985
+2025,commune,Đồng Nai,25303,Lộc Hưng,Xã,478
+2025,commune,Đồng Nai,25308,Thiện Hưng,Xã,523
+2025,commune,Đồng Nai,25309,Hưng Phước,Xã,891
+2025,commune,Đồng Nai,25318,Tân Tiến,Xã,697
+2025,commune,Đồng Nai,25326,Bình Long,Phường,232
+2025,commune,Đồng Nai,25333,An Lộc,Phường,421
+2025,commune,Đồng Nai,25345,Tân Hưng,Xã,984
+2025,commune,Đồng Nai,25349,Minh Đức,Xã,797
+2025,commune,Đồng Nai,25351,Tân Quan,Xã,705
+2025,commune,Đồng Nai,25357,Tân Khai,Xã,776
+2025,commune,Đồng Nai,25363,Đồng Phú,Xã,664
+2025,commune,Đồng Nai,25378,Tân Lợi,Xã,1804
+2025,commune,Đồng Nai,25387,Thuận Lợi,Xã,804
+2025,commune,Đồng Nai,25390,Đồng Tâm,Xã,1184
+2025,commune,Đồng Nai,25396,Bù Đăng,Xã,755
+2025,commune,Đồng Nai,25399,Đak Nhau,Xã,879
+2025,commune,Đồng Nai,25402,Thọ Sơn,Xã,1463
+2025,commune,Đồng Nai,25405,Bom Bo,Xã,1173
+2025,commune,Đồng Nai,25417,Nghĩa Trung,Xã,1060
+2025,commune,Đồng Nai,25420,Phước Sơn,Xã,1842
+2025,commune,Đồng Nai,25432,Chơn Thành,Phường,593
+2025,commune,Đồng Nai,25441,Minh Hưng,Phường,476
+2025,commune,Đồng Nai,25450,Nha Bích,Xã,649
+2025,commune,Đồng Nai,25993,Trảng Dài,Phường,178
+2025,commune,Đồng Nai,26005,Hố Nai,Phường,107
+2025,commune,Đồng Nai,26017,Tam Hiệp,Phường,52
+2025,commune,Đồng Nai,26020,Long Bình,Phường,215
+2025,commune,Đồng Nai,26041,Trấn Biên,Phường,147
+2025,commune,Đồng Nai,26068,Biên Hòa,Phường,108
+2025,commune,Đồng Nai,26080,Long Khánh,Phường,100
+2025,commune,Đồng Nai,26089,Bình Lộc,Phường,368
+2025,commune,Đồng Nai,26098,Bảo Vinh,Phường,245
+2025,commune,Đồng Nai,26104,Xuân Lập,Phường,139
+2025,commune,Đồng Nai,26113,Hàng Gòn,Phường,214
+2025,commune,Đồng Nai,26116,Tân Phú,Xã,501
+2025,commune,Đồng Nai,26119,Đak Lua,Xã,1981
+2025,commune,Đồng Nai,26122,Nam Cát Tiên,Xã,387
+2025,commune,Đồng Nai,26134,Tà Lài,Xã,404
+2025,commune,Đồng Nai,26158,Phú Lâm,Xã,318
+2025,commune,Đồng Nai,26170,Trị An,Xã,3149
+2025,commune,Đồng Nai,26173,Phú Lý,Xã,1335
+2025,commune,Đồng Nai,26179,Tân An,Xã,385
+2025,commune,Đồng Nai,26188,Tân Triều,Phường,302
+2025,commune,Đồng Nai,26206,Định Quán,Xã,1413
+2025,commune,Đồng Nai,26209,Thanh Sơn,Xã,1502
+2025,commune,Đồng Nai,26215,Phú Vinh,Xã,332
+2025,commune,Đồng Nai,26221,Phú Hòa,Xã,294
+2025,commune,Đồng Nai,26227,La Ngà,Xã,638
+2025,commune,Đồng Nai,26248,Trảng Bom,Xã,333
+2025,commune,Đồng Nai,26254,Bàu Hàm,Xã,461
+2025,commune,Đồng Nai,26278,Bình Minh,Xã,177
+2025,commune,Đồng Nai,26281,Hưng Thịnh,Xã,273
+2025,commune,Đồng Nai,26296,An Viễn,Xã,226
+2025,commune,Đồng Nai,26299,Thống Nhất,Xã,573
+2025,commune,Đồng Nai,26311,Gia Kiệm,Xã,420
+2025,commune,Đồng Nai,26326,Dầu Giây,Xã,443
+2025,commune,Đồng Nai,26332,Xuân Quế,Xã,443
+2025,commune,Đồng Nai,26341,Cẩm Mỹ,Xã,539
+2025,commune,Đồng Nai,26347,Xuân Đường,Xã,392
+2025,commune,Đồng Nai,26359,Xuân Đông,Xã,483
+2025,commune,Đồng Nai,26362,Sông Ray,Xã,320
+2025,commune,Đồng Nai,26368,Long Thành,Xã,620
+2025,commune,Đồng Nai,26374,Tam Phước,Phường,214
+2025,commune,Đồng Nai,26377,Phước Tân,Phường,201
+2025,commune,Đồng Nai,26380,Long Hưng,Phường,156
+2025,commune,Đồng Nai,26383,An Phước,Xã,276
+2025,commune,Đồng Nai,26389,Bình An,Xã,286
+2025,commune,Đồng Nai,26413,Long Phước,Xã,385
+2025,commune,Đồng Nai,26422,Phước Thái,Xã,411
+2025,commune,Đồng Nai,26425,Xuân Lộc,Xã,671
+2025,commune,Đồng Nai,26428,Xuân Bắc,Xã,455
+2025,commune,Đồng Nai,26434,Xuân Thành,Xã,587
+2025,commune,Đồng Nai,26446,Xuân Hòa,Xã,1481
+2025,commune,Đồng Nai,26458,Xuân Phú,Xã,265
+2025,commune,Đồng Nai,26461,Xuân Định,Xã,253
+2025,commune,Đồng Nai,26485,Nhơn Trạch,Xã,507
+2025,commune,Đồng Nai,26491,Đại Phước,Xã,470
+2025,commune,Đồng Nai,26503,Phước An,Xã,815
+2025,commune,Đồng Tháp,28249,Đạo Thạnh,Phường,65
+2025,commune,Đồng Tháp,28261,Mỹ Tho,Phường,30
+2025,commune,Đồng Tháp,28270,Thới Sơn,Phường,74
+2025,commune,Đồng Tháp,28273,Mỹ Phong,Phường,110
+2025,commune,Đồng Tháp,28285,Trung An,Phường,112
+2025,commune,Đồng Tháp,28297,Long Thuận,Phường,40
+2025,commune,Đồng Tháp,28306,Gò Công,Phường,48
+2025,commune,Đồng Tháp,28315,Bình Xuân,Phường,160
+2025,commune,Đồng Tháp,28321,Tân Phước 1,Xã,472
+2025,commune,Đồng Tháp,28327,Tân Phước 2,Xã,425
+2025,commune,Đồng Tháp,28336,Hưng Thạnh,Xã,314
+2025,commune,Đồng Tháp,28345,Tân Phước 3,Xã,375
+2025,commune,Đồng Tháp,28360,Cái Bè,Xã,193
+2025,commune,Đồng Tháp,28366,Hậu Mỹ,Xã,378
+2025,commune,Đồng Tháp,28378,Mỹ Thiện,Xã,292
+2025,commune,Đồng Tháp,28393,Hội Cư,Xã,234
+2025,commune,Đồng Tháp,28405,Mỹ Đức Tây,Xã,222
+2025,commune,Đồng Tháp,28414,Mỹ Lợi,Xã,210
+2025,commune,Đồng Tháp,28426,Thanh Hưng,Xã,244
+2025,commune,Đồng Tháp,28429,An Hữu,Xã,204
+2025,commune,Đồng Tháp,28435,Mỹ Phước Tây,Phường,168
+2025,commune,Đồng Tháp,28436,Thanh Hòa,Phường,100
+2025,commune,Đồng Tháp,28439,Cai Lậy,Phường,120
+2025,commune,Đồng Tháp,28444,Thạnh Phú,Xã,268
+2025,commune,Đồng Tháp,28456,Mỹ Thành,Xã,244
+2025,commune,Đồng Tháp,28468,Tân Phú,Xã,180
+2025,commune,Đồng Tháp,28471,Bình Phú,Xã,226
+2025,commune,Đồng Tháp,28477,Nhị Quý,Phường,94
+2025,commune,Đồng Tháp,28501,Hiệp Đức,Xã,218
+2025,commune,Đồng Tháp,28504,Long Tiên,Xã,209
+2025,commune,Đồng Tháp,28516,Ngũ Hiệp,Xã,231
+2025,commune,Đồng Tháp,28519,Châu Thành,Xã,118
+2025,commune,Đồng Tháp,28525,Tân Hương,Xã,172
+2025,commune,Đồng Tháp,28537,Long Hưng,Xã,198
+2025,commune,Đồng Tháp,28543,Long Định,Xã,218
+2025,commune,Đồng Tháp,28564,Bình Trưng,Xã,154
+2025,commune,Đồng Tháp,28576,Vĩnh Kim,Xã,124
+2025,commune,Đồng Tháp,28582,Kim Sơn,Xã,141
+2025,commune,Đồng Tháp,28594,Chợ Gạo,Xã,121
+2025,commune,Đồng Tháp,28603,Mỹ Tịnh An,Xã,195
+2025,commune,Đồng Tháp,28615,Lương Hòa Lạc,Xã,168
+2025,commune,Đồng Tháp,28627,Tân Thuận Bình,Xã,189
+2025,commune,Đồng Tháp,28633,An Thạnh Thủy,Xã,204
+2025,commune,Đồng Tháp,28648,Bình Ninh,Xã,224
+2025,commune,Đồng Tháp,28651,Vĩnh Bình,Xã,187
+2025,commune,Đồng Tháp,28660,Đồng Sơn,Xã,214
+2025,commune,Đồng Tháp,28663,Phú Thành,Xã,153
+2025,commune,Đồng Tháp,28678,Vĩnh Hựu,Xã,158
+2025,commune,Đồng Tháp,28687,Long Bình,Xã,172
+2025,commune,Đồng Tháp,28693,Tân Thới,Xã,310
+2025,commune,Đồng Tháp,28696,Tân Phú Đông,Xã,412
+2025,commune,Đồng Tháp,28702,Tân Hòa,Xã,182
+2025,commune,Đồng Tháp,28720,Gia Thuận,Xã,286
+2025,commune,Đồng Tháp,28723,Tân Đông,Xã,245
+2025,commune,Đồng Tháp,28729,Sơn Qui,Phường,236
+2025,commune,Đồng Tháp,28738,Tân Điền,Xã,153
+2025,commune,Đồng Tháp,28747,Gò Công Đông,Xã,198
+2025,commune,Đồng Tháp,29869,Cao Lãnh,Phường,348
+2025,commune,Đồng Tháp,29884,Mỹ Ngãi,Phường,231
+2025,commune,Đồng Tháp,29888,Mỹ Trà,Phường,218
+2025,commune,Đồng Tháp,29905,Sa Đéc,Phường,224
+2025,commune,Đồng Tháp,29926,Tân Hồng,Xã,487
+2025,commune,Đồng Tháp,29929,Tân Hộ Cơ,Xã,371
+2025,commune,Đồng Tháp,29938,Tân Thành,Xã,309
+2025,commune,Đồng Tháp,29944,An Phước,Xã,311
+2025,commune,Đồng Tháp,29954,An Bình,Phường,239
+2025,commune,Đồng Tháp,29955,Hồng Ngự,Phường,306
+2025,commune,Đồng Tháp,29971,Thường Phước,Xã,384
+2025,commune,Đồng Tháp,29978,Thường Lạc,Phường,206
+2025,commune,Đồng Tháp,29983,Long Khánh,Xã,128
+2025,commune,Đồng Tháp,29992,Long Phú Thuận,Xã,306
+2025,commune,Đồng Tháp,30001,Tràm Chim,Xã,426
+2025,commune,Đồng Tháp,30010,Tam Nông,Xã,491
+2025,commune,Đồng Tháp,30019,An Hòa,Xã,374
+2025,commune,Đồng Tháp,30025,Phú Cường,Xã,404
+2025,commune,Đồng Tháp,30028,An Long,Xã,344
+2025,commune,Đồng Tháp,30034,Phú Thọ,Xã,399
+2025,commune,Đồng Tháp,30037,Tháp Mười,Xã,337
+2025,commune,Đồng Tháp,30043,Phương Thịnh,Xã,498
+2025,commune,Đồng Tháp,30046,Trường Xuân,Xã,546
+2025,commune,Đồng Tháp,30055,Mỹ Quí,Xã,578
+2025,commune,Đồng Tháp,30061,Đốc Binh Kiều,Xã,372
+2025,commune,Đồng Tháp,30073,Thanh Mỹ,Xã,439
+2025,commune,Đồng Tháp,30076,Mỹ Thọ,Xã,293
+2025,commune,Đồng Tháp,30085,Ba Sao,Xã,387
+2025,commune,Đồng Tháp,30088,Phong Mỹ,Xã,401
+2025,commune,Đồng Tháp,30112,Mỹ Hiệp,Xã,337
+2025,commune,Đồng Tháp,30118,Bình Hàng Trung,Xã,410
+2025,commune,Đồng Tháp,30130,Thanh Bình,Xã,377
+2025,commune,Đồng Tháp,30154,Tân Long,Xã,424
+2025,commune,Đồng Tháp,30157,Tân Thạnh,Xã,319
+2025,commune,Đồng Tháp,30163,Bình Thành,Xã,342
+2025,commune,Đồng Tháp,30169,Lấp Vò,Xã,412
+2025,commune,Đồng Tháp,30178,Mỹ An Hưng,Xã,313
+2025,commune,Đồng Tháp,30184,Tân Khánh Trung,Xã,287
+2025,commune,Đồng Tháp,30208,Hòa Long,Xã,379
+2025,commune,Đồng Tháp,30214,Tân Dương,Xã,226
+2025,commune,Đồng Tháp,30226,Lai Vung,Xã,331
+2025,commune,Đồng Tháp,30235,Phong Hòa,Xã,419
+2025,commune,Đồng Tháp,30244,Phú Hựu,Xã,335
+2025,commune,Đồng Tháp,30253,Tân Nhuận Đông,Xã,446
+2025,commune,Đồng Tháp,30259,Tân Phú Trung,Xã,390
+2025,national,Vietnam,,,,1632742
+2025,province,An Giang,,,,46753
+2025,province,Bắc Ninh,,,,23630
+2025,province,Cao Bằng,,,,33953
+2025,province,Cà Mau,,,,35943
+2025,province,Cần Thơ,,,,30166
+2025,province,Gia Lai,,,,103956
+2025,province,Huế,,,,24073
+2025,province,Hà Nội,,,,16811
+2025,province,Hà Tĩnh,,,,29378
+2025,province,Hưng Yên,,,,12850
+2025,province,Hải Phòng,,,,15412
+2025,province,Khánh Hòa,,,,57017
+2025,province,Lai Châu,,,,45777
+2025,province,Lào Cai,,,,66798
+2025,province,Lâm Đồng,,,,115761
+2025,province,Lạng Sơn,,,,41806
+2025,province,Nghệ An,,,,81589
+2025,province,Ninh Bình,,,,19359
+2025,province,Phú Thọ,,,,46794
+2025,province,Quảng Ngãi,,,,71701
+2025,province,Quảng Ninh,,,,29220
+2025,province,Quảng Trị,,,,62093
+2025,province,Sơn La,,,,70698
+2025,province,TP. Hồ Chí Minh,,,,31891
+2025,province,Thanh Hóa,,,,55162
+2025,province,Thái Nguyên,,,,42201
+2025,province,Tuyên Quang,,,,69730
+2025,province,Tây Ninh,,,,40623
+2025,province,Vĩnh Long,,,,28903
+2025,province,Điện Biên,,,,48013
+2025,province,Đà Nẵng,,,,59607
+2025,province,Đắk Lắk,,,,86820
+2025,province,Đồng Nai,,,,60758
+2025,province,Đồng Tháp,,,,27496

@@ -22,7 +22,11 @@ Vietnam National Statistics Office:
 * https://www.nso.gov.vn/en/statistical-data/# : All Statistical data
 * https://www.nso.gov.vn/en/national-accounts/ : National level statistical data
 
+
 * Here is where we retrieve the GDP of Vietnam, in addition to population by region, GRDP per capita.
 
 
 * Note: Resolution No. 202/2025/QH15, dated June 12, 2025, reduced the total number of provincial-level administrative units nationwide to 34 provinces and centrally governed municipalities, consisting of 28 provinces and 6 centrally governed cities.
+
+For provinces level:
+Ex: Nien Giam Thong Ke Hanoi, Table 15 is population from 2020-2025
