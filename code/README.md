@@ -23,6 +23,20 @@ Python scripts are in `Python/`; the R project is in `R/`.
    Figures are saved under `figures/`. Use `--raster`, `--csv`, or the output
    options to select different input and output files.
 
+4. Aggregate pixel radiance by province:
+
+   ```bash
+   python code/Python/aggregate_radiance.py
+   ```
+
+   The script assigns pixel centers to the provincial polygons in
+   `data/vnm_admin_boundaries.shp/vnm_admin1.shp` and writes each polygon's
+   mean radiance and assigned pixel count to
+   `data/viiirs_average_radiance/vietnam_2025_mean_radiance_by_province.csv`.
+   It matches the boundary file's `adm1_name` values to `Provincies` in
+   `data/vnm_population.csv`, so the output's `province` column uses the
+   population CSV's names. Use `--population` to select a different labels file.
+
    ## Provincial 2025 VIIRS Extraction
 
    Run the provincial extraction from the repository root:
@@ -35,4 +49,3 @@ Python scripts are in `Python/`; the R project is in `R/`.
    2025 raster to each matching shapefile under `data/vnm_district_boundaries/`,
    and writes one CSV per province under
    `data/viirs_pixel_radiance_province/2025/`.
-

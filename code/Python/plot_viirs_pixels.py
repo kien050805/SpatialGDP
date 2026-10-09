@@ -2,7 +2,7 @@
 Plot extracted VIIRS radiance pixels from the CSV.
 Author: Kien Le
 AI disclosure: This code was generated with the assistance of AI. The author has reviewed and edited the code to ensure its accuracy and functionality.
-Last Update: 2021-10-01   
+Last Update: 2026-10-01   
 """
 
 import argparse
@@ -18,15 +18,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CSV = (
     PROJECT_ROOT
     / "data"
-    / "viirs_pixel_radiance_province"
-    / "2025"
-    / "ha_noi_viirs_2025_pixel_radiance.csv"
+    / "viirs_pixel_radiance"
+    / "vietnam_viirs_2025_pixel_radiance.csv"
 )
-DEFAULT_BOUNDARY = PROJECT_ROOT / "data" / "vnm_district_boundaries" / "ha_noi" / "ha_noi.shp"
-DEFAULT_OUTPUT = PROJECT_ROOT / "figures" / "ha_noi_viirs_2025_radiance.png"
-DEFAULT_ADMIN1_BOUNDARY = DEFAULT_BOUNDARY
+DEFAULT_BOUNDARY = PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin0.shp"
+DEFAULT_OUTPUT = PROJECT_ROOT / "figures" / "vietnam_viirs_2025_radiance.png"
+DEFAULT_ADMIN1_BOUNDARY = PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin1.shp"
 DEFAULT_PROVINCIAL_OUTPUT = (
-    PROJECT_ROOT / "figures" / "ha_noi_viirs_2025_provincial_radiance.png"
+    PROJECT_ROOT / "figures" / "vietnam_viirs_2025_provincial_radiance.png"
 )
 
 
@@ -34,7 +33,7 @@ def create_figure(
     csv_path: Path,
     boundary_path: Path,
     output_path: Path,
-    title: str = "Vietnam | NPP-VIIRS Nighttime Radiance, 2021",
+    title: str = "Vietnam | NPP-VIIRS Nighttime Radiance, 2025",
 ) -> None:
     pixels = pd.read_csv(
         csv_path,
@@ -126,7 +125,7 @@ def create_provincial_figure(
         csv_path,
         boundary_path,
         output_path,
-        title="Vietnam | NPP-VIIRS Nighttime Radiance, 2021 | Provincial Borders",
+        title="Vietnam | NPP-VIIRS Nighttime Radiance, 2025 | Provincial Borders",
     )
 
 
