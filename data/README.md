@@ -19,7 +19,7 @@ Lowest level boundaries: https://gis.vn/don-vi-hanh-chinh-viet-nam
 
 
 Vietnam National Statistics Office: 
-* https://www.nso.gov.vn/en/statistical-data/# : All Statistical data
+*  https://www.nso.gov.vn/en/statistical-data/#: All Statistical data
 * https://www.nso.gov.vn/en/national-accounts/ : National level statistical data
 
 
