@@ -1,8 +1,11 @@
 """
-Extract valid NPP-VIIRS radiance pixels within Vietnam to CSV.
+Extract NPP-VIIRS radiance pixels to CSV.
 Author: Kien Le
 AI disclosure: This code was generated with the assistance of AI. The author has reviewed and edited the code to ensure its accuracy and functionality.
 Last Update: 2026-30-09
+
+Input: NPP-VIIRS raster file (.tif) and shapefiles (.shp) for admin level 0 or 1.
+Output: CSV files containing pixel coordinates and radiance values for each province.
 """
 
 import argparse
@@ -17,24 +20,25 @@ import rasterio
 from rasterio.mask import mask
 from rasterio.warp import transform
 
+import utils
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
 DEFAULT_RASTER = (
     PROJECT_ROOT
     / "data"
-    / "VNL_npp_2025_global_vcmslcfg_v2_c202604011200.average_masked.dat.tif"
+    / "viirs_raw"
+    / "VNL_npp_2025_global_vcmslcfg_c202604011200.average_masked.dat.tif"
 )
+
+DEFAULT_PROVINCES = PROJECT_ROOT / "data" / "vnm_provinces.csv"
+
 DEFAULT_BOUNDARIES_DIR = PROJECT_ROOT / "data" / "vnm_district_boundaries"
-DEFAULT_POPULATION = PROJECT_ROOT / "data" / "vnm_population.csv"
+
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "viirs_pixel_radiance_province"
+
 DEFAULT_YEAR = "2025"
-
-
-def province_slug(province: str) -> str:
-    normalized = province.replace("Đ", "D").replace("đ", "d")
-    normalized = unicodedata.normalize("NFKD", normalized)
-    ascii_name = normalized.encode("ascii", "ignore").decode("ascii")
-    return re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
 
 
 def extract_pixels(raster_path: Path, boundary_path: Path, output_path: Path) -> int:

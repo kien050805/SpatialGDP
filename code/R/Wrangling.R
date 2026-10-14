@@ -48,3 +48,5 @@ ggplot(data = df, aes(x = df$mean_radiance, y = df$GRDPpc)) +
 setwd("../")
 write.csv(df, "vnm_indicators_2025.csv", row.names = FALSE)
 
+df1 = df1 |> select("province")
+write.csv(df, "vnm_provinces.csv", row.names = FALSE)
