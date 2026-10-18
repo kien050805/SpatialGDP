@@ -8,7 +8,8 @@ Input: NPP-VIIRS raster file (.tif) and shapefiles (.shp) for admin level 0 or 1
 Output: CSV files containing pixel coordinates and radiance values for each province.
 """
 
-import argparse
+from __future__ import annotations
+
 import csv
 from pathlib import Path
 
@@ -19,26 +20,30 @@ from rasterio.mask import mask
 from rasterio.warp import transform
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-DEFAULT_RASTER = (
-    PROJECT_ROOT
-    / "data"
-    / "viirs_raw"
-    / "VNL_npp_2025_global_vcmslcfg_c202604011200.average_masked.dat.tif"
-)
-
-DEFAULT_PROVINCES = PROJECT_ROOT / "data" / "vnm_provinces.csv"
-
-DEFAULT_BOUNDARIES_DIR = PROJECT_ROOT / "data" / "vnm_admin_boundaries"
-
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "viirs_pixel_radiance_province"
-
-DEFAULT_YEAR = "2025"
-
-
-def extract_pixels(raster_path: Path, boundary_path: Path, output_path: Path) -> int:
+def extract_pixels(
+    raster_path: Path,
+    boundary_path: Path,
+    output_path: Path,
+    province_name: str | None = None,
+) -> int:
     boundaries = gpd.read_file(boundary_path)
+    if province_name is not None:
+        province_name_field = (
+            "name" if "name" in boundaries.columns else "adm1_name"
+        )
+        if province_name_field not in boundaries:
+            raise ValueError(
+                f"Boundary file is missing province-name field "
+                f"'name' or 'adm1_name': {boundary_path}"
+            )
+        province_names = boundaries[province_name_field].astype(str).str.strip()
+        boundaries = boundaries.loc[province_names.eq(province_name)]
+        if boundaries.empty:
+            raise ValueError(
+                f"Province {province_name!r} not found in boundary file: "
+                f"{boundary_path}"
+            )
+
     if boundaries.crs is None:
         raise ValueError(f"Boundary file has no CRS: {boundary_path}")
 
@@ -97,48 +102,6 @@ def extract_pixels(raster_path: Path, boundary_path: Path, output_path: Path) ->
             )
 
     return len(rows)
-
-
-def extract_all_provinces(
-    raster_path: Path,
-    boundaries_dir: Path,
-    population_path: Path,
-    output_dir: Path,
-    year: str,
-) -> None:
-    if not raster_path.is_file():
-        raise FileNotFoundError(f"Raster file not found: {raster_path}")
-    if not population_path.is_file():
-        raise FileNotFoundError(f"Population file not found: {population_path}")
-
-    with population_path.open(newline="", encoding="utf-8-sig") as population_file:
-        reader = csv.DictReader(population_file)
-        if not reader.fieldnames or "Provincies" not in reader.fieldnames:
-            raise ValueError(f"Expected a 'Provincies' column in {population_path}")
-        provinces = [row["Provincies"].strip() for row in reader if row["Provincies"]]
-
-    province_files = []
-    seen_slugs = set()
-    for province in provinces:
-        slug = province_slug(province)
-        if slug in seen_slugs:
-            raise ValueError(f"Province names produce a duplicate file stem: {slug}")
-        seen_slugs.add(slug)
-        boundary_path = boundaries_dir / slug / f"{slug}.shp"
-        if not boundary_path.is_file():
-            raise FileNotFoundError(
-                f"Missing standardized shapefile for {province}: {boundary_path}"
-            )
-        output_path = output_dir / year / f"{slug}_viirs_{year}_pixel_radiance.csv"
-        province_files.append((province, boundary_path, output_path))
-
-    if not province_files:
-        raise ValueError(f"No provinces found in {population_path}")
-
-    for province, boundary_path, output_path in province_files:
-        pixel_count = extract_pixels(raster_path, boundary_path, output_path)
-        print(f"{province}: wrote {pixel_count:,} pixels to {output_path.resolve()}")
-
 
 def main() -> None:
     return

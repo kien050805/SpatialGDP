@@ -28,8 +28,14 @@ Pass script arguments after the filename as usual:
    ```
 
    The files are named `vnm_<year>_pixel_radiance.csv` and saved under
-   `data/viirs_pixel_radiance/`. The generator uses the Vietnam national
-   boundary and calls `extract_viirs_pixels.py` to extract each raster.
+   `data/viirs_pixel_radiance/`. The generator uses the formatted national
+   boundary at `data/shp_boundaries/level0/vnm_level0.shp` and calls
+   `extract_viirs_pixels.py` to extract each raster.
+
+   The same command also generates one CSV per province from the
+   formatted boundaries in `data/shp_boundaries/level1/vnm_level1.shp`, saved under
+   `data/viirs_pixel_radiance_province/<year>/`, named
+   `<province>_viirs_<year>_pixel_radiance.csv`.
 
 3. Generate national and provincial maps with:
 
@@ -53,16 +59,3 @@ Pass script arguments after the filename as usual:
    It matches the boundary file's `adm1_name` values to `Provincies` in
    `data/vnm_population.csv`, so the output's `province` column uses the
    population CSV's names. Use `--population` to select a different labels file.
-
-   ## Provincial 2025 VIIRS Extraction
-
-   Run the provincial extraction from the repository root:
-
-   ```bash
-   python code/Python/extract_viirs_pixels.py
-   ```
-
-   The script reads province labels from `data/vnm_population.csv`, clips the
-   2025 raster to each matching shapefile under `data/vnm_district_boundaries/`,
-   and writes one CSV per province under
-   `data/viirs_pixel_radiance_province/2025/`.
