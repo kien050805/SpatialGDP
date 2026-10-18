@@ -1,7 +1,10 @@
 # Data Folder
 
 Extracted yearly VIIRS pixel CSV files are stored in `viirs_pixel_radiance/`.
-Provincial 2025 VIIRS extracts are stored in `viirs_pixel_radiance_province/2025/`. 
+Average radiance CSVs, with the same administrative-level and year structure,
+are stored in `average_radiance/`.
+Level-1 pixels are stored under `viirs_pixel_radiance/level1/<year>/`, and
+level-2 pixels under `viirs_pixel_radiance/level2/<province_slug>/<year>/`.
 Boundary shapefiles are stored in `vnm_admin_boundaries.shp/` and `vnm_district_boundaries/`
 Prepared Vietnam boundaries are stored in `shp_boundaries/`:
 `level0/vnm_level0.shp` for the national boundary and

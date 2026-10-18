@@ -1,6 +1,8 @@
-"""Compute mean 2025 VIIRS radiance for each Vietnamese province."""
+"""Calculate mean VIIRS radiance for administrative levels 0, 1, and 2."""
 
-import argparse
+from __future__ import annotations
+
+import hashlib
 import re
 import unicodedata
 from pathlib import Path
@@ -8,157 +10,204 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import utils
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_PIXELS = (
-	PROJECT_ROOT
-	/ "data"
-	/ "viirs_pixel_radiance"
-	/ "vnm_2025_pixel_radiance.csv"
-)
-DEFAULT_BOUNDARIES = (
-	PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin1.shp"
-)
-DEFAULT_POPULATION = PROJECT_ROOT / "data" / "vnm_population.csv"
-DEFAULT_OUTPUT = (
-	PROJECT_ROOT
-	/ "data"
-	/ "viiirs_average_radiance"
-	/ "vietnam_2025_mean_radiance_by_province.csv"
-)
+DEFAULT_PIXELS_DIR = PROJECT_ROOT / "data" / "viirs_pixel_radiance"
+DEFAULT_BOUNDARIES_DIR = PROJECT_ROOT / "data" / "shp_boundaries"
+DEFAULT_PROVINCES = PROJECT_ROOT / "data" / "_vnm_indicators" / "vnm_provinces.csv"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "average_radiance"
+PIXEL_FILE_SUFFIX = "_pixel_radiance.csv"
 
 
-def province_slug(province: str) -> str:
-	normalized = province.replace("Đ", "D").replace("đ", "d")
-	normalized = unicodedata.normalize("NFKD", normalized)
-	ascii_name = normalized.encode("ascii", "ignore").decode("ascii")
-	return re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
+def name_slug(name: str) -> str:
+    normalized = name.replace("Đ", "D").replace("đ", "d")
+    normalized = unicodedata.normalize("NFKD", normalized)
+    ascii_name = normalized.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
 
 
-def aggregate_radiance(
-	pixels_path: Path,
-	boundaries_path: Path,
-	output_path: Path,
-	population_path: Path = DEFAULT_POPULATION,
-) -> pd.DataFrame:
-	pixels = pd.read_csv(
-		pixels_path,
-		usecols=("longitude", "latitude", "radiance"),
-	)
-	pixels = pixels.replace([np.inf, -np.inf], np.nan).dropna(
-		subset=("longitude", "latitude", "radiance")
-	)
-	if pixels.empty:
-		raise ValueError(f"CSV contains no valid pixels: {pixels_path}")
+def unique_level2_slugs(names: list[str]) -> list[str]:
+    slugs = [name_slug(name) for name in names]
+    counts = {slug: slugs.count(slug) for slug in set(slugs)}
+    unique_slugs = [
+        (
+            f"{slug}_{hashlib.sha1(name.encode('utf-8')).hexdigest()[:8]}"
+            if counts[slug] > 1
+            else slug
+        )
+        for name, slug in zip(names, slugs)
+    ]
+    if len(unique_slugs) != len(set(unique_slugs)):
+        raise ValueError("Level-2 names do not produce unique pixel CSV filenames.")
+    return unique_slugs
 
-	boundaries = gpd.read_file(boundaries_path)
-	if boundaries.crs is None:
-		raise ValueError(f"Boundary file has no CRS: {boundaries_path}")
-	province_name_field = "adm1_name"
-	if province_name_field not in boundaries:
-		raise ValueError(
-			f"Boundary file is missing province-name field "
-			f"{province_name_field!r}: {boundaries_path}"
-		)
-	population_data = pd.read_csv(population_path, encoding="utf-8-sig")
-	if "Provincies" not in population_data:
-		raise ValueError(
-			f"Population file is missing the 'Provincies' column: {population_path}"
-		)
-	province_names = (
-		population_data["Provincies"]
-		.dropna()
-		.astype(str)
-		.str.strip()
-	)
-	province_names = province_names[province_names.ne("")]
-	if province_names.empty or province_names.duplicated().any():
-		raise ValueError(
-			f"Population file must contain unique province names: {population_path}"
-		)
 
-	population_names_by_slug = {}
-	for name in province_names:
-		slug = province_slug(name)
-		if slug in population_names_by_slug:
-			raise ValueError(
-				f"Province names normalize to the same value in {population_path}: "
-				f"{population_names_by_slug[slug]!r} and {name!r}"
-			)
-		population_names_by_slug[slug] = name
-	admin_names_by_slug = dict(population_names_by_slug)
-	for slug, name in population_names_by_slug.items():
-		city_slug = f"{slug}_city"
-		if city_slug in admin_names_by_slug and admin_names_by_slug[city_slug] != name:
-			raise ValueError(
-				f"Ambiguous province-name mapping in {population_path}: {name}"
-			)
-		admin_names_by_slug[city_slug] = name
+def read_provinces(provinces_path: Path) -> list[str]:
+    provinces = pd.read_csv(provinces_path, encoding="utf-8-sig")
+    if "province" not in provinces.columns:
+        raise ValueError(
+            f"Province file is missing the 'province' column: {provinces_path}"
+        )
+    names = provinces["province"].dropna().astype(str).str.strip()
+    names = names[names.ne("")]
+    if names.empty or names.duplicated().any():
+        raise ValueError(
+            f"Province file must contain unique, non-empty names: {provinces_path}"
+        )
+    return names.tolist()
 
-	boundaries = boundaries.reset_index(drop=True)
-	boundaries["province"] = boundaries[province_name_field].map(
-		lambda name: admin_names_by_slug.get(province_slug(name))
-	)
-	unmatched_names = boundaries.loc[
-		boundaries["province"].isna(), province_name_field
-	].drop_duplicates()
-	if not unmatched_names.empty:
-		raise ValueError(
-			"Province names in boundary file do not match the population file: "
-			f"{unmatched_names.tolist()}"
-		)
-	missing_provinces = set(province_names) - set(boundaries["province"])
-	if missing_provinces:
-		raise ValueError(
-			"Population file provinces are missing from the boundary file: "
-			f"{sorted(missing_provinces)}"
-		)
 
-	boundary_crs = boundaries.crs
-	points = gpd.GeoDataFrame(
-		pixels,
-		geometry=gpd.points_from_xy(pixels["longitude"], pixels["latitude"]),
-		crs="EPSG:4326",
-	).to_crs(boundary_crs)
+def mean_radiance(pixels_path: Path) -> tuple[float, int]:
+    pixels = pd.read_csv(
+        pixels_path,
+        usecols=("longitude", "latitude", "radiance"),
+    )
+    pixels = pixels.replace([np.inf, -np.inf], np.nan).dropna(
+        subset=("longitude", "latitude", "radiance")
+    )
+    return (
+        float(pixels["radiance"].mean()) if not pixels.empty else float("nan"),
+        len(pixels),
+    )
 
-	assignments = gpd.sjoin(
-		points[["radiance", "geometry"]],
-		boundaries[["province", "geometry"]],
-		how="inner",
-		predicate="within",
-	)
-	summary = assignments.groupby("province")["radiance"].agg(
-		mean_radiance="mean",
-		pixel_count="count",
-	)
-	provinces = pd.DataFrame({"province": province_names}).set_index("province")
-	result = provinces.join(summary).reset_index()
-	result["pixel_count"] = result["pixel_count"].fillna(0).astype("int64")
 
-	output_path.parent.mkdir(parents=True, exist_ok=True)
-	result.to_csv(output_path, index=False, na_rep="")
-	print(f"Wrote {len(result)} province rows to {output_path.resolve()}")
-	print(f"Assigned pixels: {int(result['pixel_count'].sum()):,}")
-	return result
+def average_record(name: str, pixels_path: Path) -> dict[str, object]:
+    radiance, pixel_count = mean_radiance(pixels_path)
+    return {
+        "name": name,
+        "mean_radiance": radiance,
+        "pixel_count": pixel_count,
+    }
+
+
+def write_average_csv(records: list[dict[str, object]], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(records, columns=("name", "mean_radiance", "pixel_count")).to_csv(
+        output_path, index=False, na_rep=""
+    )
+    print(f"Wrote {len(records)} rows to {output_path.resolve()}")
+
+
+def available_years(pixels_dir: Path) -> list[str]:
+    level0_dir = pixels_dir / "level0"
+    if not level0_dir.is_dir():
+        raise FileNotFoundError(f"Level-0 pixel directory not found: {level0_dir}")
+    years = sorted(
+        path.name
+        for path in level0_dir.iterdir()
+        if path.is_dir()
+        and (path / f"vnm_{path.name}{PIXEL_FILE_SUFFIX}").is_file()
+    )
+    if not years:
+        raise FileNotFoundError(f"No yearly level-0 pixel CSVs found in {level0_dir}")
+    return years
+
+
+def generate_level0_averages(
+    years: list[str] | None = None,
+    pixels_dir: Path = DEFAULT_PIXELS_DIR,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+) -> None:
+    if years is None:
+        years = available_years(pixels_dir)
+    for year in years:
+        pixels_path = pixels_dir / "level0" / year / f"vnm_{year}{PIXEL_FILE_SUFFIX}"
+        output_path = (
+            output_dir / "level0" / year / f"vnm_{year}_average_radiance.csv"
+        )
+        write_average_csv([average_record("Vietnam", pixels_path)], output_path)
+
+
+def generate_level1_averages(
+    years: list[str] | None = None,
+    pixels_dir: Path = DEFAULT_PIXELS_DIR,
+    provinces: list[str] | None = None,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+) -> None:
+    if years is None:
+        years = available_years(pixels_dir)
+    if provinces is None:
+        provinces = read_provinces(DEFAULT_PROVINCES)
+    for year in years:
+        records = []
+        for province in provinces:
+            pixels_path = (
+                pixels_dir
+                / "level1"
+                / year
+                / f"{name_slug(province)}_{year}{PIXEL_FILE_SUFFIX}"
+            )
+            records.append(average_record(province, pixels_path))
+
+        output_path = (
+            output_dir / "level1" / year / f"vnm_{year}_average_radiance.csv"
+        )
+        write_average_csv(records, output_path)
+
+
+def generate_level2_averages(
+    years: list[str] | None = None,
+    pixels_dir: Path = DEFAULT_PIXELS_DIR,
+    boundaries_dir: Path = DEFAULT_BOUNDARIES_DIR,
+    provinces: list[str] | None = None,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+) -> None:
+    if years is None:
+        years = available_years(pixels_dir)
+    if provinces is None:
+        provinces = read_provinces(DEFAULT_PROVINCES)
+    for province in provinces:
+        province_slug = name_slug(province)
+        boundary_path = (
+            boundaries_dir / "level2" / province_slug / f"{province_slug}.shp"
+        )
+        if not boundary_path.is_file():
+            raise FileNotFoundError(
+                f"Level-2 boundary file not found: {boundary_path}"
+            )
+        boundaries = gpd.read_file(boundary_path)
+        if "name" not in boundaries.columns:
+            raise ValueError(
+                f"Level-2 boundary is missing the 'name' field: {boundary_path}"
+            )
+        unit_names = (
+            boundaries["name"].dropna().astype(str).str.strip().unique().tolist()
+        )
+        unit_names = [name for name in unit_names if name]
+        unit_slugs = unique_level2_slugs(unit_names)
+
+        for year in years:
+            records = []
+            for unit_name, unit_slug in zip(unit_names, unit_slugs):
+                pixels_path = (
+                    pixels_dir
+                    / "level2"
+                    / province_slug
+                    / year
+                    / f"{unit_slug}_{year}{PIXEL_FILE_SUFFIX}"
+                )
+                if not pixels_path.is_file():
+                    raise FileNotFoundError(
+                        f"Level-2 pixel CSV not found: {pixels_path}"
+                    )
+                records.append(average_record(unit_name, pixels_path))
+
+            output_path = (
+                output_dir
+                / "level2"
+                / province_slug
+                / year
+                / f"{province_slug}_{year}_average_radiance.csv"
+            )
+            write_average_csv(records, output_path)
 
 
 def main() -> None:
-	parser = argparse.ArgumentParser(
-		description=(
-			"Compute mean 2025 VIIRS radiance for each Vietnamese province."
-		)
-	)
-	parser.add_argument("--pixels", type=Path, default=DEFAULT_PIXELS)
-	parser.add_argument("--boundaries", type=Path, default=DEFAULT_BOUNDARIES)
-	parser.add_argument("--population", type=Path, default=DEFAULT_POPULATION)
-	parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-	args = parser.parse_args()
-	aggregate_radiance(
-		args.pixels, args.boundaries, args.output, population_path=args.population
-	)
+    generate_level0_averages()
+    generate_level1_averages()
+    generate_level2_averages()
 
 
 if __name__ == "__main__":
-	main()
+    main()

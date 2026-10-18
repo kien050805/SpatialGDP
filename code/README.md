@@ -47,16 +47,18 @@ Pass script arguments after the filename as usual:
    Figures are saved under `figures/`. Use `--raster`, `--csv`, or the output
    options to select different input and output files.
 
-4. Aggregate pixel radiance by province:
+4. Calculate average radiance for all administrative levels:
 
    ```bash
    python code/Python/aggregate_radiance.py
    ```
 
-   The script assigns pixel centers to the provincial polygons in
-   `data/vnm_admin_boundaries.shp/vnm_admin1.shp` and writes each polygon's
-   mean radiance and assigned pixel count to
-   `data/viiirs_average_radiance/vietnam_2025_mean_radiance_by_province.csv`.
-   It matches the boundary file's `adm1_name` values to `Provincies` in
-   `data/vnm_population.csv`, so the output's `province` column uses the
-   population CSV's names. Use `--population` to select a different labels file.
+   Average CSVs are grouped by year: one country row in
+   `level0/<year>/vnm_<year>_average_radiance.csv`, one table of all provinces
+   in `level1/<year>/vnm_<year>_average_radiance.csv`, and one table of all
+   level-2 units per province in
+   `level2/<province_slug>/<year>/<province_slug>_<year>_average_radiance.csv`.
+   Province labels come from `data/_vnm_indicators/vnm_provinces.csv`; level-2
+   names are preserved from their formatted shapefiles. Each row contains
+   `name`, `mean_radiance`, and `pixel_count`. Use `--pixels-dir`,
+   `--boundaries-dir`, `--provinces`, or `--output-dir` to select alternate paths.
