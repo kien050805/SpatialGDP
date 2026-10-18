@@ -1,4 +1,14 @@
-"""Prepare simplified Vietnam admin-boundary shapefiles."""
+"""
+Wrangling all shp files for consistency and usability. This includes:
+- Preparing level-0 (country) boundaries
+- Preparing level-1 (province) boundaries
+- Preparing level-2 (district) boundaries
+
+This script only apply for the data provided in the repository.
+Author: Kien Le
+AI disclosure: This code was generated with the assistance of AI. The author has reviewed and edited the code to ensure its accuracy and functionality.
+Last Update: 2026-18-10
+"""
 from pathlib import Path
 import re
 import unicodedata
@@ -155,7 +165,7 @@ def prepare_level1_boundary(
     return output_path
 
 
-def prepare_level2_boundaries(
+def prepare_level2_boundary(
     source_dir: Path = DISTRICT_BOUNDARIES,
     provinces_path: Path = PROVINCES_SOURCE,
     output_dir: Path = LEVEL2_OUTPUT_DIR,
@@ -241,7 +251,7 @@ def prepare_level2_boundaries(
 def main() -> None:
     prepare_level0_boundary()
     prepare_level1_boundary()
-    prepare_level2_boundaries()
+    prepare_level2_boundary()
 
 
 if __name__ == "__main__":

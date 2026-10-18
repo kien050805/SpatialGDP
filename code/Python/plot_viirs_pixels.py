@@ -19,11 +19,17 @@ DEFAULT_CSV = (
     PROJECT_ROOT
     / "data"
     / "viirs_pixel_radiance"
+    / "level0"
+    / "2025"
     / "vnm_2025_pixel_radiance.csv"
 )
-DEFAULT_BOUNDARY = PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin0.shp"
+DEFAULT_BOUNDARY = (
+    PROJECT_ROOT / "data" / "shp_boundaries" / "level0" / "vnm_level0.shp"
+)
 DEFAULT_OUTPUT = PROJECT_ROOT / "figures" / "vietnam_viirs_2025_radiance.png"
-DEFAULT_ADMIN1_BOUNDARY = PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin1.shp"
+DEFAULT_ADMIN1_BOUNDARY = (
+    PROJECT_ROOT / "data" / "shp_boundaries" / "level1" / "vnm_level1.shp"
+)
 DEFAULT_PROVINCIAL_OUTPUT = (
     PROJECT_ROOT / "figures" / "vietnam_viirs_2025_provincial_radiance.png"
 )

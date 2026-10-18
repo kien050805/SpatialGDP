@@ -27,15 +27,16 @@ Pass script arguments after the filename as usual:
    ./run-python.sh generate_csv.py
    ```
 
-   The files are named `vnm_<year>_pixel_radiance.csv` and saved under
-   `data/viirs_pixel_radiance/`. The generator uses the formatted national
+   National files are named `vnm_<year>_pixel_radiance.csv` and saved under
+   `data/viirs_pixel_radiance/level0/<year>/`. The generator uses the formatted national
    boundary at `data/shp_boundaries/level0/vnm_level0.shp` and calls
    `extract_viirs_pixels.py` to extract each raster.
 
-   The same command also generates one CSV per province from the
-   formatted boundaries in `data/shp_boundaries/level1/vnm_level1.shp`, saved under
-   `data/viirs_pixel_radiance_province/<year>/`, named
-   `<province>_viirs_<year>_pixel_radiance.csv`.
+   The same command generates one CSV per province under
+   `data/viirs_pixel_radiance/level1/<year>/`, and one CSV per level-2 unit
+   under `data/viirs_pixel_radiance/level2/<province_slug>/<year>/`. Level-2
+   shapefiles keep their original Vietnamese names; CSV filenames receive a
+   short suffix when different names normalize to the same ASCII slug.
 
 3. Generate national and provincial maps with:
 
