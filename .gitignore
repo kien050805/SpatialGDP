@@ -6,6 +6,9 @@
 # macOS directory metadata
 .DS_Store
 
+# Python cache files
+__pycache__/
+
 # RStudio project files
 .Rproj.user
 .Rhistory

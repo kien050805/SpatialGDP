@@ -18,8 +18,6 @@ import rasterio
 from rasterio.mask import mask
 from rasterio.warp import transform
 
-import utils
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -32,7 +30,7 @@ DEFAULT_RASTER = (
 
 DEFAULT_PROVINCES = PROJECT_ROOT / "data" / "vnm_provinces.csv"
 
-DEFAULT_BOUNDARIES_DIR = PROJECT_ROOT / "data" / "vnm_district_boundaries"
+DEFAULT_BOUNDARIES_DIR = PROJECT_ROOT / "data" / "vnm_admin_boundaries"
 
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "viirs_pixel_radiance_province"
 
@@ -143,24 +141,7 @@ def extract_all_provinces(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Extract 2025 VIIRS radiance pixels for all Vietnamese provinces."
-    )
-    parser.add_argument("--raster", type=Path, default=DEFAULT_RASTER)
-    parser.add_argument("--boundaries-dir", type=Path, default=DEFAULT_BOUNDARIES_DIR)
-    parser.add_argument("--population", type=Path, default=DEFAULT_POPULATION)
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--year", default=DEFAULT_YEAR)
-    args = parser.parse_args()
-
-    extract_all_provinces(
-        args.raster,
-        args.boundaries_dir,
-        args.population,
-        args.output_dir,
-        args.year,
-    )
-
+    return
 
 if __name__ == "__main__":
     main()

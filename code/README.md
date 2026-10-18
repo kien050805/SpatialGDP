@@ -2,17 +2,34 @@
 
 Python scripts are in `Python/`; the R project is in `R/`.
 
+## Quick Python command
+
+From the repository root, run a Python script without changing directories:
+
+```bash
+./run-python.sh extract_viirs_pixels.py
+```
+
+Pass script arguments after the filename as usual:
+
+```bash
+./run-python.sh plot_viirs_pixels.py --help
+```
+
 ## VIIRS Workflow
 
 1. Download the VNL `.tif` files from EOG and place them in `data/`.
 
-2. From the repository root, extract radiance with:
+2. From the repository root, generate a Vietnam-wide pixel-radiance CSV for
+   every `.tif` in `data/viirs_raw`:
 
    ```bash
-   python code/Python/extract_viirs_pixels.py
+   ./run-python.sh generate_csv.py
    ```
 
-   The default output is saved under `data/viirs_pixel_radiance/`.
+   The files are named `vnm_<year>_pixel_radiance.csv` and saved under
+   `data/viirs_pixel_radiance/`. The generator uses the Vietnam national
+   boundary and calls `extract_viirs_pixels.py` to extract each raster.
 
 3. Generate national and provincial maps with:
 

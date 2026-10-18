@@ -19,7 +19,7 @@ DEFAULT_CSV = (
     PROJECT_ROOT
     / "data"
     / "viirs_pixel_radiance"
-    / "vietnam_viirs_2025_pixel_radiance.csv"
+    / "vnm_2025_pixel_radiance.csv"
 )
 DEFAULT_BOUNDARY = PROJECT_ROOT / "data" / "vnm_admin_boundaries.shp" / "vnm_admin0.shp"
 DEFAULT_OUTPUT = PROJECT_ROOT / "figures" / "vietnam_viirs_2025_radiance.png"
