@@ -1,3 +1,11 @@
+"""
+Utility functions for the project.
+Author: Kien Le
+AI disclosure: This code was generated with the assistance of AI. The author has reviewed and edited the code to ensure its accuracy and functionality.
+Last Update: 2026-10-18   
+"""
+import re
+import unicodedata
 
 
 def province_slug(province: str) -> str:
@@ -8,7 +16,7 @@ def province_slug(province: str) -> str:
 
 
 def main()-> None:
-
+	continue
 
 if __name__ == "__main__":
     main()

@@ -11,8 +11,6 @@ Output: CSV files containing pixel coordinates and radiance values for each prov
 import argparse
 import csv
 from pathlib import Path
-import re
-import unicodedata
 
 import geopandas as gpd
 import numpy as np
