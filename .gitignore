@@ -15,3 +15,8 @@ __pycache__/
 .Rproj.user
 .Rhistory
 .RData
+
+#generated files
+average_radiance/
+shp_boundaries/
+viirs_pixel_radiance/
