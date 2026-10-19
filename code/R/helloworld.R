@@ -1,35 +1,52 @@
-# Install and load required packages
-library(GWmodel)
-library(sf)
-# 
-# # 1. Load spatial data 
-# spatial_data <- st_read("your_spatial_data.shp")
-# 
-# # 2. Convert sf object to Spatial object (GWmodel relies on older sp format internally)
-# spatial_sp <- as(spatial_data, "Spatial")
-# 
-# # 3. Find the optimal adaptive bandwidth using AICc
-# # 'adaptive = TRUE' means the bandwidth will be a fixed number of local neighbors
-# optimal_bw <- bw.gwr(
-#   formula = dependent_var ~ independent_var1 + independent_var2,
-#   data = spatial_sp,
-#   approach = "AICc",
-#   kernel = "bisquare",
-#   adaptive = TRUE
-# )
-# print(paste("Optimal Bandwidth:", optimal_bw))
-# 
-# # 4. Run the GWR model
-# gwr_model <- gwr.basic(
-#   formula = dependent_var ~ independent_var1 + independent_var2,
-#   data = spatial_sp,
-#   bw = optimal_bw,
-#   kernel = "bisquare",
-#   adaptive = TRUE
-# )
-# 
-# # 5. Print results summary
-# print(gwr_model)
-# 
-# # 6. Extract spatial results for mapping (contains local R2 and coefficients)
-# output_spatial_sf <- st_as_sf(gwr_model$SDF)
+library(dplyr)
+library(ggplot2)
+
+setwd("../../")
+
+setwd("data/")
+
+df1 = read.csv("vnm_GRDPpc.csv")
+df2 = read.csv("vnm_unemployment.csv")
+df3 = read.csv("vnm_population.csv")
+df4 = read.csv("vnm_landUse.csv")
+
+setwd("viiirs_average_radiance/")
+
+rad = read.csv("vietnam_2025_mean_radiance_by_province.csv")
+
+df1 = df1 |> select("province", "X2025") |> rename(GRDPpc = X2025)
+df2 = df2 |> select("province", "X2025") |> rename(unemployment = X2025)
+df3 = df3 |> select("province", "X2025") |> rename (population = X2025)
+
+df <- df1 |>
+  full_join(df2, by = "province") |>
+  full_join(df3, by = "province") |>
+  full_join(df4, by = "province") |>
+  full_join(rad, by = "province")
+
+
+mod = lm(data = df, df$GRDPpc ~ df$mean_radiance)
+
+summary(mod)
+
+mod = lm (data = df, df$GRDPpc ~ df$population +
+            df$unemployment +
+            df$mean_radiance +
+            df$Agricultural.production.land +
+            df$Forestry.land +
+            df$Homestead.land)
+
+cor(df$population, df$mean_radiance)
+
+summary(mod)
+
+ggplot(data = df, aes(x = df$mean_radiance, y = df$GRDPpc)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+
+setwd("../")
+write.csv(df, "vnm_indicators_2025.csv", row.names = FALSE)
+
+df1 = df1 |> select("province")
+write.csv(df, "vnm_provinces.csv", row.names = FALSE)

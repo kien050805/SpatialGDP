@@ -38,5 +38,16 @@ Vietnam National Statistics Office:
 For provinces level:
 Ex: Nien Giam Thong Ke Hanoi, Table 15 is population from 2020-2025
 
+https://thuvienphapluat.vn/cong-van/Bo-may-hanh-chinh/Cong-van-2896-BNV-CQDP-2025-cung-cap-thong-tin-danh-muc-du-kien-don-vi-hanh-chinh-cap-xa-moi-658752.aspx#
 
-The raw data are stored in `_`. 
+
+The raw data are stored in `_`.
+
+## Regression dataset
+
+Run `python code/Python/prepare_training_dataset.py` from the repository root
+to merge provincial GRDP per capita, population, and level-1 mean radiance by
+province and year. The output is
+`data/training_data/vnm_regression_dataset.csv`, with one row per province-year
+and columns for `province`, `year`, `grdp_per_capita`, `population`,
+`mean_radiance`, and `pixel_count`.

@@ -15,6 +15,13 @@ run_python() {
     python "$script_path" "$@"
 }
 
-run_python "shp_wrangling.py"
-run_python "generate_csv.py"
-run_python "aggregate_radiance.py"
+if [[ $# -eq 0 ]]; then
+    # Run all scripts in order
+    run_python "shp_wrangling.py"
+    run_python "generate_csv.py"
+    run_python "aggregate_radiance.py"
+    run_python "prepare_training_dataset.py"
+else
+    # Run only the specified Python script
+    run_python "$@"
+fi

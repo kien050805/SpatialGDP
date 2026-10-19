@@ -20,3 +20,4 @@ __pycache__/
 average_radiance/
 shp_boundaries/
 viirs_pixel_radiance/
+training_data/
