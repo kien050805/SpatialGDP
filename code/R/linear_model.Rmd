@@ -1,0 +1,43 @@
+---
+title: "Linear Model"
+author: ""
+output:
+  html_document:
+    css: ../lab.css
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+---
+---
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# --- Load Libraries ---
+
+```
+
+# Linear Model for Spatial GDP
+
+For this model, we will use two basics training and testing datasets:
+
+* `prediction_dataset.csv`: For prediction purposes
+
+* `regression_dataset.csv`: For training and regression purposes
+
+### Load dataset
+```{r}
+# Set working director
+setwd("../../")
+
+regression_data = read.csv("regression_dataset.csv")
+
+
+```
+
+
+
+

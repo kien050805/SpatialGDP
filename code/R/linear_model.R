@@ -1,12 +1,9 @@
 setwd("../../")
 
-<<<<<<< HEAD
 library(ggplot2)
 
 training_data <- read.csv("data/training_data/vnm_regression_dataset.csv")
-=======
 training_data <- read.csv("data/training_data/regression_dataset.csv")
->>>>>>> refs/remotes/origin/main
 train_data <- subset(training_data, year >= 2020 & year <= 2024)
 test_data <- subset(training_data, year == 2025)
 model <- lm(grdp_per_capita ~ mean_radiance, data = train_data)
@@ -20,7 +17,6 @@ print(summary(model))
 cat(sprintf("2025 holdout RMSE (GRDP per capita): %.4f\n", rmse))
 
 
-<<<<<<< HEAD
 library(ggplot2)
 
 # Plot training data, fitted model, and 2025 actual observations
@@ -77,7 +73,6 @@ p <- ggplot() +
 
 print(p)
 )
-=======
 constrained_lm <- function(y, X, a) {
   y <- as.numeric(y)
   X <- as.matrix(X)
@@ -164,4 +159,3 @@ cat("Sum of constrained predictions:",
     sum(constrained_predictions), "\n")
 cat("Target sum:", a, "\n")
 
->>>>>>> refs/remotes/origin/main
