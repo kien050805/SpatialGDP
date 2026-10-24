@@ -23,7 +23,8 @@ Lowest level boundaries: https://gis.vn/don-vi-hanh-chinh-viet-nam
 
 * The `vnm_admin0` file contains the national geometry; `vnm_admin1` contains provincial geometry.
 
-* Note that ' all ‘ has been edited to be '.
+* Curly apostrophes in source shapefile and level-2 population names have been
+  replaced with straight apostrophes.
 
 Vietnam National Statistics Office: 
 *  https://www.nso.gov.vn/en/statistical-data/#: All Statistical data
@@ -55,7 +56,7 @@ to generate two files under `data/training_data/`:
   files. It does not include GRDP per capita or an administrative-level
   indicator.
 - Level-2 names are matched using Unicode-normalized, case-insensitive exact
-  names, with curly single quotes normalized to straight apostrophes.
+  names. Apostrophes in the source names use the straight form.
   Accent-stripped slugs are used only for file/directory names, never to decide
   whether two administrative units are the same. Unmatched names are printed
   for review rather than being merged based on a potentially colliding slug.

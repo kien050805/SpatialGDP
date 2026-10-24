@@ -42,19 +42,6 @@ def province_slug(province: str) -> str:
 	return re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
 
 
-def straight_apostrophes(value: object) -> object:
-    if isinstance(value, str):
-        return value.replace("‘", "'").replace("’", "'")
-    return value
-
-
-def normalize_apostrophes(boundaries: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    for column in boundaries.columns:
-        if column != boundaries.geometry.name:
-            boundaries[column] = boundaries[column].map(straight_apostrophes)
-    return boundaries
-
-
 def prepare_level0_boundary(
     source_path: Path = ADMIN0_SOURCE,
     output_path: Path = LEVEL0_OUTPUT,
@@ -220,7 +207,7 @@ def prepare_level2_boundary(
                 f"Missing level-2 boundary for {province}: {source_path}"
             )
 
-        boundaries = normalize_apostrophes(gpd.read_file(source_path))
+        boundaries = gpd.read_file(source_path)
         required_fields = {"ten_xa", "dtich_km2", "ten_tinh"}
         missing_fields = required_fields - set(boundaries.columns)
         if missing_fields:

@@ -28,7 +28,7 @@ PREDICTION_COLUMNS = (
     "mean_radiance",
     "pixel_count",
 )
-REGRESSION_PATH = OUTPUT_DIR / "vnm_regression_dataset.csv"
+REGRESSION_PATH = OUTPUT_DIR / "regression_dataset.csv"
 REGRESSION_COLUMNS = (
     "province",
     "year",
@@ -86,17 +86,11 @@ def name_key(name: str) -> str:
     return " ".join(unicodedata.normalize("NFC", name).split()).casefold()
 
 
-def level2_name_key(name: str) -> str:
-    return name_key(name).replace("‘", "'").replace("’", "'")
-
-
 def number_string(value: float) -> str:
     return format(value, ".12g")
 
 
-def read_radiance(
-    path: Path, *, level2: bool = False
-) -> dict[str, dict[str, str]]:
+def read_radiance(path: Path) -> dict[str, dict[str, str]]:
     columns, rows = read_csv(path)
     expected = {"name", "mean_radiance", "pixel_count"}
     if not expected.issubset(columns):
@@ -105,7 +99,7 @@ def read_radiance(
     original_names = {}
     for row in rows:
         name = row["name"].strip()
-        key = level2_name_key(name) if level2 else name_key(name)
+        key = name_key(name)
         if key in radiance_by_name:
             raise ValueError(
                 f"Duplicate radiance name after Unicode/whitespace normalization "
@@ -128,7 +122,7 @@ def level2_population_by_province(
     for row in rows:
         province = row["level_1"].strip()
         name = " ".join(row["name"].split())
-        key = (province, level2_name_key(name))
+        key = (province, name_key(name))
         if key not in grouped:
             grouped[key] = {
                 "name": name,
@@ -155,9 +149,7 @@ def merge_level2(
     population_rows: list[dict[str, str]],
     radiance_rows: dict[str, dict[str, str]],
 ) -> tuple[list[dict[str, str]], list[str], list[str]]:
-    population_by_name = {
-        level2_name_key(row["name"]): row for row in population_rows
-    }
+    population_by_name = {name_key(row["name"]): row for row in population_rows}
     radiance_by_name = dict(radiance_rows)
     matched_names = population_by_name.keys() & radiance_by_name.keys()
 
@@ -259,7 +251,7 @@ def generate_prediction_dataset() -> None:
             / PREDICTION_YEAR
             / f"{province_name_slug}_{PREDICTION_YEAR}_average_radiance.csv"
         )
-        radiance_rows = read_radiance(radiance_path, level2=True)
+        radiance_rows = read_radiance(radiance_path)
         province_records, unmatched_pop, unmatched_rad = merge_level2(
             province, population_rows, radiance_rows
         )
