@@ -102,7 +102,7 @@ Hòn Nghệ,An Giang,3.46,2546
 Thổ Châu,An Giang,13.98,1896
 Tiên Hải,An Giang,2.54,1872
 Bắc Giang,Bac Ninh,23.23,122838
-Hiệp Hoà,Bac Ninh,62.18,90443
+Hiệp Hòa,Bac Ninh,62.18,90443
 Xuân Cẩm,Bac Ninh,54.32,73763
 Hợp Thịnh,Bac Ninh,49.27,71714
 Lạng Giang,Bac Ninh,55.41,63413
@@ -497,7 +497,7 @@ Phước Năng,Da Nang,257.1,8452
 Trà Tập,Da Nang,183.17,8384
 Bến Giằng,Da Nang,535.96,8277
 Hùng Sơn,Da Nang,287.95,7958
-Trà Mai,Da Nang,178.31,7395
+Nam Trà My,Da Nang,178.31,7395
 Trà Linh,Da Nang,158.19,7088
 Trà Liên,Da Nang,178.15,7052
 Sông Vàng,Da Nang,183.63,7024
@@ -555,8 +555,8 @@ Cư Bao,Dak Lak,104.94,36911
 Ea Tul,Dak Lak,159.51,34876
 Phú Xuân,Dak Lak,140.74,34836
 Ea Ning,Dak Lak,86.21,34175
-Ea M’Droh,Dak Lak,134,33268
-Cư M’gar,Dak Lak,114.98,32368
+Ea M'Droh,Dak Lak,134,33268
+Cư M'gar,Dak Lak,114.98,32368
 Krông Búk,Dak Lak,134.83,30822
 Ea Hiao,Dak Lak,361.69,30796
 Ea Súp,Dak Lak,418.72,30762
@@ -585,7 +585,7 @@ Sông Hinh,Dak Lak,460.13,23841
 Krông Bông,Dak Lak,166.03,23168
 Hòa Xuân,Dak Lak,129.33,22962
 Đắk Liêng,Dak Lak,135.55,22881
-M’Drắk,Dak Lak,151.87,22808
+M'Drắk,Dak Lak,151.87,22808
 Xuân Đài,Dak Lak,13.4,21574
 Dang Kang,Dak Lak,105.91,21301
 Ea Kiết,Dak Lak,201.83,20177
@@ -593,7 +593,7 @@ Vụ Bổn,Dak Lak,109.13,18111
 Cư Pơng,Dak Lak,137.81,17687
 Yang Mao,Dak Lak,562.38,16970
 Cư Yang,Dak Lak,149.43,16682
-Ea H’leo,Dak Lak,340.06,16235
+Ea H'leo,Dak Lak,340.06,16235
 Xuân Phước,Dak Lak,102.81,16197
 Xuân Lãnh,Dak Lak,174.65,15933
 Đức Bình,Dak Lak,160.36,15896
@@ -601,7 +601,7 @@ Ea Riêng,Dak Lak,167.56,15719
 Ea Păl,Dak Lak,102.52,15049
 Đắk Phơi,Dak Lak,266.83,14726
 Cư Prao,Dak Lak,204.89,13765
-Cư M’ta,Dak Lak,261.06,13592
+Cư M'ta,Dak Lak,261.06,13592
 Tuy An Tây,Dak Lak,136.2,12913
 Krông Á,Dak Lak,291.6,12900
 Dur Kmăl,Dak Lak,114.49,12594
@@ -953,7 +953,7 @@ Ia Dơk,Gia Lai,100.53,17829
 Lơ Pang,Gia Lai,316.16,17666
 Kông Bơ La,Gia Lai,133.42,17468
 Ia Tôr,Gia Lai,102.31,17449
-Albá,Gia Lai,109.06,17420
+Al Bá,Gia Lai,109.06,17420
 Ia Khươl,Gia Lai,351.97,17151
 Canh Vinh,Gia Lai,258.72,16832
 Ia Dreh,Gia Lai,379.69,16643
@@ -1190,7 +1190,7 @@ Mai Hoa,Ha Tinh,45.85,11065
 Thượng Đức,Ha Tinh,58.32,10015
 Sơn Hồng,Ha Tinh,209.04,8409
 Sơn Kim 1,Ha Tinh,223.21,5782
-Sơn Kim 1,Ha Tinh,208.46,5123
+Sơn Kim 2,Ha Tinh,208.46,5123
 Lê Chân,Hai Phong,5.65,161051
 An Biên,Hai Phong,6.56,116091
 Hồng Bàng,Hai Phong,12.11,113200
@@ -1213,7 +1213,7 @@ Hải Dương,Hai Phong,6.51,51522
 Thành Đông,Hai Phong,12.22,50307
 Lưu Kiếm,Hai Phong,42.17,49376
 An Lão,Hai Phong,26.39,47189
-Hoà Bình,Hai Phong,19.47,47168
+Hòa Bình,Hai Phong,19.47,47168
 Gia Lộc,Hai Phong,21.78,46735
 Phú Thái,Hai Phong,28.89,46234
 Thanh Miện,Hai Phong,33.47,45388
@@ -1720,8 +1720,7 @@ Pa Ủ,Lai Chau,444.58,6084
 Hua Bum,Lai Chau,355.72,5697
 Thu Lũm,Lai Chau,251.55,5255
 Mù Cả,Lai Chau,384.04,3299
-"Xuân Hương
-- Đà Lạt",Lam Dong,73.45,103178
+"Xuân Hương - Đà Lạt",Lam Dong,73.45,103178
 Phan Rí Cửa,Lam Dong,67.67,86813
 Phan Thiết,Lam Dong,4.46,85493
 Đức Trọng,Lam Dong,148.78,85163
@@ -1732,8 +1731,8 @@ La Gi,Lam Dong,68.47,60549
 1 Bảo Lộc,Lam Dong,51.46,55845
 Hàm Thắng,Lam Dong,44.9,54544
 3 Bảo Lộc,Lam Dong,108.98,54445
-Phú Thuỷ,Lam Dong,17.31,54049
-B' Lao,Lam Dong,33.72,51538
+Phú Thủy,Lam Dong,17.31,54049
+B'Lao,Lam Dong,33.72,51538
 Bắc Bình,Lam Dong,148.99,51344
 Hiệp Thạnh,Lam Dong,127.19,51310
 Đức Linh,Lam Dong,103.27,51099
@@ -1743,20 +1742,19 @@ Cư Jút,Lam Dong,104.11,49614
 2 Bảo Lộc,Lam Dong,176.72,49564
 Phước Hội,Lam Dong,38.09,49480
 Cam Ly - Đà Lạt,Lam Dong,80.92,48919
-Đinh Văn - Lâm Hà,Lam Dong,89.87,48702
+Đinh Văn Lâm Hà,Lam Dong,89.87,48702
 Đức Lập,Lam Dong,88.19,48586
 Bình Thuận,Lam Dong,45.16,47858
 Hoài Đức,Lam Dong,105.04,47509
 Tánh Linh,Lam Dong,271.39,46741
 Đơn Dương,Lam Dong,127.81,45160
 Bảo Lâm 1,Lam Dong,204.43,44151
-Langbiang - Đà Lạt,Lam Dong,322.66,40041
-Tân Hà - Lâm Hà,Lam Dong,168.34,38996
+Lang Biang - Đà Lạt,Lam Dong,322.66,40041
+Tân Hà Lâm Hà,Lam Dong,168.34,38996
 Kiến Đức,Lam Dong,167.63,38928
 Bắc Gia Nghĩa,Lam Dong,250.55,37760
 Nam Thành,Lam Dong,201.78,37497
-"Xuân Trường
-- Đà Lạt",Lam Dong,168.83,36163
+"Xuân Trường - Đà Lạt",Lam Dong,168.83,36163
 Nam Dong,Lam Dong,104.04,35701
 Hàm Tân,Lam Dong,198.46,35209
 Quảng Tín,Lam Dong,310.17,34591
@@ -1765,7 +1763,7 @@ D'Ran,Lam Dong,240.89,33517
 Bảo Lâm 2,Lam Dong,114,33092
 Bảo Lâm 3,Lam Dong,152.13,32917
 Hàm Thuận Nam,Lam Dong,111.82,32771
-Nam Ban - Lâm Hà,Lam Dong,117.55,32722
+Nam Ban Lâm Hà,Lam Dong,117.55,32722
 Phú Quý,Lam Dong,18.02,32268
 Hòa Ninh,Lam Dong,95.17,31904
 Tuy Đức,Lam Dong,265.99,31786
@@ -1789,14 +1787,14 @@ Nhân Cơ,Lam Dong,158.05,27898
 Trường Xuân,Lam Dong,332.47,26838
 Sơn Mỹ,Lam Dong,254.52,26599
 Tân Hải,Lam Dong,77.18,25626
-Phú Sơn - Lâm Hà,Lam Dong,240.08,25212
+Phú Sơn Lâm Hà,Lam Dong,240.08,25212
 Hồng Thái,Lam Dong,101.64,25049
 Quảng Lập,Lam Dong,135.08,24898
 Đắk Wil,Lam Dong,515.16,24344
 Đông Gia Nghĩa,Lam Dong,105.78,24199
 Lương Sơn,Lam Dong,159.21,23912
 Nam Gia Nghĩa,Lam Dong,80.58,23650
-Phúc Thọ - Lâm Hà,Lam Dong,230.47,23308
+Phúc Thọ Lâm Hà,Lam Dong,230.47,23308
 Đạ Huoai,Lam Dong,113.96,23117
 Tà Hine,Lam Dong,128.69,23027
 Tà Đùng,Lam Dong,531.33,22703
@@ -1836,7 +1834,7 @@ Tà Năng,Lam Dong,258.33,13077
 Bảo Lâm 5,Lam Dong,511.88,11596
 Hòa Thắng,Lam Dong,328.09,11558
 Quảng Trực,Lam Dong,558.78,11168
-Nam Hà - Lâm Hà,Lam Dong,100.34,10978
+Nam Hà Lâm Hà,Lam Dong,100.34,10978
 Cát Tiên 3,Lam Dong,171.31,10591
 Bảo Lâm 4,Lam Dong,343.35,10073
 Tuy Phong,Lam Dong,444.1,9510
@@ -1847,7 +1845,7 @@ Sơn Điền,Lam Dong,261.88,7310
 Đạ Huoai 3,Lam Dong,131.51,6571
 Đông Giang,Lam Dong,205.23,5131
 Đông Kinh,Lang Son,54.71,50436
-Hoàng Văn Thụ,Lang Son,61.7,41624
+Kỳ Lừa,Lang Son,61.7,41624
 Hữu Lũng,Lang Son,52.87,30848
 Tam Thanh,Lang Son,27.35,30301
 Chi Lăng,Lang Son,80.74,28192
@@ -1859,7 +1857,7 @@ Tuấn Sơn,Lang Son,111.21,20611
 Tân Thành,Lang Son,121.93,20474
 Thất Khê,Lang Son,100.52,20153
 Vân Nham,Lang Son,81.22,19497
-Tân Thanh,Lang Son,114.5,18116
+Hoàng Văn Thụ,Lang Son,114.5,18116
 Bắc Sơn,Lang Son,80.46,16907
 Yên Phúc,Lang Son,117.93,16585
 Bình Gia,Lang Son,104.98,15008
@@ -1939,7 +1937,7 @@ Sa Pa,Lao Cai,54.63,22882
 Si Ma Cai,Lao Cai,109,22871
 Đông Cuông,Lao Cai,146.3,21938
 Bảo Yên,Lao Cai,119.1,21560
-Tằng Lỏong,Lao Cai,125.8,20533
+Tằng Loỏng,Lao Cai,125.8,20533
 Tân Lĩnh,Lao Cai,147.75,20155
 Lâm Thượng,Lao Cai,128,19576
 Púng Luông,Lao Cai,253.24,19516
@@ -2157,7 +2155,7 @@ Hải Hậu,Ninh Binh,23.87,45227
 Hải Tiến,Ninh Binh,24.19,44728
 Hải Xuân,Ninh Binh,31.27,44001
 Yên Cường,Ninh Binh,32.44,42810
-Giao Hoà,Ninh Binh,29.62,41717
+Giao Hòa,Ninh Binh,29.62,41717
 Phù Vân,Ninh Binh,19.34,40927
 Xuân Hồng,Ninh Binh,27.61,40698
 Cổ Lễ,Ninh Binh,18.33,40163
@@ -2329,7 +2327,7 @@ Võ Miếu,Phu Tho,96.36,28853
 Chí Đám,Phu Tho,49.36,28005
 Phú Thọ,Phu Tho,23.07,27957
 Hoàng Cương,Phu Tho,39.51,27890
-Thanh Thuỷ,Phu Tho,31.08,27678
+Thanh Thủy,Phu Tho,31.08,27678
 An Nghĩa,Phu Tho,95.73,27556
 Lạc Sơn,Phu Tho,58.1,27500
 Hiền Quan,Phu Tho,31.38,27476
@@ -2743,7 +2741,7 @@ Thủ Thừa,Tay Ninh,50.45,44485
 Phước Thạnh,Tay Ninh,70.89,44113
 Thanh Điền,Tay Ninh,30.73,43528
 Phước Lý,Tay Ninh,27.37,42840
-Hoà Thành,Tay Ninh,20.42,40968
+Hòa Thành,Tay Ninh,20.42,40968
 Mỹ Lộc,Tay Ninh,32.71,40199
 Truông Mít,Tay Ninh,74.43,40174
 Thuận Mỹ,Tay Ninh,53.37,39330
@@ -2754,9 +2752,9 @@ Mỹ Lệ,Tay Ninh,39.85,36969
 Tân Biên,Tay Ninh,244.71,36771
 Tầm Vu,Tay Ninh,43.5,35956
 Dương Minh Châu,Tay Ninh,177.15,35878
-Hoà Khánh,Tay Ninh,59.75,35638
+Hòa Khánh,Tay Ninh,59.75,35638
 Bình Đức,Tay Ninh,51.2,35110
-Hiệp Hoà,Tay Ninh,55.02,32869
+Hiệp Hòa,Tay Ninh,55.02,32869
 Long Cang,Tay Ninh,31.73,32686
 Hảo Đước,Tay Ninh,93.75,32503
 Tân An,Tay Ninh,25.5,32292
@@ -2790,7 +2788,7 @@ Thạnh Lợi,Tay Ninh,96.52,24037
 Kiến Tường,Tay Ninh,26.28,23738
 Ninh Điền,Tay Ninh,152.23,23470
 Phước Vinh,Tay Ninh,165.08,23314
-Lương Hoà,Tay Ninh,62.16,23308
+Lương Hòa,Tay Ninh,62.16,23308
 Đức Huệ,Tay Ninh,134.13,22930
 Vĩnh Công,Tay Ninh,24.71,22784
 Thạnh Phước,Tay Ninh,144.64,22064
@@ -2806,13 +2804,13 @@ Hưng Điền,Tay Ninh,131.16,19308
 Tuyên Bình,Tay Ninh,137.81,19158
 Tân Hưng,Tay Ninh,107.75,18046
 Long Chữ,Tay Ninh,92,17746
-Mộc Hoá,Tay Ninh,135.56,16880
+Mộc Hóa,Tay Ninh,135.56,16880
 Tân Lập,Tay Ninh,257.61,16810
 Thạnh Hóa,Tay Ninh,108.18,16738
 Tuyên Thạnh,Tay Ninh,108.81,15331
-Hoà Hội,Tay Ninh,111.3,14395
+Hòa Hội,Tay Ninh,111.3,14395
 Tân Long,Tay Ninh,149.1,14102
-Bình Hoà,Tay Ninh,117.85,13581
+Bình Hòa,Tay Ninh,117.85,13581
 Vĩnh Châu,Tay Ninh,144.28,13022
 Vĩnh Thạnh,Tay Ninh,118.68,12610
 Bình Thành,Tay Ninh,132.41,10690
@@ -2987,7 +2985,7 @@ Nga Thắng,Thanh Hoa,27.52,26542
 Xuân Tín,Thanh Hoa,31.93,26531
 Triệu Lộc,Thanh Hoa,29.27,26386
 Như Thanh,Thanh Hoa,84.07,26231
-Đào Duy Tư,Thanh Hoa,42.86,26206
+Đào Duy Từ,Thanh Hoa,42.86,26206
 Cẩm Tú,Thanh Hoa,98.09,26049
 Thiệu Tiến,Thanh Hoa,23.68,25383
 Nga An,Thanh Hoa,28.1,24950
@@ -3083,7 +3081,7 @@ Yên Sơn,Tuyen Quang,117.92,31560
 Mỹ Lâm,Tuyen Quang,80.2,31446
 Chiêm Hoá,Tuyen Quang,111.65,30329
 Hàm Yên,Tuyen Quang,126.19,29508
-Sơn Thuỷ,Tuyen Quang,76.13,28259
+Sơn Thủy,Tuyen Quang,76.13,28259
 Phú Lương,Tuyen Quang,85.65,27300
 Yên Minh,Tuyen Quang,154.7,26556
 Đồng Văn,Tuyen Quang,122.49,26015
@@ -3104,7 +3102,7 @@ Tân Thanh,Tuyen Quang,114.42,18856
 Bình Thuận,Tuyen Quang,46.34,18626
 Quản Bạ,Tuyen Quang,102.87,18436
 Đồng Yên,Tuyen Quang,79.36,18326
-Thái Hoà,Tuyen Quang,55.6,18289
+Thái Hòa,Tuyen Quang,55.6,18289
 Đông Thọ,Tuyen Quang,74.86,18085
 Bình Xa,Tuyen Quang,91.17,17998
 Trường Sinh,Tuyen Quang,53.36,17615
@@ -3132,7 +3130,7 @@ Yên Phú,Tuyen Quang,222.57,14890
 Tiên Yên,Tuyen Quang,97.18,14241
 Thái Bình,Tuyen Quang,102.59,13803
 Minh Thanh,Tuyen Quang,78.57,13453
-Hoà An,Tuyen Quang,66.71,13208
+Hòa An,Tuyen Quang,66.71,13208
 Bắc Mê,Tuyen Quang,154.3,13043
 Bạch Đích,Tuyen Quang,95.17,12747
 Sủng Máng,Tuyen Quang,76.15,12568
@@ -3175,7 +3173,7 @@ Tri Phú,Tuyen Quang,170.26,8686
 Nậm Dịch,Tuyen Quang,97.78,8540
 Trung Hà,Tuyen Quang,103.18,8303
 Tùng Bá,Tuyen Quang,120.49,8225
-Thuận Hoà,Tuyen Quang,108.4,7915
+Thuận Hòa,Tuyen Quang,108.4,7915
 Minh Ngọc,Tuyen Quang,159.34,7878
 Ngọc Đường,Tuyen Quang,98.07,7858
 Tát Ngà,Tuyen Quang,90.6,7765
@@ -3307,7 +3305,7 @@ Mỹ Long,Vinh Long,73.61,25385
 Hòa Thuận,Vinh Long,16.51,25384
 Bảo Thạnh,Vinh Long,62.28,25225
 Duyên Hải,Vinh Long,69.63,24356
-Lục Sỹ Thành,Vinh Long,43.52,23457
+Lục Sĩ Thành,Vinh Long,43.52,23457
 Châu Hưng,Vinh Long,35.22,23229
 Đại An,Vinh Long,32.32,22672
 Thạnh Phước,Vinh Long,76.99,21208
