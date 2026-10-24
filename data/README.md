@@ -23,7 +23,7 @@ Lowest level boundaries: https://gis.vn/don-vi-hanh-chinh-viet-nam
 
 * The `vnm_admin0` file contains the national geometry; `vnm_admin1` contains provincial geometry.
 
-
+* Note that ' all ‘ has been edited to be '.
 
 Vietnam National Statistics Office: 
 *  https://www.nso.gov.vn/en/statistical-data/#: All Statistical data
@@ -43,11 +43,23 @@ https://thuvienphapluat.vn/cong-van/Bo-may-hanh-chinh/Cong-van-2896-BNV-CQDP-202
 
 The raw data are stored in `_`.
 
-## Regression dataset
+## Prediction dataset
 
 Run `python code/Python/prepare_training_dataset.py` from the repository root
-to merge provincial GRDP per capita, population, and level-1 mean radiance by
-province and year. The output is
-`data/training_data/vnm_regression_dataset.csv`, with one row per province-year
-and columns for `province`, `year`, `grdp_per_capita`, `population`,
-`mean_radiance`, and `pixel_count`.
+to generate two files under `data/training_data/`:
+
+- `prediction_dataset.csv` contains level-2 units for 2025 only. It keeps
+  `name` and includes `level_1`, `year`, `population`, `total_area`,
+  `mean_radiance`, and `pixel_count`. Population and area come from
+  `vnm_level2_population.csv`; radiance comes from the level-2 2025 radiance
+  files. It does not include GRDP per capita or an administrative-level
+  indicator.
+- Level-2 names are matched using Unicode-normalized, case-insensitive exact
+  names, with curly single quotes normalized to straight apostrophes.
+  Accent-stripped slugs are used only for file/directory names, never to decide
+  whether two administrative units are the same. Unmatched names are printed
+  for review rather than being merged based on a potentially colliding slug.
+  This matching rule applies only to level 2; level-1 matching is unchanged.
+- `vnm_regression_dataset.csv` contains level-1 province-year observations for
+  2020–2025, including GRDP per capita, population, total area, mean radiance,
+  and pixel count. Total area is sourced from `vnm_landUse.csv`.

@@ -27,6 +27,22 @@ def name_slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
 
 
+def province_file_stems(provinces: list[str]) -> list[tuple[str, str]]:
+    province_rows = []
+    provinces_by_slug = {}
+    for province in provinces:
+        province_slug = name_slug(province)
+        if not province_slug or province_slug in provinces_by_slug:
+            other = provinces_by_slug.get(province_slug)
+            raise ValueError(
+                f"Province names produce an invalid or duplicate file stem: "
+                f"{other!r} and {province!r}"
+            )
+        provinces_by_slug[province_slug] = province
+        province_rows.append((province, province_slug))
+    return province_rows
+
+
 def unique_level2_slugs(names: list[str]) -> list[str]:
     slugs = [name_slug(name) for name in names]
     counts = {slug: slugs.count(slug) for slug in set(slugs)}
@@ -129,14 +145,15 @@ def generate_level1_averages(
         years = available_years(pixels_dir)
     if provinces is None:
         provinces = read_provinces(DEFAULT_PROVINCES)
+    province_rows = province_file_stems(provinces)
     for year in years:
         records = []
-        for province in provinces:
+        for province, province_slug in province_rows:
             pixels_path = (
                 pixels_dir
                 / "level1"
                 / year
-                / f"{name_slug(province)}_{year}{PIXEL_FILE_SUFFIX}"
+                / f"{province_slug}_{year}{PIXEL_FILE_SUFFIX}"
             )
             records.append(average_record(province, pixels_path))
 
@@ -157,8 +174,7 @@ def generate_level2_averages(
         years = available_years(pixels_dir)
     if provinces is None:
         provinces = read_provinces(DEFAULT_PROVINCES)
-    for province in provinces:
-        province_slug = name_slug(province)
+    for province, province_slug in province_file_stems(provinces):
         boundary_path = (
             boundaries_dir / "level2" / province_slug / f"{province_slug}.shp"
         )
