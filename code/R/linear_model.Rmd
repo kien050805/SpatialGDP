@@ -41,13 +41,13 @@ For this model, we will use two basics training and testing datasets:
 ### Load dataset
 ```{r}
 # Regression Dataset
-regression_data = read.csv("/data/training_data/regression_dataset.csv")
+regression_data = read.csv("data/training_data/regression_dataset.csv")
 
 # Prediction Dataset
-prediction_data = read.csv("/data/training_data/prediction_dataset.csv")
+prediction_data = read.csv("data/training_data/prediction_dataset.csv")
 
 # Constrained Dataset
-constrained_data = read.csv("/data/_vnm_indicators/vnm_GRDPpc.csv")
+constrained_data = read.csv("data/_vnm_indicators/vnm_GRDPpc.csv")
 
 ```
 
@@ -80,7 +80,9 @@ n <- nrow(X)
 
 p <- ncol(X)
 
-a <- 
+# Default target preserves the observed training total; replace this with the
+# aggregate prediction target required by your use case.
+a <- sum(y)
 ```
 
 ### Optimization problem
@@ -111,17 +113,15 @@ problem <- Problem(objective, constraints)
 result <- solve(problem)
 
 # Extract results
-beta_hat <- result$getValue(beta)
+beta_hat <- value(beta)
 y_hat <- as.vector(X %*% beta_hat)
 
 print(beta_hat)
 print(sum(y_hat))
-print(result$value)]
+print(result$value)
 print(result$status)
 
 ```
-
-
 
 
 
