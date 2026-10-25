@@ -66,3 +66,24 @@ to generate two files under `data/training_data/`:
 - `vnm_regression_dataset.csv` contains level-1 province-year observations for
   2020–2025, including GRDP per capita, population, total area, mean radiance,
   and pixel count. Total area is sourced from `vnm_landUse.csv`.
+
+## Region maps
+
+`python code/Python/plot_regions.py` plots the default level-2 predicted GRDP
+per-capita values from `data/predicted_data/level2_grdp_pc_predictions.csv`
+using the prepared boundaries in `data/shp_boundaries/`. Figures are saved to
+`figures/` by default.
+
+Level-2 predictions are calibrated so that, for each province, the sum of
+`predicted_grdp_per_capita * population` equals the province's 2025 GRDP per
+capita times its province-level population from `vnm_population.csv`. The
+province population is stored in thousands in that source and is converted to
+people for the constraint. The generated prediction CSV includes this total in
+`province_population_2025`.
+
+Use `--level 1` or `--level 2` to choose provincial or district/commune
+boundaries, `--metric <column>` to select a numeric CSV column (for example,
+`population`), and `--csv <path>` to select another dataset. `--year <year>`
+filters a dataset with multiple years. If the input column names are not
+recognized automatically, use `--name-column` and, for level 2, `--province-column`.
+Use `--output <path>` to choose a different output file.
