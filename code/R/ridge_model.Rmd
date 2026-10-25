@@ -142,8 +142,8 @@ intercepts remain unpenalized.
 
 
 ```{r}
-# Search a logarithmic grid of positive ridge penalties.
-lambda_grid <- 10^seq(-6, 6, length.out = 49)
+# Search 51 evenly spaced penalties from 0 through 1, in 0.02 increments.
+lambda_grid <- seq(0, 1, length.out = 51)
 ridge_coefficients <- matrix(NA_real_, nrow = p, ncol = length(lambda_grid))
 ridge_predictions <- matrix(
   NA_real_,
@@ -235,24 +235,32 @@ plot(
   lambda_results$lambda,
   lambda_results$RMSE,
   type = "b",
-  log = "x",
   pch = 19,
   col = "#0072B2",
   xlab = expression(lambda),
   ylab = "Training RMSE",
-  main = "Ridge penalty grid: RMSE"
+  main = "Ridge penalty grid: RMSE",
+  yaxt = "n"
 )
+rmse_ticks <- pretty(lambda_results$RMSE)
+axis(2, at = rmse_ticks, labels = formatC(rmse_ticks, format = "f", digits = 8))
 abline(v = selected_lambda, lty = 2, col = "#D55E00")
 plot(
   lambda_results$lambda,
   lambda_results$R_squared,
   type = "b",
-  log = "x",
   pch = 19,
   col = "#0072B2",
   xlab = expression(lambda),
   ylab = expression(R^2),
-  main = "Ridge penalty grid: R-squared"
+  main = "Ridge penalty grid: R-squared",
+  yaxt = "n"
+)
+r_squared_ticks <- pretty(lambda_results$R_squared)
+axis(
+  2,
+  at = r_squared_ticks,
+  labels = formatC(r_squared_ticks, format = "f", digits = 8)
 )
 abline(v = selected_lambda, lty = 2, col = "#D55E00")
 grDevices::dev.off()

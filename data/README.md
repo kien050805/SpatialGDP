@@ -89,3 +89,12 @@ recognized automatically, use `--name-column` and, for level 2, `--province-colu
 Use `--province <name>` to plot a single province's level-2 units (for example,
 `--province "Ho Chi Minh City"`). Use `--output <path>` to choose a different
 output file.
+
+## Administrative centroids
+
+Run `python code/Python/generate_centroid.py` to calculate centroids from the
+prepared boundaries in `data/shp_boundaries/`. It writes
+`level0_centroids.csv`, `level1_centroids.csv`, and `level2_centroids.csv` to
+`data/centroid/`. Coordinates are output as latitude and longitude in
+EPSG:4326; centroid calculations use the equal-area EPSG:6933 projection.
+Level-2 rows include their province name because unit names may repeat.
