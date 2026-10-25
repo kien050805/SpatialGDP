@@ -27,8 +27,10 @@ Lowest level boundaries: https://gis.vn/don-vi-hanh-chinh-viet-nam
   replaced with straight apostrophes.
 
 Vietnam National Statistics Office: 
-*  https://www.nso.gov.vn/en/statistical-data/#: All Statistical data
+* https://www.nso.gov.vn/en/statistical-data/#: All Statistical data
 * https://www.nso.gov.vn/en/national-accounts/ : National level statistical data
+* Why there is not GRDP by province? https://www.nso.gov.vn/en/other-news/2019/11/since-2017-localities-not-to-self-calculate-grdp/
+
 
 
 * Here is where we retrieve the GDP of Vietnam, in addition to population by region, GRDP per capita.
