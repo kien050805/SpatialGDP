@@ -20,6 +20,17 @@ editor_options:
 
 ```
 
+```{r setup, include=FALSE}
+project_dir <- getwd()
+
+knitr::opts_knit$set(
+  root.dir = normalizePath(
+    file.path(project_dir, "..", "..", "data", "training_data")
+  )
+)
+```
+
+
 # Linear Model for Spatial GDP
 
 For this model, we will use two basics training and testing datasets:
@@ -30,13 +41,17 @@ For this model, we will use two basics training and testing datasets:
 
 ### Load dataset
 ```{r}
-# Set working director
-setwd("../../")
-
+# Regression Dataset
 regression_data = read.csv("regression_dataset.csv")
 
-
+# Prediction Dataset
+prediction_data = read.csv("prediction_dataset.csv")
 ```
+
+
+### Preliminaries
+
+This 
 
 
 

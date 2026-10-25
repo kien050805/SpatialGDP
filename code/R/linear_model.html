@@ -1288,6 +1288,108 @@ ul.task-list{list-style: none;}
 
 
 
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
 
 
 
@@ -1456,389 +1558,22 @@ border-radius: 0px;
 </div>
 
 
-<pre><code>## function (package, help, pos = 2, lib.loc = NULL, character.only = FALSE, 
-##     logical.return = FALSE, warn.conflicts, quietly = FALSE, 
-##     verbose = getOption(&quot;verbose&quot;), mask.ok, exclude, include.only, 
-##     attach.required = missing(include.only)) 
-## {
-##     conf.ctrl &lt;- getOption(&quot;conflicts.policy&quot;)
-##     if (is.character(conf.ctrl)) 
-##         conf.ctrl &lt;- switch(conf.ctrl, strict = list(error = TRUE, 
-##             warn = FALSE), depends.ok = list(error = TRUE, generics.ok = TRUE, 
-##             can.mask = c(&quot;base&quot;, &quot;methods&quot;, &quot;utils&quot;, &quot;grDevices&quot;, 
-##                 &quot;graphics&quot;, &quot;stats&quot;), depends.ok = TRUE), warning(gettextf(&quot;unknown conflict policy: %s&quot;, 
-##             sQuote(conf.ctrl)), call. = FALSE, domain = NA))
-##     if (!is.list(conf.ctrl)) 
-##         conf.ctrl &lt;- NULL
-##     stopOnConflict &lt;- isTRUE(conf.ctrl$error)
-##     if (missing(warn.conflicts)) 
-##         warn.conflicts &lt;- !isFALSE(conf.ctrl$warn)
-##     if (!missing(include.only) &amp;&amp; !missing(exclude)) 
-##         stop(&quot;only one of &#39;include.only&#39; and &#39;exclude&#39; can be used&quot;, 
-##             call. = FALSE)
-##     testRversion &lt;- function(pkgInfo, pkgname, pkgpath) {
-##         if (is.null(built &lt;- pkgInfo$Built)) 
-##             stop(gettextf(&quot;package %s has not been installed properly\n&quot;, 
-##                 sQuote(pkgname)), call. = FALSE, domain = NA)
-##         R_version_built_under &lt;- as.numeric_version(built$R)
-##         if (R_version_built_under &lt; &quot;3.0.0&quot;) 
-##             stop(gettextf(&quot;package %s was built before R 3.0.0: please re-install it&quot;, 
-##                 sQuote(pkgname)), call. = FALSE, domain = NA)
-##         current &lt;- getRversion()
-##         if (length(Rdeps &lt;- pkgInfo$Rdepends2)) {
-##             for (dep in Rdeps) if (length(dep) &gt; 1L) {
-##                 target &lt;- dep$version
-##                 res &lt;- do.call(dep$op, if (is.character(target)) 
-##                   list(as.numeric(R.version[[&quot;svn rev&quot;]]), as.numeric(sub(&quot;^r&quot;, 
-##                     &quot;&quot;, target)))
-##                 else list(current, as.numeric_version(target)))
-##                 if (!res) 
-##                   stop(gettextf(&quot;This is R %s, package %s needs %s %s&quot;, 
-##                     current, sQuote(pkgname), dep$op, target), 
-##                     call. = FALSE, domain = NA)
-##             }
-##         }
-##         if (R_version_built_under &gt; current) 
-##             warning(gettextf(&quot;package %s was built under R version %s&quot;, 
-##                 sQuote(pkgname), as.character(built$R)), call. = FALSE, 
-##                 domain = NA)
-##         platform &lt;- built$Platform
-##         r_arch &lt;- .Platform$r_arch
-##         if (.Platform$OS.type == &quot;unix&quot;) {
-##         }
-##         else {
-##             if (nzchar(platform) &amp;&amp; !grepl(&quot;mingw&quot;, platform)) 
-##                 stop(gettextf(&quot;package %s was built for %s&quot;, 
-##                   sQuote(pkgname), platform), call. = FALSE, 
-##                   domain = NA)
-##         }
-##         if (nzchar(r_arch) &amp;&amp; file.exists(file.path(pkgpath, 
-##             &quot;libs&quot;)) &amp;&amp; !file.exists(file.path(pkgpath, &quot;libs&quot;, 
-##             r_arch))) 
-##             stop(gettextf(&quot;package %s is not installed for &#39;arch = %s&#39;&quot;, 
-##                 sQuote(pkgname), r_arch), call. = FALSE, domain = NA)
-##     }
-##     checkNoGenerics &lt;- function(env, pkg) {
-##         nenv &lt;- env
-##         ns &lt;- .getNamespace(as.name(pkg))
-##         if (!is.null(ns)) 
-##             nenv &lt;- asNamespace(ns)
-##         if (exists(&quot;.noGenerics&quot;, envir = nenv, inherits = FALSE)) 
-##             TRUE
-##         else {
-##             !any(startsWith(names(env), &quot;.__T&quot;))
-##         }
-##     }
-##     checkConflicts &lt;- function(package, pkgname, pkgpath, nogenerics, 
-##         env) {
-##         dont.mind &lt;- c(&quot;last.dump&quot;, &quot;last.warning&quot;, &quot;.Last.value&quot;, 
-##             &quot;.Random.seed&quot;, &quot;.Last.lib&quot;, &quot;.onDetach&quot;, &quot;.packageName&quot;, 
-##             &quot;.noGenerics&quot;, &quot;.required&quot;, &quot;.no_S3_generics&quot;, &quot;.Depends&quot;, 
-##             &quot;.requireCachedGenerics&quot;)
-##         sp &lt;- search()
-##         lib.pos &lt;- which(sp == pkgname)
-##         ob &lt;- names(as.environment(lib.pos))
-##         if (!nogenerics) {
-##             these &lt;- ob[startsWith(ob, &quot;.__T__&quot;)]
-##             gen &lt;- gsub(&quot;.__T__(.*):([^:]+)&quot;, &quot;\\1&quot;, these)
-##             from &lt;- gsub(&quot;.__T__(.*):([^:]+)&quot;, &quot;\\2&quot;, these)
-##             gen &lt;- gen[from != package]
-##             ob &lt;- ob[!(ob %in% gen)]
-##         }
-##         ipos &lt;- seq_along(sp)[-c(lib.pos, match(c(&quot;Autoloads&quot;, 
-##             &quot;CheckExEnv&quot;), sp, 0L))]
-##         cpos &lt;- NULL
-##         conflicts &lt;- vector(&quot;list&quot;, 0)
-##         for (i in ipos) {
-##             obj.same &lt;- match(names(as.environment(i)), ob, nomatch = 0L)
-##             if (any(obj.same &gt; 0L)) {
-##                 same &lt;- ob[obj.same]
-##                 same &lt;- same[!(same %in% dont.mind)]
-##                 Classobjs &lt;- which(startsWith(same, &quot;.__&quot;))
-##                 if (length(Classobjs)) 
-##                   same &lt;- same[-Classobjs]
-##                 same.isFn &lt;- function(where) vapply(same, exists, 
-##                   NA, where = where, mode = &quot;function&quot;, inherits = FALSE)
-##                 same &lt;- same[same.isFn(i) == same.isFn(lib.pos)]
-##                 not.Ident &lt;- function(ch, TRAFO = identity, ...) vapply(ch, 
-##                   function(.) !identical(TRAFO(get(., i)), TRAFO(get(., 
-##                     lib.pos)), ...), NA)
-##                 if (length(same)) 
-##                   same &lt;- same[not.Ident(same)]
-##                 if (length(same) &amp;&amp; identical(sp[i], &quot;package:base&quot;)) 
-##                   same &lt;- same[not.Ident(same, ignore.environment = TRUE)]
-##                 if (length(same)) {
-##                   conflicts[[sp[i]]] &lt;- same
-##                   cpos[sp[i]] &lt;- i
-##                 }
-##             }
-##         }
-##         if (length(conflicts)) {
-##             if (stopOnConflict) {
-##                 emsg &lt;- &quot;&quot;
-##                 pkg &lt;- names(conflicts)
-##                 notOK &lt;- vector(&quot;list&quot;, 0)
-##                 for (i in seq_along(conflicts)) {
-##                   pkgname &lt;- sub(&quot;^package:&quot;, &quot;&quot;, pkg[i])
-##                   if (pkgname %in% canMaskEnv$canMask) 
-##                     next
-##                   same &lt;- conflicts[[i]]
-##                   if (is.list(mask.ok)) 
-##                     myMaskOK &lt;- mask.ok[[pkgname]]
-##                   else myMaskOK &lt;- mask.ok
-##                   if (isTRUE(myMaskOK)) 
-##                     same &lt;- NULL
-##                   else if (is.character(myMaskOK)) 
-##                     same &lt;- setdiff(same, myMaskOK)
-##                   if (length(same)) {
-##                     notOK[[pkg[i]]] &lt;- same
-##                     msg &lt;- .maskedMsg(sort(same), pkg = sQuote(pkg[i]), 
-##                       by = cpos[i] &lt; lib.pos)
-##                     emsg &lt;- paste(emsg, msg, sep = &quot;\n&quot;)
-##                   }
-##                 }
-##                 if (length(notOK)) {
-##                   msg &lt;- gettextf(&quot;Conflicts attaching package %s:\n%s&quot;, 
-##                     sQuote(package), emsg)
-##                   stop(errorCondition(msg, package = package, 
-##                     conflicts = conflicts, class = &quot;packageConflictError&quot;))
-##                 }
-##             }
-##             if (warn.conflicts) {
-##                 packageStartupMessage(gettextf(&quot;\nAttaching package: %s\n&quot;, 
-##                   sQuote(package)), domain = NA)
-##                 pkg &lt;- names(conflicts)
-##                 for (i in seq_along(conflicts)) {
-##                   msg &lt;- .maskedMsg(sort(conflicts[[i]]), pkg = sQuote(pkg[i]), 
-##                     by = cpos[i] &lt; lib.pos)
-##                   packageStartupMessage(msg, domain = NA)
-##                 }
-##             }
-##         }
-##     }
-##     if (verbose &amp;&amp; quietly) 
-##         message(&quot;&#39;verbose&#39; and &#39;quietly&#39; are both true; being verbose then ..&quot;)
-##     if (!missing(package)) {
-##         if (is.null(lib.loc)) 
-##             lib.loc &lt;- .libPaths()
-##         lib.loc &lt;- lib.loc[dir.exists(lib.loc)]
-##         if (!character.only) 
-##             package &lt;- as.character(substitute(package))
-##         if (length(package) != 1L) 
-##             stop(&quot;&#39;package&#39; must be of length 1&quot;)
-##         if (is.na(package) || (package == &quot;&quot;)) 
-##             stop(&quot;invalid package name&quot;)
-##         pkgname &lt;- paste0(&quot;package:&quot;, package)
-##         newpackage &lt;- is.na(match(pkgname, search()))
-##         if (newpackage) {
-##             pkgpath &lt;- find.package(package, lib.loc, quiet = TRUE, 
-##                 verbose = verbose)
-##             if (length(pkgpath) == 0L) {
-##                 if (length(lib.loc) &amp;&amp; !logical.return) 
-##                   stop(packageNotFoundError(package, lib.loc, 
-##                     sys.call()))
-##                 txt &lt;- if (length(lib.loc)) 
-##                   gettextf(&quot;there is no package called %s&quot;, sQuote(package))
-##                 else gettext(&quot;no library trees found in &#39;lib.loc&#39;&quot;)
-##                 if (logical.return) {
-##                   if (!quietly) 
-##                     warning(txt, domain = NA)
-##                   return(FALSE)
-##                 }
-##                 else stop(txt, domain = NA)
-##             }
-##             which.lib.loc &lt;- normalizePath(dirname(pkgpath), 
-##                 &quot;/&quot;, TRUE)
-##             pfile &lt;- system.file(&quot;Meta&quot;, &quot;package.rds&quot;, package = package, 
-##                 lib.loc = which.lib.loc)
-##             if (!nzchar(pfile)) 
-##                 stop(gettextf(&quot;%s is not a valid installed package&quot;, 
-##                   sQuote(package)), domain = NA)
-##             pkgInfo &lt;- readRDS(pfile)
-##             testRversion(pkgInfo, package, pkgpath)
-##             if (is.character(pos)) {
-##                 npos &lt;- match(pos, search())
-##                 if (is.na(npos)) {
-##                   warning(gettextf(&quot;%s not found on search path, using pos = 2&quot;, 
-##                     sQuote(pos)), domain = NA)
-##                   pos &lt;- 2
-##                 }
-##                 else pos &lt;- npos
-##             }
-##             deps &lt;- unique(names(pkgInfo$Depends))
-##             depsOK &lt;- isTRUE(conf.ctrl$depends.ok)
-##             if (depsOK) {
-##                 canMaskEnv &lt;- dynGet(&quot;__library_can_mask__&quot;, 
-##                   NULL)
-##                 if (is.null(canMaskEnv)) {
-##                   canMaskEnv &lt;- new.env()
-##                   canMaskEnv$canMask &lt;- union(&quot;base&quot;, conf.ctrl$can.mask)
-##                   &quot;__library_can_mask__&quot; &lt;- canMaskEnv
-##                 }
-##                 canMaskEnv$canMask &lt;- unique(c(package, deps, 
-##                   canMaskEnv$canMask))
-##             }
-##             else canMaskEnv &lt;- NULL
-##             if (attach.required) 
-##                 .getRequiredPackages2(pkgInfo, quietly = quietly, 
-##                   lib.loc = c(lib.loc, .libPaths()))
-##             cr &lt;- conflictRules(package)
-##             if (missing(mask.ok)) 
-##                 mask.ok &lt;- cr$mask.ok
-##             if (missing(exclude)) 
-##                 exclude &lt;- cr$exclude
-##             if (isNamespaceLoaded(package)) {
-##                 newversion &lt;- as.numeric_version(pkgInfo$DESCRIPTION[&quot;Version&quot;])
-##                 oldversion &lt;- as.numeric_version(getNamespaceVersion(package))
-##                 if (newversion != oldversion) {
-##                   tryCatch(unloadNamespace(package), error = function(e) {
-##                     P &lt;- if (!is.null(cc &lt;- conditionCall(e))) 
-##                       paste(&quot;Error in&quot;, deparse(cc)[1L], &quot;: &quot;)
-##                     else &quot;Error : &quot;
-##                     stop(gettextf(&quot;Package %s version %s cannot be unloaded:\n %s&quot;, 
-##                       sQuote(package), oldversion, paste0(P, 
-##                         conditionMessage(e), &quot;\n&quot;)), domain = NA)
-##                   })
-##                 }
-##             }
-##             tt &lt;- tryCatch({
-##                 attr(package, &quot;LibPath&quot;) &lt;- which.lib.loc
-##                 ns &lt;- loadNamespace(package, lib.loc)
-##                 env &lt;- attachNamespace(ns, pos = pos, deps, exclude, 
-##                   include.only)
-##             }, error = function(e) {
-##                 P &lt;- if (!is.null(cc &lt;- conditionCall(e))) 
-##                   paste(&quot; in&quot;, deparse(cc)[1L])
-##                 else &quot;&quot;
-##                 msg &lt;- gettextf(&quot;package or namespace load failed for %s%s:\n %s&quot;, 
-##                   sQuote(package), P, conditionMessage(e))
-##                 if (logical.return &amp;&amp; !quietly) 
-##                   message(paste(&quot;Error:&quot;, msg), domain = NA)
-##                 else stop(msg, call. = FALSE, domain = NA)
-##             })
-##             if (logical.return &amp;&amp; is.null(tt)) 
-##                 return(FALSE)
-##             attr(package, &quot;LibPath&quot;) &lt;- NULL
-##             {
-##                 on.exit(detach(pos = pos))
-##                 nogenerics &lt;- !.isMethodsDispatchOn() || checkNoGenerics(env, 
-##                   package)
-##                 if (isFALSE(conf.ctrl$generics.ok) || (stopOnConflict &amp;&amp; 
-##                   !isTRUE(conf.ctrl$generics.ok))) 
-##                   nogenerics &lt;- TRUE
-##                 if (stopOnConflict || (warn.conflicts &amp;&amp; !exists(&quot;.conflicts.OK&quot;, 
-##                   envir = env, inherits = FALSE))) 
-##                   checkConflicts(package, pkgname, pkgpath, nogenerics, 
-##                     ns)
-##                 on.exit()
-##                 if (logical.return) 
-##                   return(TRUE)
-##                 else return(invisible(.packages()))
-##             }
-##         }
-##         if (verbose &amp;&amp; !newpackage) 
-##             warning(gettextf(&quot;package %s already present in search()&quot;, 
-##                 sQuote(package)), domain = NA)
-##     }
-##     else if (!missing(help)) {
-##         if (!character.only) 
-##             help &lt;- as.character(substitute(help))
-##         pkgName &lt;- help[1L]
-##         pkgPath &lt;- find.package(pkgName, lib.loc, verbose = verbose)
-##         docFiles &lt;- c(file.path(pkgPath, &quot;Meta&quot;, &quot;package.rds&quot;), 
-##             file.path(pkgPath, &quot;INDEX&quot;))
-##         if (file.exists(vignetteIndexRDS &lt;- file.path(pkgPath, 
-##             &quot;Meta&quot;, &quot;vignette.rds&quot;))) 
-##             docFiles &lt;- c(docFiles, vignetteIndexRDS)
-##         pkgInfo &lt;- vector(&quot;list&quot;, 3L)
-##         readDocFile &lt;- function(f) {
-##             if (basename(f) %in% &quot;package.rds&quot;) {
-##                 txt &lt;- readRDS(f)$DESCRIPTION
-##                 if (&quot;Encoding&quot; %in% names(txt)) {
-##                   to &lt;- if (Sys.getlocale(&quot;LC_CTYPE&quot;) == &quot;C&quot;) 
-##                     &quot;ASCII//TRANSLIT&quot;
-##                   else &quot;&quot;
-##                   tmp &lt;- try(iconv(txt, from = txt[&quot;Encoding&quot;], 
-##                     to = to))
-##                   if (!inherits(tmp, &quot;try-error&quot;)) 
-##                     txt &lt;- tmp
-##                   else warning(&quot;&#39;DESCRIPTION&#39; has an &#39;Encoding&#39; field and re-encoding is not possible&quot;, 
-##                     call. = FALSE)
-##                 }
-##                 nm &lt;- paste0(names(txt), &quot;:&quot;)
-##                 formatDL(nm, txt, indent = max(nchar(nm, &quot;w&quot;)) + 
-##                   3L)
-##             }
-##             else if (basename(f) %in% &quot;vignette.rds&quot;) {
-##                 txt &lt;- readRDS(f)
-##                 if (is.data.frame(txt) &amp;&amp; nrow(txt)) 
-##                   cbind(basename(gsub(&quot;\\.[[:alpha:]]+$&quot;, &quot;&quot;, 
-##                     txt$File)), paste(txt$Title, paste0(rep.int(&quot;(source&quot;, 
-##                     NROW(txt)), ifelse(nzchar(txt$PDF), &quot;, pdf&quot;, 
-##                     &quot;&quot;), &quot;)&quot;)))
-##                 else NULL
-##             }
-##             else readLines(f)
-##         }
-##         for (i in which(file.exists(docFiles))) pkgInfo[[i]] &lt;- readDocFile(docFiles[i])
-##         y &lt;- list(name = pkgName, path = pkgPath, info = pkgInfo)
-##         class(y) &lt;- &quot;packageInfo&quot;
-##         return(y)
-##     }
-##     else {
-##         if (is.null(lib.loc)) 
-##             lib.loc &lt;- .libPaths()
-##         db &lt;- matrix(character(), nrow = 0L, ncol = 3L)
-##         nopkgs &lt;- character()
-##         for (lib in lib.loc) {
-##             a &lt;- .packages(all.available = TRUE, lib.loc = lib)
-##             for (i in sort(a)) {
-##                 file &lt;- system.file(&quot;Meta&quot;, &quot;package.rds&quot;, package = i, 
-##                   lib.loc = lib)
-##                 title &lt;- if (nzchar(file)) {
-##                   txt &lt;- readRDS(file)
-##                   if (is.list(txt)) 
-##                     txt &lt;- txt$DESCRIPTION
-##                   if (&quot;Encoding&quot; %in% names(txt)) {
-##                     to &lt;- if (Sys.getlocale(&quot;LC_CTYPE&quot;) == &quot;C&quot;) 
-##                       &quot;ASCII//TRANSLIT&quot;
-##                     else &quot;&quot;
-##                     tmp &lt;- try(iconv(txt, txt[&quot;Encoding&quot;], to, 
-##                       &quot;?&quot;))
-##                     if (!inherits(tmp, &quot;try-error&quot;)) 
-##                       txt &lt;- tmp
-##                     else warning(&quot;&#39;DESCRIPTION&#39; has an &#39;Encoding&#39; field and re-encoding is not possible&quot;, 
-##                       call. = FALSE)
-##                   }
-##                   txt[&quot;Title&quot;]
-##                 }
-##                 else NA
-##                 if (is.na(title)) 
-##                   title &lt;- &quot; ** No title available ** &quot;
-##                 db &lt;- rbind(db, cbind(i, lib, title))
-##             }
-##             if (length(a) == 0L) 
-##                 nopkgs &lt;- c(nopkgs, lib)
-##         }
-##         dimnames(db) &lt;- list(NULL, c(&quot;Package&quot;, &quot;LibPath&quot;, &quot;Title&quot;))
-##         if (length(nopkgs) &amp;&amp; !missing(lib.loc)) {
-##             pkglist &lt;- paste(sQuote(nopkgs), collapse = &quot;, &quot;)
-##             msg &lt;- sprintf(ngettext(length(nopkgs), &quot;library %s contains no packages&quot;, 
-##                 &quot;libraries %s contain no packages&quot;), pkglist)
-##             warning(msg, domain = NA)
-##         }
-##         y &lt;- list(header = NULL, results = db, footer = NULL)
-##         class(y) &lt;- &quot;libraryIQR&quot;
-##         return(y)
-##     }
-##     if (logical.return) 
-##         TRUE
-##     else invisible(.packages())
-## }
-## &lt;bytecode: 0x1501575f0&gt;
-## &lt;environment: namespace:base&gt;</code></pre>
 <div id="linear-model-for-spatial-gdp" class="section level1">
 <h1>Linear Model for Spatial GDP</h1>
+<p>For this model, we will use two basics training and testing
+datasets:</p>
+<ul>
+<li><p><code>prediction_dataset.csv</code>: For prediction
+purposes</p></li>
+<li><p><code>regression_dataset.csv</code>: For training and regression
+purposes</p></li>
+</ul>
+<div id="load-dataset" class="section level3">
+<h3>Load dataset</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Set working director</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>regression_data <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">&quot;regression_dataset.csv&quot;</span>)</span></code></pre></div>
+</div>
 </div>
 
 
