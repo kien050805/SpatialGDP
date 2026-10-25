@@ -41,13 +41,15 @@ For this model, we will use two basics training and testing datasets:
 ### Load dataset
 ```{r}
 # Regression Dataset
-regression_data = read.csv("/data/training_data/regression_dataset.csv")
+regression_data = read.csv("data/training_data/regression_dataset.csv")
+
+regression_data$population = regression_data$population * 1000
 
 # Prediction Dataset
-prediction_data = read.csv("/data/training_data/prediction_dataset.csv")
+prediction_data = read.csv("data/training_data/prediction_dataset.csv")
 
 # Constrained Dataset
-constrained_data = read.csv("/data/_vnm_indicators/vnm_GRDPpc.csv")
+constrained_data = read.csv("data/_vnm_indicators/vnm_level0_gdp.csv")
 
 ```
 
@@ -80,7 +82,10 @@ n <- nrow(X)
 
 p <- ncol(X)
 
-a <- 
+year <- regression_data$year
+years <- sort(unique(year))
+
+population <- regression_data$population
 ```
 
 ### Optimization problem
@@ -93,6 +98,19 @@ The optimization problem is
 \text{s.t.}\quad & \mathbf{1}_n^\top X\beta=a \end{aligned} 
 }
 \]
+vince, so the yearly constraint is:
+\[
+\boxed{
+\begin{aligned}
+\min_{\beta}\quad & \|y-X\beta\|_2^2\\
+\text{s.t.}\quad
+&\sum_{i:\,\mathrm{year}_i=t}
+P_iX_i\beta=a_t,
+\quad t=2020,\ldots,2025
+\end{aligned}
+}
+\]
+
 
 ```{r}
 # Define optimization variable
@@ -101,28 +119,49 @@ beta <- Variable(p)
 # Define fitted values
 y_hat <- X %*% beta
 
-# Define constrained least-squares problem
-objective <- Minimize(sum_squares(y - y_hat))
-constraints <- list(sum(y_hat) == a)
+# Define constrained
+constraints <- lapply(years, function(t) {
+  idx <- which(year == t)
+  target_gdp <- constrained_data$gdp[constrained_data$year == t]
 
-problem <- Problem(objective, constraints)
+  sum_entries(population[idx] * y_hat[idx]) == target_gdp
+})
+
+# Define constrained least-squares problem
+problem <- Problem(
+  Minimize(sum_squares(y - y_hat)),
+  constraints
+)
 
 # Solve
-result <- solve(problem)
+result <- solve(
+  problem,
+  solver = "CLARABEL",
+  verbose = TRUE
+)
 
-# Extract results
-beta_hat <- result$getValue(beta)
-y_hat <- as.vector(X %*% beta_hat)
-
-print(beta_hat)
-print(sum(y_hat))
-print(result$value)]
 print(result$status)
 
+if (result$status %in% c("optimal", "optimal_inaccurate")) {
+  beta_hat <- result$getValue(beta)
+  predictions <- as.vector(X_matrix %*% beta_hat)
+
+  yearly_check <- data.frame(
+    year = years,
+    predicted_total_grdp = sapply(years, function(t) {
+      idx <- which(year == t)
+      sum(population[idx] * predictions[idx])
+    }),
+    target_total_grdp = annual_grdp_vector[as.character(years)]
+  )
+
+  yearly_check$difference <-
+    yearly_check$predicted_total_grdp -
+    yearly_check$target_total_grdp
+
+  print(beta_hat)
+  print(yearly_check)
+}
+
 ```
-
-
-
-
-
 
