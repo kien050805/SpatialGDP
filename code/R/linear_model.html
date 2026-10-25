@@ -1297,7 +1297,6 @@ overflow: visible;
 }
 </style>
 <style type="text/css" data-origin="pandoc">
-html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
 pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
@@ -1558,8 +1557,6 @@ border-radius: 0px;
 </div>
 
 
-<div id="linear-model-for-spatial-gdp" class="section level1">
-<h1>Linear Model for Spatial GDP</h1>
 <p>For this model, we will use two basics training and testing
 datasets:</p>
 <ul>
@@ -1570,10 +1567,41 @@ purposes</p></li>
 </ul>
 <div id="load-dataset" class="section level3">
 <h3>Load dataset</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Set working director</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>regression_data <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">&quot;regression_dataset.csv&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Regression Dataset</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>regression_data <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">&quot;regression_dataset.csv&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># Prediction Dataset</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>prediction_data <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">&quot;prediction_dataset.csv&quot;</span>)</span></code></pre></div>
 </div>
+<div id="preliminaries" class="section level3">
+<h3>Preliminaries</h3>
+<p>Supposed:</p>
+<ul>
+<li><span class="math inline">\(y \in \mathbb{R}^n\)</span>: observed
+outcome vector. That is, <code>grdp_per_capita</code>.</li>
+<li><span class="math inline">\(X \in \mathbb{R}^{n\times
+p}\)</span>:esign matrix of explanatory variables. That is,
+<code>mean_radiance</code>, <code>population</code>,
+<code>pixel_count</code> (equivalently, <code>total_area</code>),
+<code>year</code>.</li>
+<li><span class="math inline">\(\beta \in \mathbb{R}^p\)</span>:
+regression coefficients.</li>
+<li><span class="math inline">\(a \in \mathbb{R}\)</span>: specified
+total prediction.</li>
+</ul>
+<p>The optimization problem is</p>
+<p><span class="math display">\[
+\boxed{
+\begin{aligned} \min_{\beta}\quad &amp; \|y-X\beta\|_2^2\\
+\text{s.t.}\quad &amp; \mathbf{1}_n^\top X\beta=a \end{aligned}
+}
+\]</span> Here, <span class="math inline">\(X\beta\)</span> is the
+vector of predictions, and the constraint ensures that their sum is
+exactly <span class="math inline">\(a\)</span>.</p>
+<p>Define <span class="math inline">\(c=X^\top\mathbf{1}_n\)</span>. The
+constraint can then be written as <span class="math display">\[
+c^\top\beta=a.
+\]</span></p>
 </div>
 
 

@@ -16,7 +16,9 @@ editor_options:
 ---
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-# --- Load Libraries ---
+#Load Libraries
+
+library(CVXR)
 
 ```
 
@@ -25,13 +27,10 @@ project_dir <- getwd()
 
 knitr::opts_knit$set(
   root.dir = normalizePath(
-    file.path(project_dir, "..", "..", "data", "training_data")
+    file.path(project_dir, "..", "..")
   )
 )
 ```
-
-
-# Linear Model for Spatial GDP
 
 For this model, we will use two basics training and testing datasets:
 
@@ -42,16 +41,87 @@ For this model, we will use two basics training and testing datasets:
 ### Load dataset
 ```{r}
 # Regression Dataset
-regression_data = read.csv("regression_dataset.csv")
+regression_data = read.csv("/data/training_data/regression_dataset.csv")
 
 # Prediction Dataset
-prediction_data = read.csv("prediction_dataset.csv")
+prediction_data = read.csv("/data/training_data/prediction_dataset.csv")
+
+# Constrained Dataset
+constrained_data = read.csv("/data/_vnm_indicators/vnm_GRDPpc.csv")
+
 ```
 
 
 ### Preliminaries
+Supposed:
 
-This 
+* \(y \in \mathbb{R}^n\): observed outcome vector. That is, `grdp_per_capita`.
+* \(X \in \mathbb{R}^{n\times p}\):esign matrix of explanatory variables. That is, `mean_radiance`, `population`, `pixel_count` (equivalently, `total_area`), `year`.
+* \(\beta \in \mathbb{R}^p\): regression coefficients.
+* \(a \in \mathbb{R}\): specified total prediction.
+
+Here, \(X\beta\) is the vector of predictions, and the constraint ensures that their sum is exactly \(a\).
+
+Define \(c=X^\top\mathbf{1}_n\). The constraint can then be written as
+\[
+c^\top\beta=a.
+\]
+
+```{r}
+# Definitions
+y <- regression_data$grdp_per_capita
+
+X <- model.matrix(
+  ~ mean_radiance + population + pixel_count + year,
+  data = regression_data
+)
+
+n <- nrow(X)
+
+p <- ncol(X)
+
+a <- 
+```
+
+### Optimization problem
+
+The optimization problem is
+
+\[
+\boxed{ 
+\begin{aligned} \min_{\beta}\quad & \|y-X\beta\|_2^2\\ 
+\text{s.t.}\quad & \mathbf{1}_n^\top X\beta=a \end{aligned} 
+}
+\]
+
+```{r}
+# Define optimization variable
+beta <- Variable(p)
+
+# Define fitted values
+y_hat <- X %*% beta
+
+# Define constrained least-squares problem
+objective <- Minimize(sum_squares(y - y_hat))
+constraints <- list(sum(y_hat) == a)
+
+problem <- Problem(objective, constraints)
+
+# Solve
+result <- solve(problem)
+
+# Extract results
+beta_hat <- result$getValue(beta)
+y_hat <- as.vector(X %*% beta_hat)
+
+print(beta_hat)
+print(sum(y_hat))
+print(result$value)]
+print(result$status)
+
+```
+
+
 
 
 
