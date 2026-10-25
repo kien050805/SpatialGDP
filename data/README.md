@@ -86,4 +86,6 @@ boundaries, `--metric <column>` to select a numeric CSV column (for example,
 `population`), and `--csv <path>` to select another dataset. `--year <year>`
 filters a dataset with multiple years. If the input column names are not
 recognized automatically, use `--name-column` and, for level 2, `--province-column`.
-Use `--output <path>` to choose a different output file.
+Use `--province <name>` to plot a single province's level-2 units (for example,
+`--province "Ho Chi Minh City"`). Use `--output <path>` to choose a different
+output file.

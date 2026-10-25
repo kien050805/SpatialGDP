@@ -167,9 +167,12 @@ def create_figure(
     name_column: str | None = None,
     province_column: str | None = None,
     year: int | None = None,
+    province: str | None = None,
 ) -> None:
     if level not in (1, 2):
         raise ValueError(f"Administrative level must be 1 or 2, not {level}.")
+    if province and level != 2:
+        raise ValueError("The --province filter is only supported for level 2.")
 
     level1 = read_level1_boundaries(LEVEL1_BOUNDARY)
     if level == 1:
@@ -181,6 +184,17 @@ def create_figure(
         boundaries["unit_key"] = boundaries["unit_name"].map(name_key)
         boundaries["province_key"] = boundaries["province_name"].map(name_key)
         keys = ["province_key", "unit_key"]
+        if province:
+            province_key = name_key(province)
+            boundaries = boundaries.loc[
+                boundaries["province_key"] == province_key
+            ].copy()
+            if boundaries.empty:
+                available = ", ".join(sorted(level1["unit_name"].astype(str)))
+                raise ValueError(
+                    f"Province {province!r} was not found in the level-1 "
+                    f"boundaries. Available provinces: {available}"
+                )
 
     indicator = prepare_indicator(
         csv_path, metric, level, name_column, province_column, year
@@ -209,7 +223,7 @@ def create_figure(
         legend_kwds={"label": metric.replace("_", " ").title(), "shrink": 0.65},
     )
     axis.set_title(
-        f"Vietnam | {metric.replace('_', ' ').title()} | Level {level}"
+        f"{province or 'Vietnam'} | {metric.replace('_', ' ').title()} | Level {level}"
         + (f" | {year}" if year is not None else ""),
         loc="left",
         pad=12,
@@ -236,13 +250,18 @@ def main() -> None:
     parser.add_argument("--level", type=int, choices=(1, 2), default=2)
     parser.add_argument("--name-column")
     parser.add_argument("--province-column")
+    parser.add_argument(
+        "--province",
+        help="Plot only this province (level 2 only), e.g. 'Ho Chi Minh City'.",
+    )
     parser.add_argument("--year", type=int)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     year_suffix = f"_{args.year}" if args.year is not None else ""
+    province_prefix = f"{slug(args.province)}_" if args.province else ""
     output_path = args.output or (
         DEFAULT_OUTPUT_DIR
-        / f"vietnam_level{args.level}_{args.metric}{year_suffix}.png"
+        / f"{province_prefix}level{args.level}_{args.metric}{year_suffix}.png"
     )
     create_figure(
         args.csv,
@@ -252,6 +271,7 @@ def main() -> None:
         name_column=args.name_column,
         province_column=args.province_column,
         year=args.year,
+        province=args.province,
     )
 
 
