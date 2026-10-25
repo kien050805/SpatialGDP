@@ -50,3 +50,28 @@ write.csv(df, "vnm_indicators_2025.csv", row.names = FALSE)
 
 df1 = df1 |> select("province")
 write.csv(df, "vnm_provinces.csv", row.names = FALSE)
+
+
+library(tidyr)
+library(dplyr)
+
+gdp_data = read.csv("vnm_level0_gdp.csv")
+
+annual_gdp <- gdp_data %>%
+  pivot_longer(
+    cols = starts_with("X"),
+    names_to = "year",
+    values_to = "gdp",
+    names_prefix = "X"
+  ) %>%
+  mutate(year = as.integer(year)) |>
+  select("year", "gdp")
+
+
+write.csv(annual_gdp, "vnm_level0_gdp.csv", row.names = FALSE)
+
+# Named vector for CVXR constraints
+annual_grdp_vector <- setNames(
+  annual_grdp$total_grdp,
+  as.character(annual_grdp$year)
+)
