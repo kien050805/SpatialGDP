@@ -41,19 +41,21 @@ For this model, we will use two basics training and testing datasets:
 ### Load dataset
 ```{r}
 # Regression Dataset
-regression_data = read.csv("data/training_data/regression_dataset.csv")
-regression_data = read.csv("data/training_data/regression_dataset.csv")
+regression_data <- read.csv("data/training_data/regression_dataset.csv")
 
-regression_data$population = regression_data$population * 1000
+regression_data$population <- regression_data$population * 1000
 
 # Prediction Dataset
-prediction_data = read.csv("data/training_data/prediction_dataset.csv")
-prediction_data = read.csv("data/training_data/prediction_dataset.csv")
+prediction_data <- read.csv("data/training_data/prediction_dataset.csv")
 
-# Constrained Dataset
-constrained_data = read.csv("data/_vnm_indicators/vnm_GRDPpc.csv")
-constrained_data = read.csv("data/_vnm_indicators/vnm_level0_gdp.csv")
+# National GDP totals used to constrain the regression fit
+constrained_data <- read.csv("data/_vnm_indicators/vnm_level0_gdp.csv")
 
+# Provincial GRDP per-capita targets used to calibrate 2025 level-2 predictions
+provincial_grdp_data <- read.csv(
+  "data/_vnm_indicators/vnm_GRDPpc.csv",
+  check.names = FALSE
+)
 ```
 
 
@@ -61,58 +63,66 @@ constrained_data = read.csv("data/_vnm_indicators/vnm_level0_gdp.csv")
 Supposed:
 
 * \(y \in \mathbb{R}^n\): observed outcome vector. That is, `grdp_per_capita`.
-* \(X \in \mathbb{R}^{n\times p}\):esign matrix of explanatory variables. That is, `mean_radiance`, `population`, `pixel_count` (equivalently, `total_area`), `year`.
-* \(\beta \in \mathbb{R}^p\): regression coefficients.
-* \(a \in \mathbb{R}\): specified total prediction.
+* \(x_i \in \mathbb{R}^3\): standardized explanatory variables for observation \(i\): `mean_radiance`, `population`, and `pixel_count`.
+* \(\alpha_t \in \mathbb{R}\): year-specific intercept for year \(t\).
+* \(\beta \in \mathbb{R}^3\): shared slopes for the explanatory variables.
+* \(a_t \in \mathbb{R}\): specified national GDP total for year \(t\).
 
-Here, \(X\beta\) is the vector of predictions, and the constraint ensures that their sum is exactly \(a\).
-
-Define \(c=X^\top\mathbf{1}_n\). The constraint can then be written as
-\[
-c^\top\beta=a.
-\]
+The model includes a separate intercept for each year and shared slopes for the
+explanatory variables. The constraints ensure that population-weighted
+predictions match the national GDP target for every year.
 
 ```{r}
 # Definitions
 y <- regression_data$grdp_per_capita
+years <- sort(unique(regression_data$year))
+regression_data$year_factor <- factor(regression_data$year, levels = years)
+
+feature_columns <- c("mean_radiance", "population", "pixel_count")
+feature_means <- vapply(regression_data[feature_columns], mean, numeric(1))
+feature_sds <- vapply(regression_data[feature_columns], sd, numeric(1))
+if (any(!is.finite(feature_sds)) || any(feature_sds == 0)) {
+  stop("Training predictors must have finite, non-zero standard deviations.")
+}
+
+scaled_feature_columns <- paste0(feature_columns, "_scaled")
+for (feature in feature_columns) {
+  scaled_feature <- paste0(feature, "_scaled")
+  regression_data[[scaled_feature]] <-
+    (regression_data[[feature]] - feature_means[[feature]]) /
+    feature_sds[[feature]]
+}
 
 X <- model.matrix(
-  ~ mean_radiance + population + pixel_count + year,
+  ~ 0 + year_factor + mean_radiance_scaled + population_scaled +
+    pixel_count_scaled,
   data = regression_data
 )
 
-n <- nrow(X)
-
 p <- ncol(X)
-
-# Default target preserves the observed training total; replace this with the
-# aggregate prediction target required by your use case.
-a <- sum(y)
 year <- regression_data$year
-years <- sort(unique(year))
-
 population <- regression_data$population
+
+target_gdp <- constrained_data$gdp[match(years, constrained_data$year)]
+if (anyNA(target_gdp) || any(!is.finite(target_gdp))) {
+  stop("Missing or non-finite national GDP target for one or more model years.")
+}
+if (anyDuplicated(constrained_data$year[constrained_data$year %in% years])) {
+  stop("National GDP data contains duplicate targets for a model year.")
+}
 ```
 
 ### Optimization problem
 
 The optimization problem is
-
 \[
 \boxed{ 
-\begin{aligned} \min_{\beta}\quad & \|y-X\beta\|_2^2\\ 
-\text{s.t.}\quad & \mathbf{1}_n^\top X\beta=a \end{aligned} 
-}
-\]
-vince, so the yearly constraint is:
-\[
-\boxed{
 \begin{aligned}
-\min_{\beta}\quad & \|y-X\beta\|_2^2\\
+\min_{\alpha,\beta}\quad & \|y-\hat y\|_2^2\\
 \text{s.t.}\quad
-&\sum_{i:\,\mathrm{year}_i=t}
-P_iX_i\beta=a_t,
-\quad t=2020,\ldots,2025
+&\sum_{i:\,\mathrm{year}_i=t} P_i\hat y_i=a_t,
+\quad t\in\{2020,\ldots,2025\},\\
+&\hat y_i=\alpha_{\mathrm{year}_i}+x_i^\top\beta
 \end{aligned}
 }
 \]
@@ -125,12 +135,11 @@ beta <- Variable(p)
 # Define fitted values
 y_hat <- X %*% beta
 
-# Define constrained
-constraints <- lapply(years, function(t) {
-  idx <- which(year == t)
-  target_gdp <- constrained_data$gdp[constrained_data$year == t]
-
-  sum_entries(population[idx] * y_hat[idx]) == target_gdp
+# Define the annual GDP constraints. Scaling each equality by its target
+# improves numerical conditioning without changing the feasible set.
+constraints <- lapply(seq_along(years), function(i) {
+  idx <- which(year == years[i])
+  sum_entries(population[idx] * y_hat[idx]) / target_gdp[i] == 1
 })
 
 # Define constrained least-squares problem
@@ -140,30 +149,13 @@ problem <- Problem(
 )
 
 # Solve
-result <- solve(problem)
-
-# Extract results
-beta_hat <- value(beta)
-y_hat <- as.vector(X %*% beta_hat)
-
-print(beta_hat)
-print(sum(y_hat))
-print(result$value)
-result <- solve(
-  problem,
-  solver = "CLARABEL",
-  verbose = TRUE
-)
+result <- solve(problem, solver = "CLARABEL")
 
 print(result$status)
 
-```
-
-
-
 if (result$status %in% c("optimal", "optimal_inaccurate")) {
-  beta_hat <- result$getValue(beta)
-  predictions <- as.vector(X_matrix %*% beta_hat)
+  beta_hat <- value(beta)
+  predictions <- as.vector(X %*% beta_hat)
 
   yearly_check <- data.frame(
     year = years,
@@ -171,7 +163,7 @@ if (result$status %in% c("optimal", "optimal_inaccurate")) {
       idx <- which(year == t)
       sum(population[idx] * predictions[idx])
     }),
-    target_total_grdp = annual_grdp_vector[as.character(years)]
+    target_total_grdp = target_gdp
   )
 
   yearly_check$difference <-
@@ -180,7 +172,227 @@ if (result$status %in% c("optimal", "optimal_inaccurate")) {
 
   print(beta_hat)
   print(yearly_check)
+  print(result$value)
+} else {
+  stop(sprintf("Constrained regression failed with solver status: %s", result$status))
 }
-
 ```
 
+
+### Statistical Summary
+
+For observation \(i=1,\ldots,n\), let \(y_i\) be the observed GRDP per capita,
+\(\hat y_i^{(C)}\) the constrained-model prediction, and
+\(\hat y_i^{(OLS)}\) the ordinary least-squares prediction. The response mean
+and total sum of squares are
+\[
+\bar y = \frac{1}{n}\sum_{i=1}^{n} y_i,
+\qquad
+\mathrm{SST} = \sum_{i=1}^{n}(y_i-\bar y)^2.
+\]
+
+The coefficient of determination is computed for each model as
+\[
+R_C^2
+= 1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i^{(C)})^2}{\mathrm{SST}},
+\qquad
+R_{OLS}^2
+= 1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}{\mathrm{SST}}.
+\]
+
+The root mean squared error (RMSE), in GRDP-per-capita units, is
+\[
+\mathrm{RMSE}_C
+=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(C)})^2},
+\qquad
+\mathrm{RMSE}_{OLS}
+=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}.
+\]
+
+The RMSE difference and its absolute percentage relative to OLS are
+\[
+\Delta\mathrm{RMSE}
+=\mathrm{RMSE}_C-\mathrm{RMSE}_{OLS},
+\qquad
+\%\mathrm{Difference}
+=\frac{|\mathrm{RMSE}_C-\mathrm{RMSE}_{OLS}|}
+{\mathrm{RMSE}_{OLS}}\times 100\%.
+\]
+A positive \(\Delta\mathrm{RMSE}\) means the constrained model's RMSE is higher;
+a negative value means it is lower.
+
+```{r}
+ols_fit <- lm.fit(x = X, y = y)
+ols_predictions <- as.vector(X %*% ols_fit$coefficients)
+
+total_sum_squares <- sum((y - mean(y))^2)
+if (total_sum_squares == 0) {
+  stop("Cannot compute R-squared because the observed response has zero variance.")
+}
+
+constrained_residuals <- y - predictions
+ols_residuals <- y - ols_predictions
+
+model_stats <- data.frame(
+  model = c("Constrained", "Ordinary least squares"),
+  R_squared = c(
+    1 - sum(constrained_residuals^2) / total_sum_squares,
+    1 - sum(ols_residuals^2) / total_sum_squares
+  ),
+  RMSE = c(
+    sqrt(mean(constrained_residuals^2)),
+    sqrt(mean(ols_residuals^2))
+  )
+)
+
+print(model_stats, row.names = FALSE)
+
+constrained_rmse <- model_stats$RMSE[model_stats$model == "Constrained"]
+ols_rmse <- model_stats$RMSE[model_stats$model == "Ordinary least squares"]
+cat(sprintf(
+  "Constrained RMSE is %.6f GRDP-per-capita units (%.2f%%) %s than OLS RMSE.\n",
+  abs(constrained_rmse - ols_rmse),
+  abs(constrained_rmse - ols_rmse) / ols_rmse * 100,
+  if (constrained_rmse >= ols_rmse) "higher" else "lower"
+))
+```
+
+### 2025 Level-2 Predictions
+
+The fitted model produces an initial prediction for each level-2 unit using the
+2025 intercept and the same training-data means and standard deviations used
+when fitting the model. To ensure each province matches its observed 2025 GRDP
+per capita, add a common adjustment \(\delta_j\) to every level-2 prediction
+within province \(j\):
+\[
+\tilde y_{ij} = \hat y_{ij} + \delta_j,
+\qquad
+\delta_j =
+\frac{g_j\sum_{i\in j}P_{ij}
+-\sum_{i\in j}P_{ij}\hat y_{ij}}
+{\sum_{i\in j}P_{ij}},
+\]
+where \(g_j\) is the province's 2025 GRDP per capita and \(P_{ij}\) is the
+population of level-2 unit \(i\). Consequently,
+\[
+\sum_{i\in j}P_{ij}\tilde y_{ij}
+=g_j\sum_{i\in j}P_{ij}.
+\]
+
+```{r}
+if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {
+  stop("The level-2 prediction dataset must contain only 2025 observations.")
+}
+if (any(!complete.cases(prediction_data[, c(
+  "name", "level_1", "population", "mean_radiance", "pixel_count"
+)]))) {
+  stop("The level-2 prediction data contains missing required values.")
+}
+prediction_features <- as.matrix(prediction_data[feature_columns])
+if (any(!is.finite(prediction_features))) {
+  stop("Level-2 prediction features must be finite.")
+}
+if (any(prediction_data$population < 0)) {
+  stop("Level-2 populations must be finite and non-negative.")
+}
+if (anyDuplicated(paste(prediction_data$level_1, prediction_data$name, sep = "\r"))) {
+  stop("The level-2 prediction data contains duplicate units within a province.")
+}
+if (anyDuplicated(provincial_grdp_data$province)) {
+  stop("Provincial GRDP data contains duplicate province targets.")
+}
+
+grdp_pc_2025 <- provincial_grdp_data[["2025"]][
+  match(prediction_data$level_1, provincial_grdp_data$province)
+]
+if (anyNA(grdp_pc_2025) || any(!is.finite(grdp_pc_2025))) {
+  stop("Missing or non-finite 2025 GRDP-per-capita target for a prediction province.")
+}
+
+prediction_data$year_factor <- factor(prediction_data$year, levels = years)
+for (feature in feature_columns) {
+  scaled_feature <- paste0(feature, "_scaled")
+  prediction_data[[scaled_feature]] <-
+    (prediction_data[[feature]] - feature_means[[feature]]) /
+    feature_sds[[feature]]
+}
+
+prediction_X <- model.matrix(
+  ~ 0 + year_factor + mean_radiance_scaled + population_scaled +
+    pixel_count_scaled,
+  data = prediction_data
+)
+if (!identical(colnames(prediction_X), colnames(X))) {
+  stop("Prediction design matrix does not match the fitted model.")
+}
+
+raw_level2_predictions <- as.vector(prediction_X %*% beta_hat)
+province_names <- sort(unique(prediction_data$level_1))
+province_adjustments <- setNames(numeric(length(province_names)), province_names)
+
+for (province in province_names) {
+  idx <- which(prediction_data$level_1 == province)
+  province_population <- sum(prediction_data$population[idx])
+  if (!is.finite(province_population) || province_population <= 0) {
+    stop(sprintf("Province %s has no positive level-2 population.", province))
+  }
+
+  target_total <- grdp_pc_2025[match(province, prediction_data$level_1)] *
+    province_population
+  raw_total <- sum(
+    prediction_data$population[idx] * raw_level2_predictions[idx]
+  )
+  province_adjustments[[province]] <- (target_total - raw_total) /
+    province_population
+}
+
+prediction_data$raw_grdp_per_capita <- raw_level2_predictions
+prediction_data$province_adjustment <-
+  province_adjustments[prediction_data$level_1]
+prediction_data$predicted_grdp_per_capita <-
+  prediction_data$raw_grdp_per_capita + prediction_data$province_adjustment
+prediction_data$grdp_per_capita_target_2025 <- grdp_pc_2025
+
+province_check <- do.call(rbind, lapply(province_names, function(province) {
+  idx <- which(prediction_data$level_1 == province)
+  province_population <- sum(prediction_data$population[idx])
+  target_total <- prediction_data$grdp_per_capita_target_2025[idx[1]] *
+    province_population
+  predicted_total <- sum(
+    prediction_data$population[idx] *
+      prediction_data$predicted_grdp_per_capita[idx]
+  )
+
+  data.frame(
+    province = province,
+    population = province_population,
+    target_grdp_per_capita = prediction_data$grdp_per_capita_target_2025[idx[1]],
+    target_total_grdp = target_total,
+    predicted_total_grdp = predicted_total,
+    difference = predicted_total - target_total
+  )
+}))
+
+if (any(abs(province_check$difference) >
+        1e-8 * pmax(abs(province_check$target_total_grdp), 1))) {
+  stop("Calibrated level-2 predictions do not match all provincial GDP targets.")
+}
+
+level2_predictions <- data.frame(
+  level_2 = prediction_data$name,
+  level_1 = prediction_data$level_1,
+  year = prediction_data$year,
+  population = prediction_data$population,
+  raw_grdp_per_capita = prediction_data$raw_grdp_per_capita,
+  province_adjustment = prediction_data$province_adjustment,
+  predicted_grdp_per_capita = prediction_data$predicted_grdp_per_capita,
+  province_grdp_per_capita_target_2025 =
+    prediction_data$grdp_per_capita_target_2025
+)
+prediction_output <- "data/training_data/level2_grdp_pc_predictions_2025.csv"
+write.csv(level2_predictions, prediction_output, row.names = FALSE)
+
+print(province_check, row.names = FALSE)
+cat("Wrote level-2 predictions to", prediction_output, "\n")
+head(level2_predictions)
+```
