@@ -1557,14 +1557,13 @@ border-radius: 0px;
 </div>
 
 
-<p>For this model, we will use two basics training and testing
-datasets:</p>
-<ul>
-<li><p><code>prediction_dataset.csv</code>: For prediction
-purposes</p></li>
-<li><p><code>regression_dataset.csv</code>: For training and regression
-purposes</p></li>
-</ul>
+<p>This workflow uses a temporal holdout: observations from 2020–2024
+are used to fit each candidate ridge model, and the 2025 province
+observations are held out to select <span class="math inline">\(\lambda\)</span> by prediction RMSE. The 2025
+national GDP constraint is not used during lambda selection, so the
+holdout measures predictions not calibrated to a known 2025 aggregate.
+After selecting <span class="math inline">\(\lambda\)</span>, the model
+is refit on all years for the level-2 prediction step.</p>
 <div id="load-dataset" class="section level3">
 <h3>Load dataset</h3>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Regression Dataset</span></span>
@@ -1606,130 +1605,178 @@ slopes for the explanatory variables.</li>
 <li><span class="math inline">\(a_t \in \mathbb{R}\)</span>: specified
 national GDP total for year <span class="math inline">\(t\)</span>.</li>
 </ul>
-<p>The model includes a separate, unpenalized intercept for each year
-and shared ridge-penalized slopes for the standardized explanatory
-variables. The constraints ensure that population-weighted predictions
-match the national GDP target for every year. The penalty grid is
-evaluated on training RMSE and <span class="math inline">\(R^2\)</span>;
-these in-sample metrics describe fit and are not an estimate of
-out-of-sample performance.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Definitions</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>y <span class="ot">&lt;-</span> regression_data<span class="sc">$</span>grdp_per_capita</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>years <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(regression_data<span class="sc">$</span>year))</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>regression_data<span class="sc">$</span>year_factor <span class="ot">&lt;-</span> <span class="fu">factor</span>(regression_data<span class="sc">$</span>year, <span class="at">levels =</span> years)</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>feature_columns <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;mean_radiance&quot;</span>, <span class="st">&quot;population&quot;</span>, <span class="st">&quot;pixel_count&quot;</span>)</span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>feature_means <span class="ot">&lt;-</span> <span class="fu">vapply</span>(regression_data[feature_columns], mean, <span class="fu">numeric</span>(<span class="dv">1</span>))</span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>feature_sds <span class="ot">&lt;-</span> <span class="fu">vapply</span>(regression_data[feature_columns], sd, <span class="fu">numeric</span>(<span class="dv">1</span>))</span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(feature_sds)) <span class="sc">||</span> <span class="fu">any</span>(feature_sds <span class="sc">==</span> <span class="dv">0</span>)) {</span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Training predictors must have finite, non-zero standard deviations.&quot;</span>)</span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>}</span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a></span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>scaled_feature_columns <span class="ot">&lt;-</span> <span class="fu">paste0</span>(feature_columns, <span class="st">&quot;_scaled&quot;</span>)</span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="cf">for</span> (feature <span class="cf">in</span> feature_columns) {</span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>  scaled_feature <span class="ot">&lt;-</span> <span class="fu">paste0</span>(feature, <span class="st">&quot;_scaled&quot;</span>)</span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>  regression_data[[scaled_feature]] <span class="ot">&lt;-</span></span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>    (regression_data[[feature]] <span class="sc">-</span> feature_means[[feature]]) <span class="sc">/</span></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>    feature_sds[[feature]]</span>
+<p>Candidate models have separate, unpenalized intercepts for each
+training year and shared ridge-penalized slopes for standardized
+explanatory variables. National GDP constraints are imposed only on
+training years. Candidate predictions are evaluated on the untouched
+2025 province outcomes using holdout RMSE and <span class="math inline">\(R^2\)</span>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Define the temporal split and scale features using training years only.</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>training_years <span class="ot">&lt;-</span> <span class="dv">2020</span><span class="sc">:</span><span class="dv">2024</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>holdout_year <span class="ot">&lt;-</span> <span class="dv">2025</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>training_data <span class="ot">&lt;-</span> regression_data[</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  regression_data<span class="sc">$</span>year <span class="sc">%in%</span> training_years,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  ,</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  drop <span class="ot">=</span> <span class="cn">FALSE</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>]</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>holdout_data <span class="ot">&lt;-</span> regression_data[</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  regression_data<span class="sc">$</span>year <span class="sc">==</span> holdout_year,</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  ,</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  drop <span class="ot">=</span> <span class="cn">FALSE</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>]</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(training_data) <span class="sc">==</span> <span class="dv">0</span> <span class="sc">||</span> <span class="fu">nrow</span>(holdout_data) <span class="sc">==</span> <span class="dv">0</span>) {</span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Training data must include 2020-2024 and holdout data must include 2025.&quot;</span>)</span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>}</span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">setequal</span>(<span class="fu">sort</span>(<span class="fu">unique</span>(training_data<span class="sc">$</span>year)), training_years)) {</span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Training data must contain observations for every year from 2020 to 2024.&quot;</span>)</span>
 <span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>}</span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a></span>
-<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(</span>
-<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>  <span class="sc">~</span> <span class="dv">0</span> <span class="sc">+</span> year_factor <span class="sc">+</span> mean_radiance_scaled <span class="sc">+</span> population_scaled <span class="sc">+</span></span>
-<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>    pixel_count_scaled,</span>
-<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a>  <span class="at">data =</span> regression_data</span>
-<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a>)</span>
-<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a></span>
-<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
-<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a>year <span class="ot">&lt;-</span> regression_data<span class="sc">$</span>year</span>
-<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a>population <span class="ot">&lt;-</span> regression_data<span class="sc">$</span>population</span>
-<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a></span>
-<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a>target_gdp <span class="ot">&lt;-</span> constrained_data<span class="sc">$</span>gdp[<span class="fu">match</span>(years, constrained_data<span class="sc">$</span>year)]</span>
-<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(target_gdp) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(target_gdp))) {</span>
-<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or non-finite national GDP target for one or more model years.&quot;</span>)</span>
-<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a>}</span>
-<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(constrained_data<span class="sc">$</span>year[constrained_data<span class="sc">$</span>year <span class="sc">%in%</span> years])) {</span>
-<span id="cb2-36"><a href="#cb2-36" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;National GDP data contains duplicate targets for a model year.&quot;</span>)</span>
-<span id="cb2-37"><a href="#cb2-37" tabindex="-1"></a>}</span></code></pre></div>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(training_data[<span class="fu">c</span>(<span class="st">&quot;province&quot;</span>, <span class="st">&quot;year&quot;</span>)]) <span class="sc">||</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>    <span class="fu">anyDuplicated</span>(holdout_data<span class="sc">$</span>province)) {</span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Training province-year rows and 2025 holdout provinces must be unique.&quot;</span>)</span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>}</span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a>y_train <span class="ot">&lt;-</span> training_data<span class="sc">$</span>grdp_per_capita</span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a>y_holdout <span class="ot">&lt;-</span> holdout_data<span class="sc">$</span>grdp_per_capita</span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a>feature_columns <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;mean_radiance&quot;</span>, <span class="st">&quot;population&quot;</span>, <span class="st">&quot;pixel_count&quot;</span>)</span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a>feature_means <span class="ot">&lt;-</span> <span class="fu">vapply</span>(training_data[feature_columns], mean, <span class="fu">numeric</span>(<span class="dv">1</span>))</span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a>feature_sds <span class="ot">&lt;-</span> <span class="fu">vapply</span>(training_data[feature_columns], sd, <span class="fu">numeric</span>(<span class="dv">1</span>))</span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(feature_sds)) <span class="sc">||</span> <span class="fu">any</span>(feature_sds <span class="sc">==</span> <span class="dv">0</span>)) {</span>
+<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Training predictors must have finite, non-zero standard deviations.&quot;</span>)</span>
+<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a>}</span>
+<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a></span>
+<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a>scaled_training <span class="ot">&lt;-</span> <span class="fu">scale</span>(</span>
+<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a>  training_data[feature_columns],</span>
+<span id="cb2-36"><a href="#cb2-36" tabindex="-1"></a>  <span class="at">center =</span> feature_means,</span>
+<span id="cb2-37"><a href="#cb2-37" tabindex="-1"></a>  <span class="at">scale =</span> feature_sds</span>
+<span id="cb2-38"><a href="#cb2-38" tabindex="-1"></a>)</span>
+<span id="cb2-39"><a href="#cb2-39" tabindex="-1"></a>scaled_holdout <span class="ot">&lt;-</span> <span class="fu">scale</span>(</span>
+<span id="cb2-40"><a href="#cb2-40" tabindex="-1"></a>  holdout_data[feature_columns],</span>
+<span id="cb2-41"><a href="#cb2-41" tabindex="-1"></a>  <span class="at">center =</span> feature_means,</span>
+<span id="cb2-42"><a href="#cb2-42" tabindex="-1"></a>  <span class="at">scale =</span> feature_sds</span>
+<span id="cb2-43"><a href="#cb2-43" tabindex="-1"></a>)</span>
+<span id="cb2-44"><a href="#cb2-44" tabindex="-1"></a>training_data<span class="sc">$</span>year_factor <span class="ot">&lt;-</span> <span class="fu">factor</span>(training_data<span class="sc">$</span>year, <span class="at">levels =</span> training_years)</span>
+<span id="cb2-45"><a href="#cb2-45" tabindex="-1"></a>X_train <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
+<span id="cb2-46"><a href="#cb2-46" tabindex="-1"></a>  <span class="fu">model.matrix</span>(<span class="sc">~</span> <span class="dv">0</span> <span class="sc">+</span> year_factor, <span class="at">data =</span> training_data),</span>
+<span id="cb2-47"><a href="#cb2-47" tabindex="-1"></a>  <span class="fu">as.matrix</span>(scaled_training)</span>
+<span id="cb2-48"><a href="#cb2-48" tabindex="-1"></a>)</span>
+<span id="cb2-49"><a href="#cb2-49" tabindex="-1"></a>time_extrapolation_weights <span class="ot">&lt;-</span></span>
+<span id="cb2-50"><a href="#cb2-50" tabindex="-1"></a>  <span class="fu">rep</span>(<span class="dv">1</span> <span class="sc">/</span> <span class="fu">length</span>(training_years), <span class="fu">length</span>(training_years)) <span class="sc">+</span></span>
+<span id="cb2-51"><a href="#cb2-51" tabindex="-1"></a>  (holdout_year <span class="sc">-</span> <span class="fu">mean</span>(training_years)) <span class="sc">*</span></span>
+<span id="cb2-52"><a href="#cb2-52" tabindex="-1"></a>    (training_years <span class="sc">-</span> <span class="fu">mean</span>(training_years)) <span class="sc">/</span></span>
+<span id="cb2-53"><a href="#cb2-53" tabindex="-1"></a>    <span class="fu">sum</span>((training_years <span class="sc">-</span> <span class="fu">mean</span>(training_years))<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb2-54"><a href="#cb2-54" tabindex="-1"></a>X_holdout <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
+<span id="cb2-55"><a href="#cb2-55" tabindex="-1"></a>  <span class="fu">matrix</span>(</span>
+<span id="cb2-56"><a href="#cb2-56" tabindex="-1"></a>    <span class="fu">rep</span>(time_extrapolation_weights, <span class="at">each =</span> <span class="fu">nrow</span>(holdout_data)),</span>
+<span id="cb2-57"><a href="#cb2-57" tabindex="-1"></a>    <span class="at">nrow =</span> <span class="fu">nrow</span>(holdout_data)</span>
+<span id="cb2-58"><a href="#cb2-58" tabindex="-1"></a>  ),</span>
+<span id="cb2-59"><a href="#cb2-59" tabindex="-1"></a>  <span class="fu">as.matrix</span>(scaled_holdout)</span>
+<span id="cb2-60"><a href="#cb2-60" tabindex="-1"></a>)</span>
+<span id="cb2-61"><a href="#cb2-61" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">ncol</span>(X_train) <span class="sc">!=</span> <span class="fu">ncol</span>(X_holdout)) {</span>
+<span id="cb2-62"><a href="#cb2-62" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Training and holdout design matrices have different column counts.&quot;</span>)</span>
+<span id="cb2-63"><a href="#cb2-63" tabindex="-1"></a>}</span>
+<span id="cb2-64"><a href="#cb2-64" tabindex="-1"></a></span>
+<span id="cb2-65"><a href="#cb2-65" tabindex="-1"></a>training_population <span class="ot">&lt;-</span> training_data<span class="sc">$</span>population</span>
+<span id="cb2-66"><a href="#cb2-66" tabindex="-1"></a>training_year <span class="ot">&lt;-</span> training_data<span class="sc">$</span>year</span>
+<span id="cb2-67"><a href="#cb2-67" tabindex="-1"></a>target_gdp_training <span class="ot">&lt;-</span> constrained_data<span class="sc">$</span>gdp[</span>
+<span id="cb2-68"><a href="#cb2-68" tabindex="-1"></a>  <span class="fu">match</span>(training_years, constrained_data<span class="sc">$</span>year)</span>
+<span id="cb2-69"><a href="#cb2-69" tabindex="-1"></a>]</span>
+<span id="cb2-70"><a href="#cb2-70" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(target_gdp_training) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(target_gdp_training))) {</span>
+<span id="cb2-71"><a href="#cb2-71" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or non-finite national GDP target for a training year.&quot;</span>)</span>
+<span id="cb2-72"><a href="#cb2-72" tabindex="-1"></a>}</span>
+<span id="cb2-73"><a href="#cb2-73" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(constrained_data<span class="sc">$</span>year[</span>
+<span id="cb2-74"><a href="#cb2-74" tabindex="-1"></a>  constrained_data<span class="sc">$</span>year <span class="sc">%in%</span> training_years</span>
+<span id="cb2-75"><a href="#cb2-75" tabindex="-1"></a>])) {</span>
+<span id="cb2-76"><a href="#cb2-76" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;National GDP data contains duplicate targets for a training year.&quot;</span>)</span>
+<span id="cb2-77"><a href="#cb2-77" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 <div id="optimization-problem" class="section level3">
 <h3>Optimization problem</h3>
-<p>For each candidate <span class="math inline">\(\lambda\)</span>, the
-optimization problem is <span class="math display">\[
+<p>For each candidate <span class="math inline">\(\lambda\)</span>, fit
+observations from 2020–2024 subject to national GDP constraints for
+those training years: <span class="math display">\[
 \boxed{
 \begin{aligned}
 \min_{\alpha,\beta}\quad &amp;
 \|y-\hat y\|_2^2+\lambda\|\beta\|_2^2\\
 \text{s.t.}\quad
 &amp;\sum_{i:\,\mathrm{year}_i=t} P_i\hat y_i=a_t,
-\quad t\in\{2020,\ldots,2025\},\\
-&amp;\hat y_i=\alpha_{\mathrm{year}_i}+x_i^\top\beta,
+\quad t\in\{2020,\ldots,2024\},\\
+&amp;\hat y_{it}=\alpha_t+x_i^\top\beta,
+\quad t\in\{2020,\ldots,2024\},\\
 \quad \lambda\ge 0.
 \end{aligned}
 }
 \]</span> Only the standardized feature slopes <span class="math inline">\(\beta\)</span> are penalized; the yearly
-intercepts remain unpenalized.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Search a logarithmic grid of positive ridge penalties.</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>lambda_grid <span class="ot">&lt;-</span> <span class="dv">10</span><span class="sc">^</span><span class="fu">seq</span>(<span class="sc">-</span><span class="dv">6</span>, <span class="dv">6</span>, <span class="at">length.out =</span> <span class="dv">49</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>ridge_coefficients <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA_real_</span>, <span class="at">nrow =</span> p, <span class="at">ncol =</span> <span class="fu">length</span>(lambda_grid))</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>ridge_predictions <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="cn">NA_real_</span>,</span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="fu">length</span>(y),</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="fu">length</span>(lambda_grid)</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>)</span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>ridge_status <span class="ot">&lt;-</span> <span class="fu">character</span>(<span class="fu">length</span>(lambda_grid))</span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="cf">for</span> (lambda_index <span class="cf">in</span> <span class="fu">seq_along</span>(lambda_grid)) {</span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>  ridge_beta <span class="ot">&lt;-</span> <span class="fu">Variable</span>(p)</span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>  ridge_fitted <span class="ot">&lt;-</span> X <span class="sc">%*%</span> ridge_beta</span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a></span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>  <span class="co"># Scaling each equality by its target improves numerical conditioning.</span></span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>  constraints <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="fu">seq_along</span>(years), <span class="cf">function</span>(i) {</span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>    idx <span class="ot">&lt;-</span> <span class="fu">which</span>(year <span class="sc">==</span> years[i])</span>
-<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>    <span class="fu">sum_entries</span>(population[idx] <span class="sc">*</span> ridge_fitted[idx]) <span class="sc">/</span> target_gdp[i] <span class="sc">==</span> <span class="dv">1</span></span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  })</span>
+intercepts remain unpenalized. The 2025 intercept is predicted by
+linearly extrapolating the fitted 2020–2024 intercepts; this
+extrapolation uses training years only.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Evaluate a logarithmic penalty grid from 10^-3 through 10^3 on the holdout.</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>lambda_grid <span class="ot">&lt;-</span> <span class="dv">10</span><span class="sc">^</span><span class="fu">seq</span>(<span class="sc">-</span><span class="dv">3</span>, <span class="dv">3</span>, <span class="at">length.out =</span> <span class="dv">61</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>training_parameter_count <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X_train)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>feature_parameter_indices <span class="ot">&lt;-</span> (<span class="fu">length</span>(training_years) <span class="sc">+</span> <span class="dv">1</span>)<span class="sc">:</span>training_parameter_count</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>holdout_coefficients <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="cn">NA_real_</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="at">nrow =</span> training_parameter_count,</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="fu">length</span>(lambda_grid)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>)</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>holdout_predictions <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>  <span class="cn">NA_real_</span>,</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="fu">length</span>(y_holdout),</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="fu">length</span>(lambda_grid)</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>)</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>holdout_status <span class="ot">&lt;-</span> <span class="fu">character</span>(<span class="fu">length</span>(lambda_grid))</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="cf">for</span> (lambda_index <span class="cf">in</span> <span class="fu">seq_along</span>(lambda_grid)) {</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>  ridge_beta <span class="ot">&lt;-</span> <span class="fu">Variable</span>(training_parameter_count)</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  ridge_fitted <span class="ot">&lt;-</span> X_train <span class="sc">%*%</span> ridge_beta</span>
 <span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a></span>
-<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>  ridge_problem <span class="ot">&lt;-</span> <span class="fu">Problem</span>(</span>
-<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>    <span class="fu">Minimize</span>(</span>
-<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>      <span class="fu">sum_squares</span>(y <span class="sc">-</span> ridge_fitted) <span class="sc">+</span></span>
-<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>        lambda_grid[lambda_index] <span class="sc">*</span></span>
-<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>        <span class="fu">sum_squares</span>(ridge_beta[(<span class="fu">length</span>(years) <span class="sc">+</span> <span class="dv">1</span>)<span class="sc">:</span>p])</span>
-<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>    ),</span>
-<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>    constraints</span>
-<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>  )</span>
-<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>  ridge_result <span class="ot">&lt;-</span> <span class="fu">solve</span>(ridge_problem, <span class="at">solver =</span> <span class="st">&quot;CLARABEL&quot;</span>)</span>
-<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>  ridge_status[lambda_index] <span class="ot">&lt;-</span> ridge_result<span class="sc">$</span>status</span>
-<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>ridge_result<span class="sc">$</span>status <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;optimal&quot;</span>, <span class="st">&quot;optimal_inaccurate&quot;</span>)) {</span>
-<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="fu">sprintf</span>(</span>
-<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>      <span class="st">&quot;Ridge fit failed for lambda=%g with solver status: %s&quot;</span>,</span>
-<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>      lambda_grid[lambda_index],</span>
-<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>      ridge_result<span class="sc">$</span>status</span>
-<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>    ))</span>
-<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>  }</span>
-<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a></span>
-<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a>  ridge_coefficients[, lambda_index] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">value</span>(ridge_beta))</span>
-<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a>  ridge_predictions[, lambda_index] <span class="ot">&lt;-</span></span>
-<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a>    <span class="fu">as.vector</span>(X <span class="sc">%*%</span> ridge_coefficients[, lambda_index])</span>
-<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a>}</span></code></pre></div>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>  training_constraints <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="fu">seq_along</span>(training_years), <span class="cf">function</span>(i) {</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>    idx <span class="ot">&lt;-</span> <span class="fu">which</span>(training_year <span class="sc">==</span> training_years[i])</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>    <span class="fu">sum_entries</span>(training_population[idx] <span class="sc">*</span> ridge_fitted[idx]) <span class="sc">/</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>      target_gdp_training[i] <span class="sc">==</span> <span class="dv">1</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>  })</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>  ridge_problem <span class="ot">&lt;-</span> <span class="fu">Problem</span>(</span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>    <span class="fu">Minimize</span>(</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>      <span class="fu">sum_squares</span>(y_train <span class="sc">-</span> ridge_fitted) <span class="sc">+</span></span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>        lambda_grid[lambda_index] <span class="sc">*</span></span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>        <span class="fu">sum_squares</span>(ridge_beta[feature_parameter_indices])</span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>    ),</span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>    training_constraints</span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>  )</span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>  ridge_result <span class="ot">&lt;-</span> <span class="fu">solve</span>(ridge_problem, <span class="at">solver =</span> <span class="st">&quot;CLARABEL&quot;</span>)</span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>  holdout_status[lambda_index] <span class="ot">&lt;-</span> ridge_result<span class="sc">$</span>status</span>
+<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>ridge_result<span class="sc">$</span>status <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;optimal&quot;</span>, <span class="st">&quot;optimal_inaccurate&quot;</span>)) {</span>
+<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="fu">sprintf</span>(</span>
+<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a>      <span class="st">&quot;Training ridge fit failed for lambda=%g with solver status: %s&quot;</span>,</span>
+<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a>      lambda_grid[lambda_index],</span>
+<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a>      ridge_result<span class="sc">$</span>status</span>
+<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a>    ))</span>
+<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a>  }</span>
+<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a></span>
+<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a>  holdout_coefficients[, lambda_index] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">value</span>(ridge_beta))</span>
+<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a>  holdout_predictions[, lambda_index] <span class="ot">&lt;-</span></span>
+<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a>    <span class="fu">as.vector</span>(X_holdout <span class="sc">%*%</span> holdout_coefficients[, lambda_index])</span>
+<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a>}</span></code></pre></div>
 <pre><code>## ℹ In a future CVXR release, `solve()` will return the optimal value directly
 ##   (like `psolve()`).
 ## ℹ The `$getValue()`/`$getDualValue()` interface will be removed.
 ## ℹ New API: `psolve(prob)`, then `value(x)`, `dual_value(constr)`,
 ##   `status(prob)`.
 ## This message is displayed once per session.</code></pre>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>total_sum_squares <span class="ot">&lt;-</span> <span class="fu">sum</span>((y <span class="sc">-</span> <span class="fu">mean</span>(y))<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="cf">if</span> (total_sum_squares <span class="sc">==</span> <span class="dv">0</span>) {</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Cannot compute R-squared because the observed response has zero variance.&quot;</span>)</span>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>holdout_total_sum_squares <span class="ot">&lt;-</span> <span class="fu">sum</span>((y_holdout <span class="sc">-</span> <span class="fu">mean</span>(y_holdout))<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="cf">if</span> (holdout_total_sum_squares <span class="sc">==</span> <span class="dv">0</span>) {</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Cannot compute holdout R-squared because 2025 outcomes have zero variance.&quot;</span>)</span>
 <span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>}</span>
 <span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
 <span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>lambda_results <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
 <span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">lambda =</span> lambda_grid,</span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  <span class="at">RMSE =</span> <span class="fu">apply</span>(ridge_predictions, <span class="dv">2</span>, <span class="cf">function</span>(fit) {</span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>((y <span class="sc">-</span> fit)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  <span class="at">holdout_RMSE =</span> <span class="fu">apply</span>(holdout_predictions, <span class="dv">2</span>, <span class="cf">function</span>(fit) {</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>((y_holdout <span class="sc">-</span> fit)<span class="sc">^</span><span class="dv">2</span>))</span>
 <span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  }),</span>
-<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="at">R_squared =</span> <span class="fu">apply</span>(ridge_predictions, <span class="dv">2</span>, <span class="cf">function</span>(fit) {</span>
-<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>((y <span class="sc">-</span> fit)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> total_sum_squares</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="at">holdout_R_squared =</span> <span class="fu">apply</span>(holdout_predictions, <span class="dv">2</span>, <span class="cf">function</span>(fit) {</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>((y_holdout <span class="sc">-</span> fit)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> holdout_total_sum_squares</span>
 <span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>  }),</span>
-<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>  <span class="at">solver_status =</span> ridge_status</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>  <span class="at">solver_status =</span> holdout_status</span>
 <span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>)</span>
 <span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
 <span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>  lambda_results,</span>
@@ -1737,215 +1784,323 @@ intercepts remain unpenalized.</p>
 <span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
 <span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>)</span>
 <span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a></span>
-<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>selected_index <span class="ot">&lt;-</span> <span class="fu">which.min</span>(lambda_results<span class="sc">$</span>RMSE)</span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>selected_index <span class="ot">&lt;-</span> <span class="fu">which.min</span>(lambda_results<span class="sc">$</span>holdout_RMSE)</span>
 <span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a>selected_lambda <span class="ot">&lt;-</span> lambda_results<span class="sc">$</span>lambda[selected_index]</span>
-<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>beta_hat <span class="ot">&lt;-</span> ridge_coefficients[, selected_index]</span>
-<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> ridge_predictions[, selected_index]</span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>best_holdout_predictions <span class="ot">&lt;-</span> holdout_predictions[, selected_index]</span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a>holdout_residuals <span class="ot">&lt;-</span> y_holdout <span class="sc">-</span> best_holdout_predictions</span>
 <span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a></span>
-<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a>yearly_check <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a>  <span class="at">year =</span> years,</span>
-<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a>  <span class="at">predicted_total_grdp =</span> <span class="fu">sapply</span>(years, <span class="cf">function</span>(t) {</span>
-<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a>    idx <span class="ot">&lt;-</span> <span class="fu">which</span>(year <span class="sc">==</span> t)</span>
-<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a>    <span class="fu">sum</span>(population[idx] <span class="sc">*</span> predictions[idx])</span>
-<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a>  }),</span>
-<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a>  <span class="at">target_total_grdp =</span> target_gdp</span>
-<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a>)</span>
-<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a>yearly_check<span class="sc">$</span>difference <span class="ot">&lt;-</span></span>
-<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a>  yearly_check<span class="sc">$</span>predicted_total_grdp <span class="sc">-</span> yearly_check<span class="sc">$</span>target_total_grdp</span>
-<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a></span>
-<span id="cb5-38"><a href="#cb5-38" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Selected lambda by minimum training RMSE: %.8g</span><span class="sc">\n</span><span class="st">&quot;</span>, selected_lambda))</span></code></pre></div>
-<pre><code>## Selected lambda by minimum training RMSE: 1.7782794e-06</code></pre>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Selected lambda by minimum 2025 holdout RMSE: %.8g</span><span class="sc">\n</span><span class="st">&quot;</span>, selected_lambda))</span></code></pre></div>
+<pre><code>## Selected lambda by minimum 2025 holdout RMSE: 15.848932</code></pre>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">print</span>(lambda_results, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
-<pre><code>##        lambda     RMSE   R_squared solver_status
-##  1.000000e-06 29.03304  0.47121283       optimal
-##  1.778279e-06 29.03304  0.47121283       optimal
-##  3.162278e-06 29.03304  0.47121283       optimal
-##  5.623413e-06 29.03304  0.47121283       optimal
-##  1.000000e-05 29.03304  0.47121283       optimal
-##  1.778279e-05 29.03304  0.47121283       optimal
-##  3.162278e-05 29.03304  0.47121283       optimal
-##  5.623413e-05 29.03304  0.47121283       optimal
-##  1.000000e-04 29.03304  0.47121283       optimal
-##  1.778279e-04 29.03304  0.47121283       optimal
-##  3.162278e-04 29.03304  0.47121283       optimal
-##  5.623413e-04 29.03304  0.47121283       optimal
-##  1.000000e-03 29.03304  0.47121283       optimal
-##  1.778279e-03 29.03304  0.47121283       optimal
-##  3.162278e-03 29.03304  0.47121283       optimal
-##  5.623413e-03 29.03304  0.47121283       optimal
-##  1.000000e-02 29.03304  0.47121283       optimal
-##  1.778279e-02 29.03304  0.47121283       optimal
-##  3.162278e-02 29.03304  0.47121282       optimal
-##  5.623413e-02 29.03304  0.47121281       optimal
-##  1.000000e-01 29.03304  0.47121279       optimal
-##  1.778279e-01 29.03305  0.47121270       optimal
-##  3.162278e-01 29.03305  0.47121241       optimal
-##  5.623413e-01 29.03308  0.47121152       optimal
-##  1.000000e+00 29.03315  0.47120872       optimal
-##  1.778279e+00 29.03339  0.47120004       optimal
-##  3.162278e+00 29.03412  0.47117339       optimal
-##  5.623413e+00 29.03632  0.47109329       optimal
-##  1.000000e+01 29.04272  0.47086027       optimal
-##  1.778279e+01 29.06048  0.47021303       optimal
-##  3.162278e+01 29.10704  0.46851372       optimal
-##  5.623413e+01 29.22230  0.46429625       optimal
-##  1.000000e+02 29.49222  0.45435440       optimal
-##  1.778279e+02 30.07850  0.43244451       optimal
-##  3.162278e+02 31.19539  0.38951282       optimal
-##  5.623413e+02 32.94166  0.31925141       optimal
-##  1.000000e+03 35.09774  0.22722305       optimal
-##  1.778279e+03 37.21267  0.13128442       optimal
-##  3.162278e+03 38.92843  0.04933039       optimal
-##  5.623413e+03 40.14091 -0.01081156       optimal
-##  1.000000e+04 40.92283 -0.05057511       optimal
-##  1.778279e+04 41.39918 -0.07517538       optimal
-##  3.162278e+04 41.67967 -0.08979412       optimal
-##  5.623413e+04 41.84160 -0.09827825       optimal
-##  1.000000e+05 41.93402 -0.10313539       optimal
-##  1.778279e+05 41.98643 -0.10589454       optimal
-##  3.162278e+05 42.01604 -0.10745501       optimal
-##  5.623413e+05 42.03274 -0.10833535       optimal
-##  1.000000e+06 42.04214 -0.10883129       optimal</code></pre>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">print</span>(beta_hat)</span></code></pre></div>
-<pre><code>## [1]  65.849826  68.637081  78.956848  84.693359  94.664310 105.922074   6.241490
-## [8]  16.867901  -7.685284</code></pre>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">print</span>(yearly_check)</span></code></pre></div>
-<pre><code>##   year predicted_total_grdp target_total_grdp    difference
-## 1 2020           8044385730        8044385730  7.629395e-05
-## 2 2021           8487475600        8487475600  9.441376e-05
-## 3 2022           9621371820        9621371820  4.196167e-05
-## 4 2023          10319058870       10319058870  7.629395e-06
-## 5 2024          11510328920       11510328920 -7.820129e-05
-## 6 2025          12847571220       12847571220 -1.258850e-04</code></pre>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>lambda_plot_path <span class="ot">&lt;-</span> <span class="st">&quot;figures/ridge_lambda_grid_metrics.png&quot;</span></span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="st">&quot;figures&quot;</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>, <span class="at">recursive =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>grDevices<span class="sc">::</span><span class="fu">png</span>(lambda_plot_path, <span class="at">width =</span> <span class="dv">2000</span>, <span class="at">height =</span> <span class="dv">900</span>, <span class="at">res =</span> <span class="dv">160</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">4.5</span>, <span class="fl">4.5</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="fu">plot</span>(</span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>  lambda_results<span class="sc">$</span>lambda,</span>
-<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>  lambda_results<span class="sc">$</span>RMSE,</span>
-<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">&quot;b&quot;</span>,</span>
-<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>  <span class="at">log =</span> <span class="st">&quot;x&quot;</span>,</span>
-<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>  <span class="at">pch =</span> <span class="dv">19</span>,</span>
-<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a>  <span class="at">col =</span> <span class="st">&quot;#0072B2&quot;</span>,</span>
-<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="fu">expression</span>(lambda),</span>
-<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>  <span class="at">ylab =</span> <span class="st">&quot;Training RMSE&quot;</span>,</span>
-<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Ridge penalty grid: RMSE&quot;</span></span>
-<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a>)</span>
-<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> selected_lambda, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">&quot;#D55E00&quot;</span>)</span>
-<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="fu">plot</span>(</span>
-<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a>  lambda_results<span class="sc">$</span>lambda,</span>
-<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a>  lambda_results<span class="sc">$</span>R_squared,</span>
-<span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">&quot;b&quot;</span>,</span>
-<span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a>  <span class="at">log =</span> <span class="st">&quot;x&quot;</span>,</span>
-<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a>  <span class="at">pch =</span> <span class="dv">19</span>,</span>
-<span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a>  <span class="at">col =</span> <span class="st">&quot;#0072B2&quot;</span>,</span>
-<span id="cb13-24"><a href="#cb13-24" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="fu">expression</span>(lambda),</span>
-<span id="cb13-25"><a href="#cb13-25" tabindex="-1"></a>  <span class="at">ylab =</span> <span class="fu">expression</span>(R<span class="sc">^</span><span class="dv">2</span>),</span>
-<span id="cb13-26"><a href="#cb13-26" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Ridge penalty grid: R-squared&quot;</span></span>
-<span id="cb13-27"><a href="#cb13-27" tabindex="-1"></a>)</span>
-<span id="cb13-28"><a href="#cb13-28" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> selected_lambda, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">&quot;#D55E00&quot;</span>)</span>
-<span id="cb13-29"><a href="#cb13-29" tabindex="-1"></a>grDevices<span class="sc">::</span><span class="fu">dev.off</span>()</span></code></pre></div>
+<pre><code>##        lambda holdout_RMSE holdout_R_squared solver_status
+##  1.000000e-03     35.65298         0.3835295       optimal
+##  1.258925e-03     35.65298         0.3835296       optimal
+##  1.584893e-03     35.65298         0.3835297       optimal
+##  1.995262e-03     35.65297         0.3835297       optimal
+##  2.511886e-03     35.65297         0.3835299       optimal
+##  3.162278e-03     35.65297         0.3835300       optimal
+##  3.981072e-03     35.65296         0.3835302       optimal
+##  5.011872e-03     35.65295         0.3835305       optimal
+##  6.309573e-03     35.65294         0.3835308       optimal
+##  7.943282e-03     35.65293         0.3835311       optimal
+##  1.000000e-02     35.65292         0.3835316       optimal
+##  1.258925e-02     35.65290         0.3835322       optimal
+##  1.584893e-02     35.65288         0.3835330       optimal
+##  1.995262e-02     35.65285         0.3835339       optimal
+##  2.511886e-02     35.65282         0.3835351       optimal
+##  3.162278e-02     35.65277         0.3835366       optimal
+##  3.981072e-02     35.65272         0.3835385       optimal
+##  5.011872e-02     35.65265         0.3835409       optimal
+##  6.309573e-02     35.65256         0.3835439       optimal
+##  7.943282e-02     35.65245         0.3835477       optimal
+##  1.000000e-01     35.65232         0.3835525       optimal
+##  1.258925e-01     35.65214         0.3835584       optimal
+##  1.584893e-01     35.65193         0.3835659       optimal
+##  1.995262e-01     35.65166         0.3835753       optimal
+##  2.511886e-01     35.65132         0.3835870       optimal
+##  3.162278e-01     35.65089         0.3836018       optimal
+##  3.981072e-01     35.65036         0.3836202       optimal
+##  5.011872e-01     35.64970         0.3836431       optimal
+##  6.309573e-01     35.64887         0.3836717       optimal
+##  7.943282e-01     35.64785         0.3837071       optimal
+##  1.000000e+00     35.64658         0.3837508       optimal
+##  1.258925e+00     35.64503         0.3838046       optimal
+##  1.584893e+00     35.64313         0.3838702       optimal
+##  1.995262e+00     35.64083         0.3839497       optimal
+##  2.511886e+00     35.63808         0.3840448       optimal
+##  3.162278e+00     35.63483         0.3841569       optimal
+##  3.981072e+00     35.63109         0.3842865       optimal
+##  5.011872e+00     35.62687         0.3844320       optimal
+##  6.309573e+00     35.62234         0.3845888       optimal
+##  7.943282e+00     35.61776         0.3847470       optimal
+##  1.000000e+01     35.61365         0.3848890       optimal
+##  1.258925e+01     35.61085         0.3849856       optimal
+##  1.584893e+01     35.61068         0.3849914       optimal
+##  1.995262e+01     35.61509         0.3848392       optimal
+##  2.511886e+01     35.62685         0.3844329       optimal
+##  3.162278e+01     35.64977         0.3836404       optimal
+##  3.981072e+01     35.68895         0.3822851       optimal
+##  5.011872e+01     35.75094         0.3801373       optimal
+##  6.309573e+01     35.84398         0.3769068       optimal
+##  7.943282e+01     35.97805         0.3722367       optimal
+##  1.000000e+02     36.16477         0.3657040       optimal
+##  1.258925e+02     36.41685         0.3568306       optimal
+##  1.584893e+02     36.74709         0.3451129       optimal
+##  1.995262e+02     37.16662         0.3300740       optimal
+##  2.511886e+02     37.68268         0.3113410       optimal
+##  3.162278e+02     38.29612         0.2887370       optimal
+##  3.981072e+02     38.99957         0.2623673       optimal
+##  5.011872e+02     39.77683         0.2326722       optimal
+##  6.309573e+02     40.60417         0.2004200       optimal
+##  7.943282e+02     41.45316         0.1666337       optimal
+##  1.000000e+03     42.29449         0.1324628       optimal</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>lambda_plot_path <span class="ot">&lt;-</span> <span class="st">&quot;figures/ridge_lambda_grid_metrics.png&quot;</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="st">&quot;figures&quot;</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>, <span class="at">recursive =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>grDevices<span class="sc">::</span><span class="fu">png</span>(lambda_plot_path, <span class="at">width =</span> <span class="dv">2000</span>, <span class="at">height =</span> <span class="dv">900</span>, <span class="at">res =</span> <span class="dv">160</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">4.5</span>, <span class="fl">4.5</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  lambda_results<span class="sc">$</span>lambda,</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  lambda_results<span class="sc">$</span>holdout_RMSE,</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">&quot;b&quot;</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="at">pch =</span> <span class="dv">19</span>,</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>  <span class="at">col =</span> <span class="st">&quot;#0072B2&quot;</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="fu">expression</span>(lambda),</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>  <span class="at">ylab =</span> <span class="st">&quot;2025 holdout RMSE&quot;</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Ridge penalty grid: 2025 RMSE&quot;</span>,</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>  <span class="at">log =</span> <span class="st">&quot;x&quot;</span>,</span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>  <span class="at">yaxt =</span> <span class="st">&quot;n&quot;</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>)</span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>rmse_ticks <span class="ot">&lt;-</span> <span class="fu">pretty</span>(lambda_results<span class="sc">$</span>holdout_RMSE)</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="fu">axis</span>(<span class="dv">2</span>, <span class="at">at =</span> rmse_ticks, <span class="at">labels =</span> <span class="fu">formatC</span>(rmse_ticks, <span class="at">format =</span> <span class="st">&quot;f&quot;</span>, <span class="at">digits =</span> <span class="dv">8</span>))</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> selected_lambda, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">&quot;#D55E00&quot;</span>)</span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a>  lambda_results<span class="sc">$</span>lambda,</span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a>  lambda_results<span class="sc">$</span>holdout_R_squared,</span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">&quot;b&quot;</span>,</span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a>  <span class="at">pch =</span> <span class="dv">19</span>,</span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a>  <span class="at">col =</span> <span class="st">&quot;#0072B2&quot;</span>,</span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="fu">expression</span>(lambda),</span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a>  <span class="at">ylab =</span> <span class="fu">expression</span>(<span class="st">&quot;2025 holdout &quot;</span> <span class="sc">*</span> R<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Ridge penalty grid: 2025 R-squared&quot;</span>,</span>
+<span id="cb9-29"><a href="#cb9-29" tabindex="-1"></a>  <span class="at">log =</span> <span class="st">&quot;x&quot;</span>,</span>
+<span id="cb9-30"><a href="#cb9-30" tabindex="-1"></a>  <span class="at">yaxt =</span> <span class="st">&quot;n&quot;</span></span>
+<span id="cb9-31"><a href="#cb9-31" tabindex="-1"></a>)</span>
+<span id="cb9-32"><a href="#cb9-32" tabindex="-1"></a>r_squared_ticks <span class="ot">&lt;-</span> <span class="fu">pretty</span>(lambda_results<span class="sc">$</span>holdout_R_squared)</span>
+<span id="cb9-33"><a href="#cb9-33" tabindex="-1"></a><span class="fu">axis</span>(</span>
+<span id="cb9-34"><a href="#cb9-34" tabindex="-1"></a>  <span class="dv">2</span>,</span>
+<span id="cb9-35"><a href="#cb9-35" tabindex="-1"></a>  <span class="at">at =</span> r_squared_ticks,</span>
+<span id="cb9-36"><a href="#cb9-36" tabindex="-1"></a>  <span class="at">labels =</span> <span class="fu">formatC</span>(r_squared_ticks, <span class="at">format =</span> <span class="st">&quot;f&quot;</span>, <span class="at">digits =</span> <span class="dv">8</span>)</span>
+<span id="cb9-37"><a href="#cb9-37" tabindex="-1"></a>)</span>
+<span id="cb9-38"><a href="#cb9-38" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> selected_lambda, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">&quot;#D55E00&quot;</span>)</span>
+<span id="cb9-39"><a href="#cb9-39" tabindex="-1"></a>grDevices<span class="sc">::</span><span class="fu">dev.off</span>()</span></code></pre></div>
 <pre><code>## png 
 ##   2</code></pre>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(lambda_plot_path)</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(lambda_plot_path)</span></code></pre></div>
 <p><img src="figures/ridge_lambda_grid_metrics.png" /><!-- --></p>
+</div>
+<div id="refit-selected-model-on-all-years" class="section level3">
+<h3>Refit selected model on all years</h3>
+<p>After selecting <span class="math inline">\(\lambda\)</span> using
+only 2025 holdout RMSE, refit the constrained ridge model on all
+available years. This final fit is used only to generate the 2025
+level-2 predictions; the reported holdout metrics above remain
+predictions from models trained on 2020–2024.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>years <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(regression_data<span class="sc">$</span>year))</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>regression_data<span class="sc">$</span>year_factor <span class="ot">&lt;-</span> <span class="fu">factor</span>(regression_data<span class="sc">$</span>year, <span class="at">levels =</span> years)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>scaled_all <span class="ot">&lt;-</span> <span class="fu">scale</span>(</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  regression_data[feature_columns],</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="at">center =</span> feature_means,</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="at">scale =</span> feature_sds</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>)</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>  <span class="fu">model.matrix</span>(<span class="sc">~</span> <span class="dv">0</span> <span class="sc">+</span> year_factor, <span class="at">data =</span> regression_data),</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>  <span class="fu">as.matrix</span>(scaled_all)</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>)</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>y <span class="ot">&lt;-</span> regression_data<span class="sc">$</span>grdp_per_capita</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>year <span class="ot">&lt;-</span> regression_data<span class="sc">$</span>year</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>population <span class="ot">&lt;-</span> regression_data<span class="sc">$</span>population</span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a>feature_parameter_indices <span class="ot">&lt;-</span> (<span class="fu">length</span>(years) <span class="sc">+</span> <span class="dv">1</span>)<span class="sc">:</span>p</span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a>target_gdp <span class="ot">&lt;-</span> constrained_data<span class="sc">$</span>gdp[<span class="fu">match</span>(years, constrained_data<span class="sc">$</span>year)]</span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(target_gdp) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(target_gdp))) {</span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or non-finite national GDP target for a refit year.&quot;</span>)</span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a>}</span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a></span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a>final_beta <span class="ot">&lt;-</span> <span class="fu">Variable</span>(p)</span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a>final_fitted <span class="ot">&lt;-</span> X <span class="sc">%*%</span> final_beta</span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a>final_constraints <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="fu">seq_along</span>(years), <span class="cf">function</span>(i) {</span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(year <span class="sc">==</span> years[i])</span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a>  <span class="fu">sum_entries</span>(population[idx] <span class="sc">*</span> final_fitted[idx]) <span class="sc">/</span> target_gdp[i] <span class="sc">==</span> <span class="dv">1</span></span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a>})</span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a>final_problem <span class="ot">&lt;-</span> <span class="fu">Problem</span>(</span>
+<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a>  <span class="fu">Minimize</span>(</span>
+<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a>    <span class="fu">sum_squares</span>(y <span class="sc">-</span> final_fitted) <span class="sc">+</span></span>
+<span id="cb12-31"><a href="#cb12-31" tabindex="-1"></a>      selected_lambda <span class="sc">*</span> <span class="fu">sum_squares</span>(final_beta[feature_parameter_indices])</span>
+<span id="cb12-32"><a href="#cb12-32" tabindex="-1"></a>  ),</span>
+<span id="cb12-33"><a href="#cb12-33" tabindex="-1"></a>  final_constraints</span>
+<span id="cb12-34"><a href="#cb12-34" tabindex="-1"></a>)</span>
+<span id="cb12-35"><a href="#cb12-35" tabindex="-1"></a>final_result <span class="ot">&lt;-</span> <span class="fu">solve</span>(final_problem, <span class="at">solver =</span> <span class="st">&quot;CLARABEL&quot;</span>)</span>
+<span id="cb12-36"><a href="#cb12-36" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span>final_result<span class="sc">$</span>status <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;optimal&quot;</span>, <span class="st">&quot;optimal_inaccurate&quot;</span>)) {</span>
+<span id="cb12-37"><a href="#cb12-37" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="fu">sprintf</span>(</span>
+<span id="cb12-38"><a href="#cb12-38" tabindex="-1"></a>    <span class="st">&quot;Final all-years ridge refit failed with solver status: %s&quot;</span>,</span>
+<span id="cb12-39"><a href="#cb12-39" tabindex="-1"></a>    final_result<span class="sc">$</span>status</span>
+<span id="cb12-40"><a href="#cb12-40" tabindex="-1"></a>  ))</span>
+<span id="cb12-41"><a href="#cb12-41" tabindex="-1"></a>}</span>
+<span id="cb12-42"><a href="#cb12-42" tabindex="-1"></a>beta_hat <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">value</span>(final_beta))</span>
+<span id="cb12-43"><a href="#cb12-43" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(X <span class="sc">%*%</span> beta_hat)</span>
+<span id="cb12-44"><a href="#cb12-44" tabindex="-1"></a>final_constraint_check <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-45"><a href="#cb12-45" tabindex="-1"></a>  <span class="at">year =</span> years,</span>
+<span id="cb12-46"><a href="#cb12-46" tabindex="-1"></a>  <span class="at">predicted_total =</span> <span class="fu">vapply</span>(years, <span class="cf">function</span>(t) {</span>
+<span id="cb12-47"><a href="#cb12-47" tabindex="-1"></a>    idx <span class="ot">&lt;-</span> <span class="fu">which</span>(year <span class="sc">==</span> t)</span>
+<span id="cb12-48"><a href="#cb12-48" tabindex="-1"></a>    <span class="fu">sum</span>(population[idx] <span class="sc">*</span> predictions[idx])</span>
+<span id="cb12-49"><a href="#cb12-49" tabindex="-1"></a>  }, <span class="fu">numeric</span>(<span class="dv">1</span>)),</span>
+<span id="cb12-50"><a href="#cb12-50" tabindex="-1"></a>  <span class="at">target_total =</span> target_gdp</span>
+<span id="cb12-51"><a href="#cb12-51" tabindex="-1"></a>)</span>
+<span id="cb12-52"><a href="#cb12-52" tabindex="-1"></a>final_constraint_check<span class="sc">$</span>difference <span class="ot">&lt;-</span></span>
+<span id="cb12-53"><a href="#cb12-53" tabindex="-1"></a>  final_constraint_check<span class="sc">$</span>predicted_total <span class="sc">-</span></span>
+<span id="cb12-54"><a href="#cb12-54" tabindex="-1"></a>  final_constraint_check<span class="sc">$</span>target_total</span>
+<span id="cb12-55"><a href="#cb12-55" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">abs</span>(final_constraint_check<span class="sc">$</span>difference) <span class="sc">&gt;</span></span>
+<span id="cb12-56"><a href="#cb12-56" tabindex="-1"></a>        <span class="fl">1e-8</span> <span class="sc">*</span> <span class="fu">pmax</span>(<span class="fu">abs</span>(final_constraint_check<span class="sc">$</span>target_total), <span class="dv">1</span>))) {</span>
+<span id="cb12-57"><a href="#cb12-57" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Final ridge refit does not satisfy the annual GDP constraints.&quot;</span>)</span>
+<span id="cb12-58"><a href="#cb12-58" tabindex="-1"></a>}</span>
+<span id="cb12-59"><a href="#cb12-59" tabindex="-1"></a><span class="fu">print</span>(final_constraint_check, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>##  year predicted_total target_total    difference
+##  2020      8044385730   8044385730  6.103516e-05
+##  2021      8487475600   8487475600  7.915497e-05
+##  2022      9621371820   9621371820  2.479553e-05
+##  2023     10319058870  10319058870 -1.144409e-05
+##  2024     11510328920  11510328920 -9.727478e-05
+##  2025     12847571220  12847571220 -1.468658e-04</code></pre>
 </div>
 <div id="statistical-summary" class="section level3">
 <h3>Statistical Summary</h3>
-<p>For observation <span class="math inline">\(i=1,\ldots,n\)</span>,
-let <span class="math inline">\(y_i\)</span> be the observed GRDP per
-capita, <span class="math inline">\(\hat y_i^{(R)}\)</span> the selected
-constrained-ridge prediction, and <span class="math inline">\(\hat
-y_i^{(OLS)}\)</span> the ordinary least-squares prediction. The response
-mean and total sum of squares are <span class="math display">\[
-\bar y = \frac{1}{n}\sum_{i=1}^{n} y_i,
-\qquad
-\mathrm{SST} = \sum_{i=1}^{n}(y_i-\bar y)^2.
-\]</span></p>
-<p>The coefficient of determination is computed for each model as <span class="math display">\[
-R_R^2
-=1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i^{(R)})^2}{\mathrm{SST}},
-\qquad
-R_{OLS}^2
-= 1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}{\mathrm{SST}}.
-\]</span></p>
-<p>The root mean squared error (RMSE), in GRDP-per-capita units, is
-<span class="math display">\[
-\mathrm{RMSE}_R
-=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(R)})^2},
-\qquad
-\mathrm{RMSE}_{OLS}
-=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}.
-\]</span></p>
-<p>The RMSE difference and its absolute percentage relative to OLS are
-<span class="math display">\[
-\Delta\mathrm{RMSE}
-=\mathrm{RMSE}_R-\mathrm{RMSE}_{OLS},
-\qquad
-\%\mathrm{Difference}
-=\frac{|\mathrm{RMSE}_R-\mathrm{RMSE}_{OLS}|}
-{\mathrm{RMSE}_{OLS}}\times 100\%.
-\]</span> A positive <span class="math inline">\(\Delta\mathrm{RMSE}\)</span> means the constrained
-ridge model’s RMSE is higher; a negative value means it is lower. The
-lambda-grid selection uses training RMSE only and should be treated as
-exploratory rather than as a generalization estimate.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>ols_fit <span class="ot">&lt;-</span> <span class="fu">lm.fit</span>(<span class="at">x =</span> X, <span class="at">y =</span> y)</span>
-<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>ols_predictions <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(X <span class="sc">%*%</span> ols_fit<span class="sc">$</span>coefficients)</span>
-<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a></span>
-<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>total_sum_squares <span class="ot">&lt;-</span> <span class="fu">sum</span>((y <span class="sc">-</span> <span class="fu">mean</span>(y))<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="cf">if</span> (total_sum_squares <span class="sc">==</span> <span class="dv">0</span>) {</span>
-<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Cannot compute R-squared because the observed response has zero variance.&quot;</span>)</span>
-<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>}</span>
-<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a></span>
-<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a>ridge_residuals <span class="ot">&lt;-</span> y <span class="sc">-</span> predictions</span>
-<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>ols_residuals <span class="ot">&lt;-</span> y <span class="sc">-</span> ols_predictions</span>
-<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a></span>
-<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a>model_stats <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a>  <span class="at">model =</span> <span class="fu">c</span>(<span class="st">&quot;Constrained ridge&quot;</span>, <span class="st">&quot;Ordinary least squares&quot;</span>),</span>
-<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a>  <span class="at">R_squared =</span> <span class="fu">c</span>(</span>
-<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(ridge_residuals<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> total_sum_squares,</span>
-<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(ols_residuals<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> total_sum_squares</span>
-<span id="cb16-17"><a href="#cb16-17" tabindex="-1"></a>  ),</span>
-<span id="cb16-18"><a href="#cb16-18" tabindex="-1"></a>  <span class="at">RMSE =</span> <span class="fu">c</span>(</span>
-<span id="cb16-19"><a href="#cb16-19" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>(ridge_residuals<span class="sc">^</span><span class="dv">2</span>)),</span>
-<span id="cb16-20"><a href="#cb16-20" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>(ols_residuals<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb16-21"><a href="#cb16-21" tabindex="-1"></a>  )</span>
-<span id="cb16-22"><a href="#cb16-22" tabindex="-1"></a>)</span>
-<span id="cb16-23"><a href="#cb16-23" tabindex="-1"></a></span>
-<span id="cb16-24"><a href="#cb16-24" tabindex="-1"></a><span class="fu">print</span>(model_stats, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
-<pre><code>##                   model R_squared     RMSE
-##       Constrained ridge 0.4712128 29.03304
-##  Ordinary least squares 0.4730061 28.98377</code></pre>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>ridge_rmse <span class="ot">&lt;-</span> model_stats<span class="sc">$</span>RMSE[model_stats<span class="sc">$</span>model <span class="sc">==</span> <span class="st">&quot;Constrained ridge&quot;</span>]</span>
-<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>ols_rmse <span class="ot">&lt;-</span> model_stats<span class="sc">$</span>RMSE[model_stats<span class="sc">$</span>model <span class="sc">==</span> <span class="st">&quot;Ordinary least squares&quot;</span>]</span>
+<p>The final model comparison and lambda selection use only 2025 holdout
+predictions from models fitted on 2020–2024. Holdout <span class="math inline">\(R^2\)</span> is computed relative to the mean of
+the observed 2025 provinces. The OLS model is included as an
+unconstrained reference and uses the same training features.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>ols_fit <span class="ot">&lt;-</span> <span class="fu">lm.fit</span>(<span class="at">x =</span> X_train, <span class="at">y =</span> y_train)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>ols_holdout_predictions <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(X_holdout <span class="sc">%*%</span> ols_fit<span class="sc">$</span>coefficients)</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>ols_holdout_residuals <span class="ot">&lt;-</span> y_holdout <span class="sc">-</span> ols_holdout_predictions</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>ridge_residuals <span class="ot">&lt;-</span> holdout_residuals</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>holdout_model_stats <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>  <span class="at">model =</span> <span class="fu">c</span>(<span class="st">&quot;Constrained ridge&quot;</span>, <span class="st">&quot;Ordinary least squares reference&quot;</span>),</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>  <span class="at">R_squared =</span> <span class="fu">c</span>(</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(ridge_residuals<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> holdout_total_sum_squares,</span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(ols_holdout_residuals<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> holdout_total_sum_squares</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>  ),</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>  <span class="at">RMSE =</span> <span class="fu">c</span>(</span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>(ridge_residuals<span class="sc">^</span><span class="dv">2</span>)),</span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>(ols_holdout_residuals<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>  )</span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>)</span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a></span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="fu">print</span>(holdout_model_stats, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>##                             model R_squared     RMSE
+##                 Constrained ridge 0.3849914 35.61068
+##  Ordinary least squares reference 0.3731519 35.95182</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>  <span class="st">&quot;Selected lambda: %.8g; 2025 holdout RMSE: %.6f; holdout R-squared: %.6f</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  selected_lambda,</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>  holdout_model_stats<span class="sc">$</span>RMSE[<span class="dv">1</span>],</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>  holdout_model_stats<span class="sc">$</span>R_squared[<span class="dv">1</span>]</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>))</span></code></pre></div>
+<pre><code>## Selected lambda: 15.848932; 2025 holdout RMSE: 35.610681; holdout R-squared: 0.384991</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>ridge_rmse <span class="ot">&lt;-</span> holdout_model_stats<span class="sc">$</span>RMSE[<span class="dv">1</span>]</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>ols_rmse <span class="ot">&lt;-</span> holdout_model_stats<span class="sc">$</span>RMSE[<span class="dv">2</span>]</span>
 <span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(</span>
-<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="st">&quot;Constrained ridge RMSE (lambda=%.8g) is %.6f GRDP-per-capita units (%.2f%%) %s than OLS RMSE.</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="st">&quot;2025 holdout ridge RMSE (lambda=%.8g) is %.6f GRDP-per-capita units (%.2f%%) %s than OLS reference RMSE.</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
 <span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  selected_lambda,</span>
 <span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>  <span class="fu">abs</span>(ridge_rmse <span class="sc">-</span> ols_rmse),</span>
 <span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>  <span class="fu">abs</span>(ridge_rmse <span class="sc">-</span> ols_rmse) <span class="sc">/</span> ols_rmse <span class="sc">*</span> <span class="dv">100</span>,</span>
 <span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>  <span class="cf">if</span> (ridge_rmse <span class="sc">&gt;=</span> ols_rmse) <span class="st">&quot;higher&quot;</span> <span class="cf">else</span> <span class="st">&quot;lower&quot;</span></span>
 <span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a>))</span></code></pre></div>
-<pre><code>## Constrained ridge RMSE (lambda=1.7782794e-06) is 0.049272 GRDP-per-capita units (0.17%) higher than OLS RMSE.</code></pre>
+<pre><code>## 2025 holdout ridge RMSE (lambda=15.848932) is 0.341137 GRDP-per-capita units (0.95%) lower than OLS reference RMSE.</code></pre>
 </div>
-<div id="training-fit-and-residual-diagnostics" class="section level3">
-<h3>Training fit and residual diagnostics</h3>
-<p>The first figure compares fitted values with observed training values
-for both the selected constrained ridge model and the ordinary
-least-squares reference. The diagnostic panels examine residual patterns
-against fitted values and predictors, approximate normality, residual
-spread, and differences across years. These are visual checks rather
-than formal hypothesis tests. Because the constrained ridge model
-imposes annual weighted-sum equalities, its residuals are not the
-independent, identically distributed residuals assumed by standard OLS
-inference; interpret the plots as diagnostics, not as a basis for
-unadjusted OLS significance tests.</p>
+<div id="holdout-fit-and-residual-diagnostics" class="section level3">
+<h3>2025 holdout fit and residual diagnostics</h3>
+<p>The first figure compares 2025 holdout observations with predictions
+from the selected constrained ridge model and an unconstrained OLS
+reference. Residual panels show holdout errors against predictions and
+predictors. With only one holdout year, year-to-year diagnostics are not
+applicable; these plots are descriptive checks rather than formal
+inference.</p>
+<pre><code>##          province year actual ridge_prediction ridge_residual ols_prediction
+##        Quang Ninh 2025  261.2         96.90371    164.2962937       92.79579
+##         Hai Phong 2025  177.0        129.40089     47.5991076      125.46896
+##          Dong Nai 2025  150.8        108.90883     41.8911734      105.89719
+##          Cao Bang 2025   49.6         85.69939    -36.0993855       81.70049
+##         Dong Thap 2025   84.0        117.46307    -33.4630675      113.42413
+##          Bac Ninh 2025  146.2        115.08178     31.1182211      112.02580
+##         Ninh Binh 2025   89.2        120.01027    -30.8102711      116.88308
+##         Dien Bien 2025   53.4         82.40951    -29.0095081       78.16255
+##       Tuyen Quang 2025   54.6         83.38568    -28.7856814       79.32390
+##         Vinh Long 2025   82.4        110.21044    -27.8104362      107.28274
+##          An Giang 2025   80.2        105.25343    -25.0534268      102.46609
+##           Nghe An 2025   67.6         92.43484    -24.8348365       89.03897
+##          Hung Yen 2025   98.9        119.43504    -20.5350442      115.80103
+##       Thai Nguyen 2025  112.4         91.89280     20.5071960       88.25467
+##         Khanh Hoa 2025  110.3         90.14128     20.1587174       86.08027
+##               Hue 2025   75.3         94.63107    -19.3310724       90.89352
+##  Ho Chi Minh city 2025  215.3        196.16084     19.1391576      196.47838
+##            Ca Mau 2025   78.6         97.63339    -19.0333879       94.21925
+##        Quang Ngai 2025  101.9         84.78287     17.1171313       80.57298
+##            Ha Noi 2025  179.3        163.68174     15.6182596      161.99589
+##          Lang Son 2025   70.9         85.35966    -14.4596635       81.31355
+##         Thanh Hoa 2025   88.5        102.87173    -14.3717302      100.03341
+##           Da Nang 2025  110.6         96.32697     14.2730340       92.69535
+##           Can Tho 2025   94.9        108.59424    -13.6942420      105.58431
+##          Lam Dong 2025  105.2         95.43452      9.7654797       88.84020
+##            Son La 2025   71.4         80.41159     -9.0115858       76.07988
+##         Quang Tri 2025   77.4         85.17775     -7.7777521       81.07875
+##          Tay Ninh 2025  115.6        108.85443      6.7455657      104.62556
+##           Dak Lak 2025   80.6         86.95639     -6.3563878       82.99583
+##           Phu Tho 2025  111.3        105.18675      6.1132486      102.42021
+##           Ha Tinh 2025   90.5         93.89319     -3.3931919       90.16017
+##          Lai Chau 2025   79.4         81.87838     -2.4783803       77.59020
+##           Lao Cai 2025   84.7         83.91517      0.7848257       79.84295
+##           Gia Lai 2025   85.0         84.37071      0.6292881       80.22380
+##  ols_residual
+##   168.4042120
+##    51.5310403
+##    44.9028145
+##   -32.1004870
+##   -29.4241260
+##    34.1742028
+##   -27.6830774
+##   -24.7625475
+##   -24.7239025
+##   -24.8827436
+##   -22.2660942
+##   -21.4389739
+##   -16.9010302
+##    24.1453301
+##    24.2197260
+##   -15.5935211
+##    18.8216206
+##   -15.6192478
+##    21.3270153
+##    17.3041111
+##   -10.4135453
+##   -11.5334133
+##    17.9046539
+##   -10.6843104
+##    16.3597972
+##    -4.6798762
+##    -3.6787482
+##    10.9744382
+##    -2.3958303
+##     8.8797946
+##     0.3398289
+##     1.8098041
+##     4.8570550
+##     4.7762001</code></pre>
 <pre><code>## png 
 ##   2</code></pre>
-<p><img src="figures/ridge_model_training_actual_vs_fitted.png" /><!-- --></p>
+<p><img src="figures/ridge_model_2025_holdout_actual_vs_fitted.png" /><!-- --></p>
 <pre><code>## png 
 ##   2</code></pre>
-<p><img src="figures/ridge_model_training_residual_diagnostics.png" /><!-- --></p>
+<p><img src="figures/ridge_model_2025_holdout_residual_diagnostics.png" /><!-- --></p>
 </div>
 <div id="level-2-predictions" class="section level3">
 <h3>2025 Level-2 Predictions</h3>
@@ -1970,135 +2125,132 @@ province <span class="math inline">\(j\)</span>. Consequently, <span class="math
 \sum_{i\in j}P_{ij}\tilde y_{ij}
 =g_jN_j.
 \]</span></p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(prediction_data<span class="sc">$</span>year) <span class="sc">||</span> <span class="fu">any</span>(prediction_data<span class="sc">$</span>year <span class="sc">!=</span> <span class="dv">2025</span>)) {</span>
-<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;The level-2 prediction dataset must contain only 2025 observations.&quot;</span>)</span>
-<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>}</span>
-<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">complete.cases</span>(prediction_data[, <span class="fu">c</span>(</span>
-<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a>  <span class="st">&quot;name&quot;</span>, <span class="st">&quot;level_1&quot;</span>, <span class="st">&quot;population&quot;</span>, <span class="st">&quot;mean_radiance&quot;</span>, <span class="st">&quot;pixel_count&quot;</span></span>
-<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>)]))) {</span>
-<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;The level-2 prediction data contains missing required values.&quot;</span>)</span>
-<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a>}</span>
-<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a>prediction_features <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(prediction_data[feature_columns])</span>
-<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(prediction_features))) {</span>
-<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Level-2 prediction features must be finite.&quot;</span>)</span>
-<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a>}</span>
-<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(prediction_data<span class="sc">$</span>population <span class="sc">&lt;</span> <span class="dv">0</span>)) {</span>
-<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Level-2 populations must be finite and non-negative.&quot;</span>)</span>
-<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a>}</span>
-<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(<span class="fu">paste</span>(prediction_data<span class="sc">$</span>level_1, prediction_data<span class="sc">$</span>name, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\r</span><span class="st">&quot;</span>))) {</span>
-<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;The level-2 prediction data contains duplicate units within a province.&quot;</span>)</span>
-<span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a>}</span>
-<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(provincial_grdp_data<span class="sc">$</span>province)) {</span>
-<span id="cb22-20"><a href="#cb22-20" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Provincial GRDP data contains duplicate province targets.&quot;</span>)</span>
-<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a>}</span>
-<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(provincial_population_data<span class="sc">$</span>province)) {</span>
-<span id="cb22-23"><a href="#cb22-23" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Provincial population data contains duplicate province totals.&quot;</span>)</span>
-<span id="cb22-24"><a href="#cb22-24" tabindex="-1"></a>}</span>
-<span id="cb22-25"><a href="#cb22-25" tabindex="-1"></a></span>
-<span id="cb22-26"><a href="#cb22-26" tabindex="-1"></a>grdp_pc_2025 <span class="ot">&lt;-</span> provincial_grdp_data[[<span class="st">&quot;2025&quot;</span>]][</span>
-<span id="cb22-27"><a href="#cb22-27" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, provincial_grdp_data<span class="sc">$</span>province)</span>
-<span id="cb22-28"><a href="#cb22-28" tabindex="-1"></a>]</span>
-<span id="cb22-29"><a href="#cb22-29" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(grdp_pc_2025) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(grdp_pc_2025))) {</span>
-<span id="cb22-30"><a href="#cb22-30" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or non-finite 2025 GRDP-per-capita target for a prediction province.&quot;</span>)</span>
-<span id="cb22-31"><a href="#cb22-31" tabindex="-1"></a>}</span>
-<span id="cb22-32"><a href="#cb22-32" tabindex="-1"></a>province_population_2025 <span class="ot">&lt;-</span> provincial_population_data[[<span class="st">&quot;2025&quot;</span>]][</span>
-<span id="cb22-33"><a href="#cb22-33" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, provincial_population_data<span class="sc">$</span>province)</span>
-<span id="cb22-34"><a href="#cb22-34" tabindex="-1"></a>] <span class="sc">*</span> <span class="dv">1000</span></span>
-<span id="cb22-35"><a href="#cb22-35" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(province_population_2025) <span class="sc">||</span></span>
-<span id="cb22-36"><a href="#cb22-36" tabindex="-1"></a>    <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(province_population_2025)) <span class="sc">||</span></span>
-<span id="cb22-37"><a href="#cb22-37" tabindex="-1"></a>    <span class="fu">any</span>(province_population_2025 <span class="sc">&lt;=</span> <span class="dv">0</span>)) {</span>
-<span id="cb22-38"><a href="#cb22-38" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or invalid 2025 population total for a prediction province.&quot;</span>)</span>
-<span id="cb22-39"><a href="#cb22-39" tabindex="-1"></a>}</span>
-<span id="cb22-40"><a href="#cb22-40" tabindex="-1"></a></span>
-<span id="cb22-41"><a href="#cb22-41" tabindex="-1"></a>prediction_data<span class="sc">$</span>year_factor <span class="ot">&lt;-</span> <span class="fu">factor</span>(prediction_data<span class="sc">$</span>year, <span class="at">levels =</span> years)</span>
-<span id="cb22-42"><a href="#cb22-42" tabindex="-1"></a><span class="cf">for</span> (feature <span class="cf">in</span> feature_columns) {</span>
-<span id="cb22-43"><a href="#cb22-43" tabindex="-1"></a>  scaled_feature <span class="ot">&lt;-</span> <span class="fu">paste0</span>(feature, <span class="st">&quot;_scaled&quot;</span>)</span>
-<span id="cb22-44"><a href="#cb22-44" tabindex="-1"></a>  prediction_data[[scaled_feature]] <span class="ot">&lt;-</span></span>
-<span id="cb22-45"><a href="#cb22-45" tabindex="-1"></a>    (prediction_data[[feature]] <span class="sc">-</span> feature_means[[feature]]) <span class="sc">/</span></span>
-<span id="cb22-46"><a href="#cb22-46" tabindex="-1"></a>    feature_sds[[feature]]</span>
-<span id="cb22-47"><a href="#cb22-47" tabindex="-1"></a>}</span>
-<span id="cb22-48"><a href="#cb22-48" tabindex="-1"></a></span>
-<span id="cb22-49"><a href="#cb22-49" tabindex="-1"></a>prediction_X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(</span>
-<span id="cb22-50"><a href="#cb22-50" tabindex="-1"></a>  <span class="sc">~</span> <span class="dv">0</span> <span class="sc">+</span> year_factor <span class="sc">+</span> mean_radiance_scaled <span class="sc">+</span> population_scaled <span class="sc">+</span></span>
-<span id="cb22-51"><a href="#cb22-51" tabindex="-1"></a>    pixel_count_scaled,</span>
-<span id="cb22-52"><a href="#cb22-52" tabindex="-1"></a>  <span class="at">data =</span> prediction_data</span>
-<span id="cb22-53"><a href="#cb22-53" tabindex="-1"></a>)</span>
-<span id="cb22-54"><a href="#cb22-54" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">identical</span>(<span class="fu">colnames</span>(prediction_X), <span class="fu">colnames</span>(X))) {</span>
-<span id="cb22-55"><a href="#cb22-55" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Prediction design matrix does not match the fitted model.&quot;</span>)</span>
-<span id="cb22-56"><a href="#cb22-56" tabindex="-1"></a>}</span>
-<span id="cb22-57"><a href="#cb22-57" tabindex="-1"></a></span>
-<span id="cb22-58"><a href="#cb22-58" tabindex="-1"></a>raw_level2_predictions <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(prediction_X <span class="sc">%*%</span> beta_hat)</span>
-<span id="cb22-59"><a href="#cb22-59" tabindex="-1"></a>province_names <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(prediction_data<span class="sc">$</span>level_1))</span>
-<span id="cb22-60"><a href="#cb22-60" tabindex="-1"></a>province_adjustments <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(province_names)), province_names)</span>
-<span id="cb22-61"><a href="#cb22-61" tabindex="-1"></a></span>
-<span id="cb22-62"><a href="#cb22-62" tabindex="-1"></a><span class="cf">for</span> (province <span class="cf">in</span> province_names) {</span>
-<span id="cb22-63"><a href="#cb22-63" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(prediction_data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
-<span id="cb22-64"><a href="#cb22-64" tabindex="-1"></a>  level2_population <span class="ot">&lt;-</span> <span class="fu">sum</span>(prediction_data<span class="sc">$</span>population[idx])</span>
-<span id="cb22-65"><a href="#cb22-65" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(level2_population) <span class="sc">||</span> level2_population <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
-<span id="cb22-66"><a href="#cb22-66" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has no positive level-2 population.&quot;</span>, province))</span>
-<span id="cb22-67"><a href="#cb22-67" tabindex="-1"></a>  }</span>
-<span id="cb22-68"><a href="#cb22-68" tabindex="-1"></a></span>
-<span id="cb22-69"><a href="#cb22-69" tabindex="-1"></a>  province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, prediction_data<span class="sc">$</span>level_1)</span>
-<span id="cb22-70"><a href="#cb22-70" tabindex="-1"></a>  target_total <span class="ot">&lt;-</span> grdp_pc_2025[province_index] <span class="sc">*</span></span>
-<span id="cb22-71"><a href="#cb22-71" tabindex="-1"></a>    province_population_2025[province_index]</span>
-<span id="cb22-72"><a href="#cb22-72" tabindex="-1"></a>  raw_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
-<span id="cb22-73"><a href="#cb22-73" tabindex="-1"></a>    prediction_data<span class="sc">$</span>population[idx] <span class="sc">*</span> raw_level2_predictions[idx]</span>
-<span id="cb22-74"><a href="#cb22-74" tabindex="-1"></a>  )</span>
-<span id="cb22-75"><a href="#cb22-75" tabindex="-1"></a>  province_adjustments[[province]] <span class="ot">&lt;-</span> (target_total <span class="sc">-</span> raw_total) <span class="sc">/</span></span>
-<span id="cb22-76"><a href="#cb22-76" tabindex="-1"></a>    level2_population</span>
-<span id="cb22-77"><a href="#cb22-77" tabindex="-1"></a>}</span>
-<span id="cb22-78"><a href="#cb22-78" tabindex="-1"></a></span>
-<span id="cb22-79"><a href="#cb22-79" tabindex="-1"></a>prediction_data<span class="sc">$</span>raw_grdp_per_capita <span class="ot">&lt;-</span> raw_level2_predictions</span>
-<span id="cb22-80"><a href="#cb22-80" tabindex="-1"></a>prediction_data<span class="sc">$</span>province_adjustment <span class="ot">&lt;-</span></span>
-<span id="cb22-81"><a href="#cb22-81" tabindex="-1"></a>  province_adjustments[prediction_data<span class="sc">$</span>level_1]</span>
-<span id="cb22-82"><a href="#cb22-82" tabindex="-1"></a>prediction_data<span class="sc">$</span>predicted_grdp_per_capita <span class="ot">&lt;-</span></span>
-<span id="cb22-83"><a href="#cb22-83" tabindex="-1"></a>  prediction_data<span class="sc">$</span>raw_grdp_per_capita <span class="sc">+</span> prediction_data<span class="sc">$</span>province_adjustment</span>
-<span id="cb22-84"><a href="#cb22-84" tabindex="-1"></a>prediction_data<span class="sc">$</span>grdp_per_capita_target_2025 <span class="ot">&lt;-</span> grdp_pc_2025</span>
-<span id="cb22-85"><a href="#cb22-85" tabindex="-1"></a></span>
-<span id="cb22-86"><a href="#cb22-86" tabindex="-1"></a>province_check <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(province_names, <span class="cf">function</span>(province) {</span>
-<span id="cb22-87"><a href="#cb22-87" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(prediction_data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
-<span id="cb22-88"><a href="#cb22-88" tabindex="-1"></a>  province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, prediction_data<span class="sc">$</span>level_1)</span>
-<span id="cb22-89"><a href="#cb22-89" tabindex="-1"></a>  province_population <span class="ot">&lt;-</span> province_population_2025[province_index]</span>
-<span id="cb22-90"><a href="#cb22-90" tabindex="-1"></a>  target_total <span class="ot">&lt;-</span> prediction_data<span class="sc">$</span>grdp_per_capita_target_2025[idx[<span class="dv">1</span>]] <span class="sc">*</span></span>
-<span id="cb22-91"><a href="#cb22-91" tabindex="-1"></a>    province_population</span>
-<span id="cb22-92"><a href="#cb22-92" tabindex="-1"></a>  predicted_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
-<span id="cb22-93"><a href="#cb22-93" tabindex="-1"></a>    prediction_data<span class="sc">$</span>population[idx] <span class="sc">*</span></span>
-<span id="cb22-94"><a href="#cb22-94" tabindex="-1"></a>      prediction_data<span class="sc">$</span>predicted_grdp_per_capita[idx]</span>
-<span id="cb22-95"><a href="#cb22-95" tabindex="-1"></a>  )</span>
-<span id="cb22-96"><a href="#cb22-96" tabindex="-1"></a></span>
-<span id="cb22-97"><a href="#cb22-97" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
-<span id="cb22-98"><a href="#cb22-98" tabindex="-1"></a>    <span class="at">province =</span> province,</span>
-<span id="cb22-99"><a href="#cb22-99" tabindex="-1"></a>    <span class="at">population =</span> province_population,</span>
-<span id="cb22-100"><a href="#cb22-100" tabindex="-1"></a>    <span class="at">level2_population =</span> <span class="fu">sum</span>(prediction_data<span class="sc">$</span>population[idx]),</span>
-<span id="cb22-101"><a href="#cb22-101" tabindex="-1"></a>    <span class="at">target_grdp_per_capita =</span> prediction_data<span class="sc">$</span>grdp_per_capita_target_2025[idx[<span class="dv">1</span>]],</span>
-<span id="cb22-102"><a href="#cb22-102" tabindex="-1"></a>    <span class="at">target_total_grdp =</span> target_total,</span>
-<span id="cb22-103"><a href="#cb22-103" tabindex="-1"></a>    <span class="at">predicted_total_grdp =</span> predicted_total,</span>
-<span id="cb22-104"><a href="#cb22-104" tabindex="-1"></a>    <span class="at">difference =</span> predicted_total <span class="sc">-</span> target_total</span>
-<span id="cb22-105"><a href="#cb22-105" tabindex="-1"></a>  )</span>
-<span id="cb22-106"><a href="#cb22-106" tabindex="-1"></a>}))</span>
-<span id="cb22-107"><a href="#cb22-107" tabindex="-1"></a></span>
-<span id="cb22-108"><a href="#cb22-108" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>difference) <span class="sc">&gt;</span></span>
-<span id="cb22-109"><a href="#cb22-109" tabindex="-1"></a>        <span class="fl">1e-8</span> <span class="sc">*</span> <span class="fu">pmax</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>target_total_grdp), <span class="dv">1</span>))) {</span>
-<span id="cb22-110"><a href="#cb22-110" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions do not match all provincial GDP targets.&quot;</span>)</span>
-<span id="cb22-111"><a href="#cb22-111" tabindex="-1"></a>}</span>
-<span id="cb22-112"><a href="#cb22-112" tabindex="-1"></a></span>
-<span id="cb22-113"><a href="#cb22-113" tabindex="-1"></a>level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb22-114"><a href="#cb22-114" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
-<span id="cb22-115"><a href="#cb22-115" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
-<span id="cb22-116"><a href="#cb22-116" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
-<span id="cb22-117"><a href="#cb22-117" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
-<span id="cb22-118"><a href="#cb22-118" tabindex="-1"></a>  <span class="at">province_population_2025 =</span> province_population_2025,</span>
-<span id="cb22-119"><a href="#cb22-119" tabindex="-1"></a>  <span class="at">ridge_lambda =</span> <span class="fu">rep</span>(selected_lambda, <span class="fu">nrow</span>(prediction_data)),</span>
-<span id="cb22-120"><a href="#cb22-120" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> prediction_data<span class="sc">$</span>raw_grdp_per_capita,</span>
-<span id="cb22-121"><a href="#cb22-121" tabindex="-1"></a>  <span class="at">province_adjustment =</span> prediction_data<span class="sc">$</span>province_adjustment,</span>
-<span id="cb22-122"><a href="#cb22-122" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> prediction_data<span class="sc">$</span>predicted_grdp_per_capita,</span>
-<span id="cb22-123"><a href="#cb22-123" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
-<span id="cb22-124"><a href="#cb22-124" tabindex="-1"></a>    prediction_data<span class="sc">$</span>grdp_per_capita_target_2025</span>
-<span id="cb22-125"><a href="#cb22-125" tabindex="-1"></a>)</span>
-<span id="cb22-126"><a href="#cb22-126" tabindex="-1"></a>prediction_output <span class="ot">&lt;-</span> <span class="st">&quot;data/predicted_data/level2_grdp_pc_ridge_predictions.csv&quot;</span></span>
-<span id="cb22-127"><a href="#cb22-127" tabindex="-1"></a><span class="fu">write.csv</span>(level2_predictions, prediction_output, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb22-128"><a href="#cb22-128" tabindex="-1"></a></span>
-<span id="cb22-129"><a href="#cb22-129" tabindex="-1"></a><span class="fu">print</span>(province_check, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(prediction_data<span class="sc">$</span>year) <span class="sc">||</span> <span class="fu">any</span>(prediction_data<span class="sc">$</span>year <span class="sc">!=</span> <span class="dv">2025</span>)) {</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;The level-2 prediction dataset must contain only 2025 observations.&quot;</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>}</span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">complete.cases</span>(prediction_data[, <span class="fu">c</span>(</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>  <span class="st">&quot;name&quot;</span>, <span class="st">&quot;level_1&quot;</span>, <span class="st">&quot;population&quot;</span>, <span class="st">&quot;mean_radiance&quot;</span>, <span class="st">&quot;pixel_count&quot;</span></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>)]))) {</span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;The level-2 prediction data contains missing required values.&quot;</span>)</span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a>}</span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>prediction_features <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(prediction_data[feature_columns])</span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(prediction_features))) {</span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Level-2 prediction features must be finite.&quot;</span>)</span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a>}</span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(prediction_data<span class="sc">$</span>population <span class="sc">&lt;</span> <span class="dv">0</span>)) {</span>
+<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Level-2 populations must be finite and non-negative.&quot;</span>)</span>
+<span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a>}</span>
+<span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(<span class="fu">paste</span>(prediction_data<span class="sc">$</span>level_1, prediction_data<span class="sc">$</span>name, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\r</span><span class="st">&quot;</span>))) {</span>
+<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;The level-2 prediction data contains duplicate units within a province.&quot;</span>)</span>
+<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a>}</span>
+<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(provincial_grdp_data<span class="sc">$</span>province)) {</span>
+<span id="cb23-20"><a href="#cb23-20" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Provincial GRDP data contains duplicate province targets.&quot;</span>)</span>
+<span id="cb23-21"><a href="#cb23-21" tabindex="-1"></a>}</span>
+<span id="cb23-22"><a href="#cb23-22" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(provincial_population_data<span class="sc">$</span>province)) {</span>
+<span id="cb23-23"><a href="#cb23-23" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Provincial population data contains duplicate province totals.&quot;</span>)</span>
+<span id="cb23-24"><a href="#cb23-24" tabindex="-1"></a>}</span>
+<span id="cb23-25"><a href="#cb23-25" tabindex="-1"></a></span>
+<span id="cb23-26"><a href="#cb23-26" tabindex="-1"></a>grdp_pc_2025 <span class="ot">&lt;-</span> provincial_grdp_data[[<span class="st">&quot;2025&quot;</span>]][</span>
+<span id="cb23-27"><a href="#cb23-27" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, provincial_grdp_data<span class="sc">$</span>province)</span>
+<span id="cb23-28"><a href="#cb23-28" tabindex="-1"></a>]</span>
+<span id="cb23-29"><a href="#cb23-29" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(grdp_pc_2025) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(grdp_pc_2025))) {</span>
+<span id="cb23-30"><a href="#cb23-30" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or non-finite 2025 GRDP-per-capita target for a prediction province.&quot;</span>)</span>
+<span id="cb23-31"><a href="#cb23-31" tabindex="-1"></a>}</span>
+<span id="cb23-32"><a href="#cb23-32" tabindex="-1"></a>province_population_2025 <span class="ot">&lt;-</span> provincial_population_data[[<span class="st">&quot;2025&quot;</span>]][</span>
+<span id="cb23-33"><a href="#cb23-33" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, provincial_population_data<span class="sc">$</span>province)</span>
+<span id="cb23-34"><a href="#cb23-34" tabindex="-1"></a>] <span class="sc">*</span> <span class="dv">1000</span></span>
+<span id="cb23-35"><a href="#cb23-35" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(province_population_2025) <span class="sc">||</span></span>
+<span id="cb23-36"><a href="#cb23-36" tabindex="-1"></a>    <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(province_population_2025)) <span class="sc">||</span></span>
+<span id="cb23-37"><a href="#cb23-37" tabindex="-1"></a>    <span class="fu">any</span>(province_population_2025 <span class="sc">&lt;=</span> <span class="dv">0</span>)) {</span>
+<span id="cb23-38"><a href="#cb23-38" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or invalid 2025 population total for a prediction province.&quot;</span>)</span>
+<span id="cb23-39"><a href="#cb23-39" tabindex="-1"></a>}</span>
+<span id="cb23-40"><a href="#cb23-40" tabindex="-1"></a></span>
+<span id="cb23-41"><a href="#cb23-41" tabindex="-1"></a>prediction_data<span class="sc">$</span>year_factor <span class="ot">&lt;-</span> <span class="fu">factor</span>(prediction_data<span class="sc">$</span>year, <span class="at">levels =</span> years)</span>
+<span id="cb23-42"><a href="#cb23-42" tabindex="-1"></a>scaled_prediction <span class="ot">&lt;-</span> <span class="fu">scale</span>(</span>
+<span id="cb23-43"><a href="#cb23-43" tabindex="-1"></a>  prediction_data[feature_columns],</span>
+<span id="cb23-44"><a href="#cb23-44" tabindex="-1"></a>  <span class="at">center =</span> feature_means,</span>
+<span id="cb23-45"><a href="#cb23-45" tabindex="-1"></a>  <span class="at">scale =</span> feature_sds</span>
+<span id="cb23-46"><a href="#cb23-46" tabindex="-1"></a>)</span>
+<span id="cb23-47"><a href="#cb23-47" tabindex="-1"></a>prediction_X <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
+<span id="cb23-48"><a href="#cb23-48" tabindex="-1"></a>  <span class="fu">model.matrix</span>(<span class="sc">~</span> <span class="dv">0</span> <span class="sc">+</span> year_factor, <span class="at">data =</span> prediction_data),</span>
+<span id="cb23-49"><a href="#cb23-49" tabindex="-1"></a>  <span class="fu">as.matrix</span>(scaled_prediction)</span>
+<span id="cb23-50"><a href="#cb23-50" tabindex="-1"></a>)</span>
+<span id="cb23-51"><a href="#cb23-51" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">identical</span>(<span class="fu">colnames</span>(prediction_X), <span class="fu">colnames</span>(X))) {</span>
+<span id="cb23-52"><a href="#cb23-52" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Prediction design matrix does not match the fitted model.&quot;</span>)</span>
+<span id="cb23-53"><a href="#cb23-53" tabindex="-1"></a>}</span>
+<span id="cb23-54"><a href="#cb23-54" tabindex="-1"></a></span>
+<span id="cb23-55"><a href="#cb23-55" tabindex="-1"></a>raw_level2_predictions <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(prediction_X <span class="sc">%*%</span> beta_hat)</span>
+<span id="cb23-56"><a href="#cb23-56" tabindex="-1"></a>province_names <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(prediction_data<span class="sc">$</span>level_1))</span>
+<span id="cb23-57"><a href="#cb23-57" tabindex="-1"></a>province_adjustments <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(province_names)), province_names)</span>
+<span id="cb23-58"><a href="#cb23-58" tabindex="-1"></a></span>
+<span id="cb23-59"><a href="#cb23-59" tabindex="-1"></a><span class="cf">for</span> (province <span class="cf">in</span> province_names) {</span>
+<span id="cb23-60"><a href="#cb23-60" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(prediction_data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
+<span id="cb23-61"><a href="#cb23-61" tabindex="-1"></a>  level2_population <span class="ot">&lt;-</span> <span class="fu">sum</span>(prediction_data<span class="sc">$</span>population[idx])</span>
+<span id="cb23-62"><a href="#cb23-62" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(level2_population) <span class="sc">||</span> level2_population <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
+<span id="cb23-63"><a href="#cb23-63" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has no positive level-2 population.&quot;</span>, province))</span>
+<span id="cb23-64"><a href="#cb23-64" tabindex="-1"></a>  }</span>
+<span id="cb23-65"><a href="#cb23-65" tabindex="-1"></a></span>
+<span id="cb23-66"><a href="#cb23-66" tabindex="-1"></a>  province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, prediction_data<span class="sc">$</span>level_1)</span>
+<span id="cb23-67"><a href="#cb23-67" tabindex="-1"></a>  target_total <span class="ot">&lt;-</span> grdp_pc_2025[province_index] <span class="sc">*</span></span>
+<span id="cb23-68"><a href="#cb23-68" tabindex="-1"></a>    province_population_2025[province_index]</span>
+<span id="cb23-69"><a href="#cb23-69" tabindex="-1"></a>  raw_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
+<span id="cb23-70"><a href="#cb23-70" tabindex="-1"></a>    prediction_data<span class="sc">$</span>population[idx] <span class="sc">*</span> raw_level2_predictions[idx]</span>
+<span id="cb23-71"><a href="#cb23-71" tabindex="-1"></a>  )</span>
+<span id="cb23-72"><a href="#cb23-72" tabindex="-1"></a>  province_adjustments[[province]] <span class="ot">&lt;-</span> (target_total <span class="sc">-</span> raw_total) <span class="sc">/</span></span>
+<span id="cb23-73"><a href="#cb23-73" tabindex="-1"></a>    level2_population</span>
+<span id="cb23-74"><a href="#cb23-74" tabindex="-1"></a>}</span>
+<span id="cb23-75"><a href="#cb23-75" tabindex="-1"></a></span>
+<span id="cb23-76"><a href="#cb23-76" tabindex="-1"></a>prediction_data<span class="sc">$</span>raw_grdp_per_capita <span class="ot">&lt;-</span> raw_level2_predictions</span>
+<span id="cb23-77"><a href="#cb23-77" tabindex="-1"></a>prediction_data<span class="sc">$</span>province_adjustment <span class="ot">&lt;-</span></span>
+<span id="cb23-78"><a href="#cb23-78" tabindex="-1"></a>  province_adjustments[prediction_data<span class="sc">$</span>level_1]</span>
+<span id="cb23-79"><a href="#cb23-79" tabindex="-1"></a>prediction_data<span class="sc">$</span>predicted_grdp_per_capita <span class="ot">&lt;-</span></span>
+<span id="cb23-80"><a href="#cb23-80" tabindex="-1"></a>  prediction_data<span class="sc">$</span>raw_grdp_per_capita <span class="sc">+</span> prediction_data<span class="sc">$</span>province_adjustment</span>
+<span id="cb23-81"><a href="#cb23-81" tabindex="-1"></a>prediction_data<span class="sc">$</span>grdp_per_capita_target_2025 <span class="ot">&lt;-</span> grdp_pc_2025</span>
+<span id="cb23-82"><a href="#cb23-82" tabindex="-1"></a></span>
+<span id="cb23-83"><a href="#cb23-83" tabindex="-1"></a>province_check <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(province_names, <span class="cf">function</span>(province) {</span>
+<span id="cb23-84"><a href="#cb23-84" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(prediction_data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
+<span id="cb23-85"><a href="#cb23-85" tabindex="-1"></a>  province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, prediction_data<span class="sc">$</span>level_1)</span>
+<span id="cb23-86"><a href="#cb23-86" tabindex="-1"></a>  province_population <span class="ot">&lt;-</span> province_population_2025[province_index]</span>
+<span id="cb23-87"><a href="#cb23-87" tabindex="-1"></a>  target_total <span class="ot">&lt;-</span> prediction_data<span class="sc">$</span>grdp_per_capita_target_2025[idx[<span class="dv">1</span>]] <span class="sc">*</span></span>
+<span id="cb23-88"><a href="#cb23-88" tabindex="-1"></a>    province_population</span>
+<span id="cb23-89"><a href="#cb23-89" tabindex="-1"></a>  predicted_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
+<span id="cb23-90"><a href="#cb23-90" tabindex="-1"></a>    prediction_data<span class="sc">$</span>population[idx] <span class="sc">*</span></span>
+<span id="cb23-91"><a href="#cb23-91" tabindex="-1"></a>      prediction_data<span class="sc">$</span>predicted_grdp_per_capita[idx]</span>
+<span id="cb23-92"><a href="#cb23-92" tabindex="-1"></a>  )</span>
+<span id="cb23-93"><a href="#cb23-93" tabindex="-1"></a></span>
+<span id="cb23-94"><a href="#cb23-94" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb23-95"><a href="#cb23-95" tabindex="-1"></a>    <span class="at">province =</span> province,</span>
+<span id="cb23-96"><a href="#cb23-96" tabindex="-1"></a>    <span class="at">population =</span> province_population,</span>
+<span id="cb23-97"><a href="#cb23-97" tabindex="-1"></a>    <span class="at">level2_population =</span> <span class="fu">sum</span>(prediction_data<span class="sc">$</span>population[idx]),</span>
+<span id="cb23-98"><a href="#cb23-98" tabindex="-1"></a>    <span class="at">target_grdp_per_capita =</span> prediction_data<span class="sc">$</span>grdp_per_capita_target_2025[idx[<span class="dv">1</span>]],</span>
+<span id="cb23-99"><a href="#cb23-99" tabindex="-1"></a>    <span class="at">target_total_grdp =</span> target_total,</span>
+<span id="cb23-100"><a href="#cb23-100" tabindex="-1"></a>    <span class="at">predicted_total_grdp =</span> predicted_total,</span>
+<span id="cb23-101"><a href="#cb23-101" tabindex="-1"></a>    <span class="at">difference =</span> predicted_total <span class="sc">-</span> target_total</span>
+<span id="cb23-102"><a href="#cb23-102" tabindex="-1"></a>  )</span>
+<span id="cb23-103"><a href="#cb23-103" tabindex="-1"></a>}))</span>
+<span id="cb23-104"><a href="#cb23-104" tabindex="-1"></a></span>
+<span id="cb23-105"><a href="#cb23-105" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>difference) <span class="sc">&gt;</span></span>
+<span id="cb23-106"><a href="#cb23-106" tabindex="-1"></a>        <span class="fl">1e-8</span> <span class="sc">*</span> <span class="fu">pmax</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>target_total_grdp), <span class="dv">1</span>))) {</span>
+<span id="cb23-107"><a href="#cb23-107" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions do not match all provincial GDP targets.&quot;</span>)</span>
+<span id="cb23-108"><a href="#cb23-108" tabindex="-1"></a>}</span>
+<span id="cb23-109"><a href="#cb23-109" tabindex="-1"></a></span>
+<span id="cb23-110"><a href="#cb23-110" tabindex="-1"></a>level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb23-111"><a href="#cb23-111" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
+<span id="cb23-112"><a href="#cb23-112" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
+<span id="cb23-113"><a href="#cb23-113" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
+<span id="cb23-114"><a href="#cb23-114" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
+<span id="cb23-115"><a href="#cb23-115" tabindex="-1"></a>  <span class="at">province_population_2025 =</span> province_population_2025,</span>
+<span id="cb23-116"><a href="#cb23-116" tabindex="-1"></a>  <span class="at">ridge_lambda =</span> <span class="fu">rep</span>(selected_lambda, <span class="fu">nrow</span>(prediction_data)),</span>
+<span id="cb23-117"><a href="#cb23-117" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> prediction_data<span class="sc">$</span>raw_grdp_per_capita,</span>
+<span id="cb23-118"><a href="#cb23-118" tabindex="-1"></a>  <span class="at">province_adjustment =</span> prediction_data<span class="sc">$</span>province_adjustment,</span>
+<span id="cb23-119"><a href="#cb23-119" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> prediction_data<span class="sc">$</span>predicted_grdp_per_capita,</span>
+<span id="cb23-120"><a href="#cb23-120" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
+<span id="cb23-121"><a href="#cb23-121" tabindex="-1"></a>    prediction_data<span class="sc">$</span>grdp_per_capita_target_2025</span>
+<span id="cb23-122"><a href="#cb23-122" tabindex="-1"></a>)</span>
+<span id="cb23-123"><a href="#cb23-123" tabindex="-1"></a>prediction_output <span class="ot">&lt;-</span> <span class="st">&quot;data/predicted_data/level2_grdp_pc_ridge_predictions.csv&quot;</span></span>
+<span id="cb23-124"><a href="#cb23-124" tabindex="-1"></a><span class="fu">write.csv</span>(level2_predictions, prediction_output, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb23-125"><a href="#cb23-125" tabindex="-1"></a></span>
+<span id="cb23-126"><a href="#cb23-126" tabindex="-1"></a><span class="fu">print</span>(province_check, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
 <pre><code>##          province population level2_population target_grdp_per_capita
 ##          An Giang    3694600           4995214                   80.2
 ##          Bac Ninh    3572350           2059480                  146.2
@@ -2139,15 +2291,15 @@ province <span class="math inline">\(j\)</span>. Consequently, <span class="math
 ##          522277570            522277570  0.000000e+00
 ##          169024584            169024584  0.000000e+00
 ##          306046806            306046806  0.000000e+00
-##           27921328             27921328 -3.725290e-09
-##          315915628            315915628  0.000000e+00
+##           27921328             27921328  0.000000e+00
+##          315915628            315915628  5.960464e-08
 ##          229645520            229645520  2.980232e-08
-##           35640228             35640228  0.000000e+00
+##           35640228             35640228 -7.450581e-09
 ##          677649960            677649960  0.000000e+00
 ##          285917520            285917520  0.000000e+00
 ##          270525250            270525250  0.000000e+00
-##         1588155129           1588155129 -7.152557e-07
-##          120830170            120830170  1.490116e-08
+##         1588155129           1588155129  2.384186e-07
+##          120830170            120830170  0.000000e+00
 ##          734526990            734526990  0.000000e+00
 ##         2971958140           2971958140  0.000000e+00
 ##           89632602             89632602  1.490116e-08
@@ -2155,37 +2307,37 @@ province <span class="math inline">\(j\)</span>. Consequently, <span class="math
 ##          209410065            209410065  0.000000e+00
 ##           39792104             39792104  0.000000e+00
 ##          353091176            353091176  0.000000e+00
-##           58182667             58182667 -7.450581e-09
+##           58182667             58182667  7.450581e-09
 ##          141929249            141929249  0.000000e+00
-##          236447900            236447900  0.000000e+00
+##          236447900            236447900 -2.980232e-08
 ##          342864284            342864284  0.000000e+00
 ##          411980289            411980289  0.000000e+00
-##          191698356            191698356  2.980232e-08
+##          191698356            191698356 -2.980232e-08
 ##          368704696            368704696  0.000000e+00
-##          123385662            123385662  0.000000e+00
+##          123385662            123385662  1.490116e-08
 ##           95763108             95763108  0.000000e+00
 ##          344520368            344520368  0.000000e+00
 ##          192381592            192381592  0.000000e+00
 ##          333801645            333801645 -5.960464e-08
 ##           95454450             95454450  0.000000e+00
 ##          278479864            278479864  0.000000e+00</code></pre>
-<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Wrote level-2 predictions to&quot;</span>, prediction_output, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Wrote level-2 predictions to&quot;</span>, prediction_output, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
 <pre><code>## Wrote level-2 predictions to data/predicted_data/level2_grdp_pc_ridge_predictions.csv</code></pre>
-<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="fu">head</span>(level2_predictions)</span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">head</span>(level2_predictions)</span></code></pre></div>
 <pre><code>##      level_2  level_1 year population province_population_2025 ridge_lambda
-## 1   Rạch Giá An Giang 2025     250661                  3694600 1.778279e-06
-## 2   Phú Quốc An Giang 2025     157629                  3694600 1.778279e-06
-## 3 Long Xuyên An Giang 2025     154858                  3694600 1.778279e-06
-## 4   Châu Đốc An Giang 2025      97438                  3694600 1.778279e-06
-## 5    Nhơn Mỹ An Giang 2025      89018                  3694600 1.778279e-06
-## 6    Chợ Mới An Giang 2025      80832                  3694600 1.778279e-06
+## 1   Rạch Giá An Giang 2025     250661                  3694600     15.84893
+## 2   Phú Quốc An Giang 2025     157629                  3694600     15.84893
+## 3 Long Xuyên An Giang 2025     154858                  3694600     15.84893
+## 4   Châu Đốc An Giang 2025      97438                  3694600     15.84893
+## 5    Nhơn Mỹ An Giang 2025      89018                  3694600     15.84893
+## 6    Chợ Mới An Giang 2025      80832                  3694600     15.84893
 ##   raw_grdp_per_capita province_adjustment predicted_grdp_per_capita
-## 1           148.89180            -42.7176                 106.17420
-## 2           103.55632            -42.7176                  60.83872
-## 3           129.77008            -42.7176                  87.05248
-## 4           109.23309            -42.7176                  66.51549
-## 5            98.81732            -42.7176                  56.09972
-## 6            99.98135            -42.7176                  57.26375
+## 1           155.31874           -44.09617                 111.22257
+## 2           105.10921           -44.09617                  61.01304
+## 3           134.15489           -44.09617                  90.05872
+## 4           111.37209           -44.09617                  67.27592
+## 5            99.79903           -44.09617                  55.70286
+## 6           101.09836           -44.09617                  57.00219
 ##   province_grdp_per_capita_target_2025
 ## 1                                 80.2
 ## 2                                 80.2
