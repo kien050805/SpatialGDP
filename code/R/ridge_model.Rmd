@@ -16,11 +16,21 @@ editor_options:
 ---
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-# --- Load Libraries ---
+#Load Libraries
+
+library(CVXR)
 
 ```
 
-# Linear Model for Spatial GDP
+```{r setup, include=FALSE}
+project_dir <- getwd()
+
+knitr::opts_knit$set(
+  root.dir = normalizePath(
+    file.path(project_dir, "..", "..")
+  )
+)
+```
 
 For this model, we will use two basics training and testing datasets:
 
@@ -30,15 +40,647 @@ For this model, we will use two basics training and testing datasets:
 
 ### Load dataset
 ```{r}
-# Set working director
-project_dir <- normalizePath(".")
-setwd(file.path(project_dir, "..", "..", "/data/training_data"))
+# Regression Dataset
+regression_data <- read.csv("data/training_data/regression_dataset.csv")
 
-regression_data = read.csv("regression_dataset.csv")
+regression_data$population <- regression_data$population * 1000
 
+# Prediction Dataset
+prediction_data <- read.csv("data/training_data/prediction_dataset.csv")
 
+# National GDP totals used to constrain the regression fit
+constrained_data <- read.csv("data/_vnm_indicators/vnm_level0_gdp.csv")
+
+# Provincial GRDP per-capita targets used to calibrate 2025 level-2 predictions
+provincial_grdp_data <- read.csv(
+  "data/_vnm_indicators/vnm_GRDPpc.csv",
+  check.names = FALSE
+)
+
+# Provincial population totals (thousands) used as the aggregation constraint
+provincial_population_data <- read.csv(
+  "data/_vnm_indicators/vnm_population.csv",
+  check.names = FALSE
+)
 ```
 
 
+### Preliminaries
+Supposed:
+
+* \(y \in \mathbb{R}^n\): observed outcome vector. That is, `grdp_per_capita`.
+* \(x_i \in \mathbb{R}^3\): standardized explanatory variables for observation \(i\): `mean_radiance`, `population`, and `pixel_count`.
+* \(\alpha_t \in \mathbb{R}\): year-specific intercept for year \(t\).
+* \(\beta \in \mathbb{R}^3\): shared slopes for the explanatory variables.
+* \(a_t \in \mathbb{R}\): specified national GDP total for year \(t\).
+
+The model includes a separate, unpenalized intercept for each year and shared
+ridge-penalized slopes for the standardized explanatory variables. The
+constraints ensure that population-weighted predictions match the national GDP
+target for every year. The penalty grid is evaluated on training RMSE and
+\(R^2\); these in-sample metrics describe fit and are not an estimate of
+out-of-sample performance.
+
+```{r}
+# Definitions
+y <- regression_data$grdp_per_capita
+years <- sort(unique(regression_data$year))
+regression_data$year_factor <- factor(regression_data$year, levels = years)
+
+feature_columns <- c("mean_radiance", "population", "pixel_count")
+feature_means <- vapply(regression_data[feature_columns], mean, numeric(1))
+feature_sds <- vapply(regression_data[feature_columns], sd, numeric(1))
+if (any(!is.finite(feature_sds)) || any(feature_sds == 0)) {
+  stop("Training predictors must have finite, non-zero standard deviations.")
+}
+
+scaled_feature_columns <- paste0(feature_columns, "_scaled")
+for (feature in feature_columns) {
+  scaled_feature <- paste0(feature, "_scaled")
+  regression_data[[scaled_feature]] <-
+    (regression_data[[feature]] - feature_means[[feature]]) /
+    feature_sds[[feature]]
+}
+
+X <- model.matrix(
+  ~ 0 + year_factor + mean_radiance_scaled + population_scaled +
+    pixel_count_scaled,
+  data = regression_data
+)
+
+p <- ncol(X)
+year <- regression_data$year
+population <- regression_data$population
+
+target_gdp <- constrained_data$gdp[match(years, constrained_data$year)]
+if (anyNA(target_gdp) || any(!is.finite(target_gdp))) {
+  stop("Missing or non-finite national GDP target for one or more model years.")
+}
+if (anyDuplicated(constrained_data$year[constrained_data$year %in% years])) {
+  stop("National GDP data contains duplicate targets for a model year.")
+}
+```
+
+### Optimization problem
+
+For each candidate \(\lambda\), the optimization problem is
+\[
+\boxed{
+\begin{aligned}
+\min_{\alpha,\beta}\quad &
+\|y-\hat y\|_2^2+\lambda\|\beta\|_2^2\\
+\text{s.t.}\quad
+&\sum_{i:\,\mathrm{year}_i=t} P_i\hat y_i=a_t,
+\quad t\in\{2020,\ldots,2025\},\\
+&\hat y_i=\alpha_{\mathrm{year}_i}+x_i^\top\beta,
+\quad \lambda\ge 0.
+\end{aligned}
+}
+\]
+Only the standardized feature slopes \(\beta\) are penalized; the yearly
+intercepts remain unpenalized.
 
 
+```{r}
+# Search a logarithmic grid of positive ridge penalties.
+lambda_grid <- 10^seq(-6, 6, length.out = 49)
+ridge_coefficients <- matrix(NA_real_, nrow = p, ncol = length(lambda_grid))
+ridge_predictions <- matrix(
+  NA_real_,
+  nrow = length(y),
+  ncol = length(lambda_grid)
+)
+ridge_status <- character(length(lambda_grid))
+
+for (lambda_index in seq_along(lambda_grid)) {
+  ridge_beta <- Variable(p)
+  ridge_fitted <- X %*% ridge_beta
+
+  # Scaling each equality by its target improves numerical conditioning.
+  constraints <- lapply(seq_along(years), function(i) {
+    idx <- which(year == years[i])
+    sum_entries(population[idx] * ridge_fitted[idx]) / target_gdp[i] == 1
+  })
+
+  ridge_problem <- Problem(
+    Minimize(
+      sum_squares(y - ridge_fitted) +
+        lambda_grid[lambda_index] *
+        sum_squares(ridge_beta[(length(years) + 1):p])
+    ),
+    constraints
+  )
+  ridge_result <- solve(ridge_problem, solver = "CLARABEL")
+  ridge_status[lambda_index] <- ridge_result$status
+  if (!ridge_result$status %in% c("optimal", "optimal_inaccurate")) {
+    stop(sprintf(
+      "Ridge fit failed for lambda=%g with solver status: %s",
+      lambda_grid[lambda_index],
+      ridge_result$status
+    ))
+  }
+
+  ridge_coefficients[, lambda_index] <- as.numeric(value(ridge_beta))
+  ridge_predictions[, lambda_index] <-
+    as.vector(X %*% ridge_coefficients[, lambda_index])
+}
+
+total_sum_squares <- sum((y - mean(y))^2)
+if (total_sum_squares == 0) {
+  stop("Cannot compute R-squared because the observed response has zero variance.")
+}
+
+lambda_results <- data.frame(
+  lambda = lambda_grid,
+  RMSE = apply(ridge_predictions, 2, function(fit) {
+    sqrt(mean((y - fit)^2))
+  }),
+  R_squared = apply(ridge_predictions, 2, function(fit) {
+    1 - sum((y - fit)^2) / total_sum_squares
+  }),
+  solver_status = ridge_status
+)
+write.csv(
+  lambda_results,
+  "data/predicted_data/ridge_lambda_grid_metrics.csv",
+  row.names = FALSE
+)
+
+selected_index <- which.min(lambda_results$RMSE)
+selected_lambda <- lambda_results$lambda[selected_index]
+beta_hat <- ridge_coefficients[, selected_index]
+predictions <- ridge_predictions[, selected_index]
+
+yearly_check <- data.frame(
+  year = years,
+  predicted_total_grdp = sapply(years, function(t) {
+    idx <- which(year == t)
+    sum(population[idx] * predictions[idx])
+  }),
+  target_total_grdp = target_gdp
+)
+yearly_check$difference <-
+  yearly_check$predicted_total_grdp - yearly_check$target_total_grdp
+
+cat(sprintf("Selected lambda by minimum training RMSE: %.8g\n", selected_lambda))
+print(lambda_results, row.names = FALSE)
+print(beta_hat)
+print(yearly_check)
+
+lambda_plot_path <- "figures/ridge_lambda_grid_metrics.png"
+dir.create("figures", showWarnings = FALSE, recursive = TRUE)
+grDevices::png(lambda_plot_path, width = 2000, height = 900, res = 160)
+par(mfrow = c(1, 2), mar = c(4.5, 4.5, 3, 1))
+plot(
+  lambda_results$lambda,
+  lambda_results$RMSE,
+  type = "b",
+  log = "x",
+  pch = 19,
+  col = "#0072B2",
+  xlab = expression(lambda),
+  ylab = "Training RMSE",
+  main = "Ridge penalty grid: RMSE"
+)
+abline(v = selected_lambda, lty = 2, col = "#D55E00")
+plot(
+  lambda_results$lambda,
+  lambda_results$R_squared,
+  type = "b",
+  log = "x",
+  pch = 19,
+  col = "#0072B2",
+  xlab = expression(lambda),
+  ylab = expression(R^2),
+  main = "Ridge penalty grid: R-squared"
+)
+abline(v = selected_lambda, lty = 2, col = "#D55E00")
+grDevices::dev.off()
+knitr::include_graphics(lambda_plot_path)
+```
+
+
+### Statistical Summary
+
+For observation \(i=1,\ldots,n\), let \(y_i\) be the observed GRDP per capita,
+\(\hat y_i^{(R)}\) the selected constrained-ridge prediction, and
+\(\hat y_i^{(OLS)}\) the ordinary least-squares prediction. The response mean
+and total sum of squares are
+\[
+\bar y = \frac{1}{n}\sum_{i=1}^{n} y_i,
+\qquad
+\mathrm{SST} = \sum_{i=1}^{n}(y_i-\bar y)^2.
+\]
+
+The coefficient of determination is computed for each model as
+\[
+R_R^2
+=1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i^{(R)})^2}{\mathrm{SST}},
+\qquad
+R_{OLS}^2
+= 1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}{\mathrm{SST}}.
+\]
+
+The root mean squared error (RMSE), in GRDP-per-capita units, is
+\[
+\mathrm{RMSE}_R
+=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(R)})^2},
+\qquad
+\mathrm{RMSE}_{OLS}
+=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}.
+\]
+
+The RMSE difference and its absolute percentage relative to OLS are
+\[
+\Delta\mathrm{RMSE}
+=\mathrm{RMSE}_R-\mathrm{RMSE}_{OLS},
+\qquad
+\%\mathrm{Difference}
+=\frac{|\mathrm{RMSE}_R-\mathrm{RMSE}_{OLS}|}
+{\mathrm{RMSE}_{OLS}}\times 100\%.
+\]
+A positive \(\Delta\mathrm{RMSE}\) means the constrained ridge model's RMSE is
+higher; a negative value means it is lower. The lambda-grid selection uses
+training RMSE only and should be treated as exploratory rather than as a
+generalization estimate.
+
+```{r}
+ols_fit <- lm.fit(x = X, y = y)
+ols_predictions <- as.vector(X %*% ols_fit$coefficients)
+
+total_sum_squares <- sum((y - mean(y))^2)
+if (total_sum_squares == 0) {
+  stop("Cannot compute R-squared because the observed response has zero variance.")
+}
+
+ridge_residuals <- y - predictions
+ols_residuals <- y - ols_predictions
+
+model_stats <- data.frame(
+  model = c("Constrained ridge", "Ordinary least squares"),
+  R_squared = c(
+    1 - sum(ridge_residuals^2) / total_sum_squares,
+    1 - sum(ols_residuals^2) / total_sum_squares
+  ),
+  RMSE = c(
+    sqrt(mean(ridge_residuals^2)),
+    sqrt(mean(ols_residuals^2))
+  )
+)
+
+print(model_stats, row.names = FALSE)
+
+ridge_rmse <- model_stats$RMSE[model_stats$model == "Constrained ridge"]
+ols_rmse <- model_stats$RMSE[model_stats$model == "Ordinary least squares"]
+cat(sprintf(
+  "Constrained ridge RMSE (lambda=%.8g) is %.6f GRDP-per-capita units (%.2f%%) %s than OLS RMSE.\n",
+  selected_lambda,
+  abs(ridge_rmse - ols_rmse),
+  abs(ridge_rmse - ols_rmse) / ols_rmse * 100,
+  if (ridge_rmse >= ols_rmse) "higher" else "lower"
+))
+```
+
+### Training fit and residual diagnostics
+
+The first figure compares fitted values with observed training values for both
+the selected constrained ridge model and the ordinary least-squares reference.
+The diagnostic
+panels examine residual patterns against fitted values and predictors,
+approximate normality, residual spread, and differences across years. These are
+visual checks rather than formal hypothesis tests. Because the constrained
+ridge model imposes annual weighted-sum equalities, its residuals are not the
+independent, identically distributed residuals assumed by standard OLS
+inference; interpret the plots as diagnostics, not as a basis for unadjusted
+OLS significance tests.
+
+```{r training-diagnostics, echo=FALSE}
+training_diagnostics <- data.frame(
+  actual = y,
+  constrained_fitted = predictions,
+  constrained_residual = ridge_residuals,
+  ols_fitted = ols_predictions,
+  ols_residual = ols_residuals,
+  year = factor(year),
+  mean_radiance = regression_data$mean_radiance,
+  population = population,
+  pixel_count = regression_data$pixel_count
+)
+
+dir.create("figures", showWarnings = FALSE, recursive = TRUE)
+
+actual_fitted_path <- "figures/ridge_model_training_actual_vs_fitted.png"
+grDevices::png(actual_fitted_path, width = 1800, height = 1100, res = 160)
+par(mfrow = c(1, 1), mar = c(4.5, 4.5, 3, 1))
+plot(
+  training_diagnostics$actual,
+  training_diagnostics$constrained_fitted,
+  xlab = "Actual GRDP per capita",
+  ylab = "Fitted GRDP per capita",
+  main = sprintf("Training observations: actual vs fitted (lambda=%.4g)", selected_lambda),
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65),
+  xlim = range(training_diagnostics$actual),
+  ylim = range(
+    training_diagnostics$constrained_fitted,
+    training_diagnostics$ols_fitted
+  )
+)
+points(
+  training_diagnostics$actual,
+  training_diagnostics$ols_fitted,
+  pch = 1,
+  col = grDevices::adjustcolor("#D55E00", alpha.f = 0.65)
+)
+abline(0, 1, lty = 2, col = "gray35")
+legend(
+  "topleft",
+  legend = c("Constrained ridge", "OLS reference", "Perfect fit"),
+  pch = c(19, 1, NA),
+  lty = c(NA, NA, 2),
+  col = c("#0072B2", "#D55E00", "gray35"),
+  bty = "n"
+)
+grDevices::dev.off()
+knitr::include_graphics(actual_fitted_path)
+```
+
+```{r residual-assumption-diagnostics, echo=FALSE}
+standardized_residual <- training_diagnostics$constrained_residual /
+  sd(training_diagnostics$constrained_residual)
+residual_diagnostics_path <- "figures/ridge_model_training_residual_diagnostics.png"
+grDevices::png(residual_diagnostics_path, width = 2800, height = 1600, res = 200)
+par(mfrow = c(2, 4), mar = c(4, 4, 3, 1), oma = c(0, 0, 2, 0))
+
+plot(
+  training_diagnostics$constrained_fitted,
+  training_diagnostics$constrained_residual,
+  xlab = "Fitted values",
+  ylab = "Constrained residual",
+  main = "Constrained: residual vs fitted",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+lines(lowess(
+  training_diagnostics$constrained_fitted,
+  training_diagnostics$constrained_residual
+), col = "#D55E00", lwd = 2)
+
+plot(
+  training_diagnostics$ols_fitted,
+  training_diagnostics$ols_residual,
+  xlab = "OLS fitted values",
+  ylab = "OLS residual",
+  main = "OLS: residual vs fitted",
+  pch = 19,
+  col = grDevices::adjustcolor("#D55E00", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+lines(lowess(
+  training_diagnostics$ols_fitted,
+  training_diagnostics$ols_residual
+), col = "#0072B2", lwd = 2)
+
+qqnorm(
+  training_diagnostics$constrained_residual,
+  main = "Constrained residual normal Q-Q",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+qqline(training_diagnostics$constrained_residual, col = "#D55E00", lwd = 2)
+
+plot(
+  training_diagnostics$constrained_fitted,
+  sqrt(abs(standardized_residual)),
+  xlab = "Fitted values",
+  ylab = expression(sqrt("|standardized residual|")),
+  main = "Constrained: scale-location",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+lines(lowess(
+  training_diagnostics$constrained_fitted,
+  sqrt(abs(standardized_residual))
+), col = "#D55E00", lwd = 2)
+
+plot(
+  training_diagnostics$mean_radiance,
+  training_diagnostics$constrained_residual,
+  xlab = "Mean radiance",
+  ylab = "Constrained residual",
+  main = "Residual vs radiance",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+lines(lowess(
+  training_diagnostics$mean_radiance,
+  training_diagnostics$constrained_residual
+), col = "#D55E00", lwd = 2)
+
+plot(
+  training_diagnostics$population,
+  training_diagnostics$constrained_residual,
+  log = "x",
+  xlab = "Population (log scale)",
+  ylab = "Constrained residual",
+  main = "Residual vs population",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+
+plot(
+  training_diagnostics$pixel_count,
+  training_diagnostics$constrained_residual,
+  xlab = "Pixel count",
+  ylab = "Constrained residual",
+  main = "Residual vs pixel count",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+lines(lowess(
+  training_diagnostics$pixel_count,
+  training_diagnostics$constrained_residual
+), col = "#D55E00", lwd = 2)
+
+boxplot(
+  constrained_residual ~ year,
+  data = training_diagnostics,
+  xlab = "Year",
+  ylab = "Constrained residual",
+  main = "Residual distribution by year",
+  col = "#B8D8E8",
+  border = "#0072B2"
+)
+abline(h = 0, lty = 2)
+
+mtext(
+  "Training-model assumption checks (visual diagnostics)",
+  outer = TRUE,
+  cex = 1.1
+)
+grDevices::dev.off()
+knitr::include_graphics(residual_diagnostics_path)
+```
+
+### 2025 Level-2 Predictions
+
+The fitted model produces an initial prediction for each level-2 unit using the
+2025 intercept and the same training-data means and standard deviations used
+when fitting the model. Calibrate predictions so the sum of level-2 predicted
+GRDP per capita times level-2 population equals the province's 2025 GRDP per
+capita times its independently reported province-level population. Convert the
+province-level population from thousands to people. Add a common adjustment
+\(\delta_j\) to every level-2 prediction within province \(j\):
+\[
+\tilde y_{ij} = \hat y_{ij} + \delta_j,
+\qquad
+\delta_j =
+\frac{g_jN_j
+-\sum_{i\in j}P_{ij}\hat y_{ij}}
+{\sum_{i\in j}P_{ij}},
+\]
+where \(g_j\) is the province's 2025 GRDP per capita and \(P_{ij}\) is the
+population of level-2 unit \(i\), and \(N_j\) is the reported total population
+of province \(j\). Consequently,
+\[
+\sum_{i\in j}P_{ij}\tilde y_{ij}
+=g_jN_j.
+\]
+
+```{r}
+if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {
+  stop("The level-2 prediction dataset must contain only 2025 observations.")
+}
+if (any(!complete.cases(prediction_data[, c(
+  "name", "level_1", "population", "mean_radiance", "pixel_count"
+)]))) {
+  stop("The level-2 prediction data contains missing required values.")
+}
+prediction_features <- as.matrix(prediction_data[feature_columns])
+if (any(!is.finite(prediction_features))) {
+  stop("Level-2 prediction features must be finite.")
+}
+if (any(prediction_data$population < 0)) {
+  stop("Level-2 populations must be finite and non-negative.")
+}
+if (anyDuplicated(paste(prediction_data$level_1, prediction_data$name, sep = "\r"))) {
+  stop("The level-2 prediction data contains duplicate units within a province.")
+}
+if (anyDuplicated(provincial_grdp_data$province)) {
+  stop("Provincial GRDP data contains duplicate province targets.")
+}
+if (anyDuplicated(provincial_population_data$province)) {
+  stop("Provincial population data contains duplicate province totals.")
+}
+
+grdp_pc_2025 <- provincial_grdp_data[["2025"]][
+  match(prediction_data$level_1, provincial_grdp_data$province)
+]
+if (anyNA(grdp_pc_2025) || any(!is.finite(grdp_pc_2025))) {
+  stop("Missing or non-finite 2025 GRDP-per-capita target for a prediction province.")
+}
+province_population_2025 <- provincial_population_data[["2025"]][
+  match(prediction_data$level_1, provincial_population_data$province)
+] * 1000
+if (anyNA(province_population_2025) ||
+    any(!is.finite(province_population_2025)) ||
+    any(province_population_2025 <= 0)) {
+  stop("Missing or invalid 2025 population total for a prediction province.")
+}
+
+prediction_data$year_factor <- factor(prediction_data$year, levels = years)
+for (feature in feature_columns) {
+  scaled_feature <- paste0(feature, "_scaled")
+  prediction_data[[scaled_feature]] <-
+    (prediction_data[[feature]] - feature_means[[feature]]) /
+    feature_sds[[feature]]
+}
+
+prediction_X <- model.matrix(
+  ~ 0 + year_factor + mean_radiance_scaled + population_scaled +
+    pixel_count_scaled,
+  data = prediction_data
+)
+if (!identical(colnames(prediction_X), colnames(X))) {
+  stop("Prediction design matrix does not match the fitted model.")
+}
+
+raw_level2_predictions <- as.vector(prediction_X %*% beta_hat)
+province_names <- sort(unique(prediction_data$level_1))
+province_adjustments <- setNames(numeric(length(province_names)), province_names)
+
+for (province in province_names) {
+  idx <- which(prediction_data$level_1 == province)
+  level2_population <- sum(prediction_data$population[idx])
+  if (!is.finite(level2_population) || level2_population <= 0) {
+    stop(sprintf("Province %s has no positive level-2 population.", province))
+  }
+
+  province_index <- match(province, prediction_data$level_1)
+  target_total <- grdp_pc_2025[province_index] *
+    province_population_2025[province_index]
+  raw_total <- sum(
+    prediction_data$population[idx] * raw_level2_predictions[idx]
+  )
+  province_adjustments[[province]] <- (target_total - raw_total) /
+    level2_population
+}
+
+prediction_data$raw_grdp_per_capita <- raw_level2_predictions
+prediction_data$province_adjustment <-
+  province_adjustments[prediction_data$level_1]
+prediction_data$predicted_grdp_per_capita <-
+  prediction_data$raw_grdp_per_capita + prediction_data$province_adjustment
+prediction_data$grdp_per_capita_target_2025 <- grdp_pc_2025
+
+province_check <- do.call(rbind, lapply(province_names, function(province) {
+  idx <- which(prediction_data$level_1 == province)
+  province_index <- match(province, prediction_data$level_1)
+  province_population <- province_population_2025[province_index]
+  target_total <- prediction_data$grdp_per_capita_target_2025[idx[1]] *
+    province_population
+  predicted_total <- sum(
+    prediction_data$population[idx] *
+      prediction_data$predicted_grdp_per_capita[idx]
+  )
+
+  data.frame(
+    province = province,
+    population = province_population,
+    level2_population = sum(prediction_data$population[idx]),
+    target_grdp_per_capita = prediction_data$grdp_per_capita_target_2025[idx[1]],
+    target_total_grdp = target_total,
+    predicted_total_grdp = predicted_total,
+    difference = predicted_total - target_total
+  )
+}))
+
+if (any(abs(province_check$difference) >
+        1e-8 * pmax(abs(province_check$target_total_grdp), 1))) {
+  stop("Calibrated level-2 predictions do not match all provincial GDP targets.")
+}
+
+level2_predictions <- data.frame(
+  level_2 = prediction_data$name,
+  level_1 = prediction_data$level_1,
+  year = prediction_data$year,
+  population = prediction_data$population,
+  province_population_2025 = province_population_2025,
+  ridge_lambda = rep(selected_lambda, nrow(prediction_data)),
+  raw_grdp_per_capita = prediction_data$raw_grdp_per_capita,
+  province_adjustment = prediction_data$province_adjustment,
+  predicted_grdp_per_capita = prediction_data$predicted_grdp_per_capita,
+  province_grdp_per_capita_target_2025 =
+    prediction_data$grdp_per_capita_target_2025
+)
+prediction_output <- "data/predicted_data/level2_grdp_pc_ridge_predictions.csv"
+write.csv(level2_predictions, prediction_output, row.names = FALSE)
+
+print(province_check, row.names = FALSE)
+cat("Wrote level-2 predictions to", prediction_output, "\n")
+head(level2_predictions)
+```

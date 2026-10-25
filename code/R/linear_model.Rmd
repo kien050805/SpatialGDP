@@ -263,6 +263,217 @@ cat(sprintf(
 ))
 ```
 
+### Training fit and residual diagnostics
+
+The first figure compares fitted values with observed training values for both
+the constrained model and the ordinary least-squares reference. The diagnostic
+panels examine residual patterns against fitted values and predictors,
+approximate normality, residual spread, and differences across years. These are
+visual checks rather than formal hypothesis tests. Because the constrained
+model imposes annual weighted-sum equalities, its residuals are not the
+independent, identically distributed residuals assumed by standard OLS
+inference; interpret the plots as diagnostics, not as a basis for unadjusted
+OLS significance tests.
+
+```{r training-diagnostics, echo=FALSE}
+training_diagnostics <- data.frame(
+  province = regression_data$province,
+  year = year,
+  actual = y,
+  constrained_fitted = predictions,
+  constrained_residual = constrained_residuals,
+  ols_fitted = ols_predictions,
+  ols_residual = ols_residuals,
+  year_factor = factor(year),
+  mean_radiance = regression_data$mean_radiance,
+  population = population,
+  pixel_count = regression_data$pixel_count
+)
+
+dir.create("figures", showWarnings = FALSE, recursive = TRUE)
+dir.create("data/training_data", showWarnings = FALSE, recursive = TRUE)
+
+positive_residual_observations <- training_diagnostics[
+  training_diagnostics$constrained_residual > 0,
+  c(
+    "province",
+    "year",
+    "actual",
+    "constrained_fitted",
+    "constrained_residual",
+    "mean_radiance",
+    "population",
+    "pixel_count"
+  )
+]
+positive_residual_observations <- positive_residual_observations[
+  order(positive_residual_observations$constrained_residual, decreasing = TRUE),
+]
+write.csv(
+  positive_residual_observations,
+  "data/training_data/linear_model_positive_residual_observations.csv",
+  row.names = FALSE
+)
+cat("Training observations with actual GRDP per capita above fitted values:\n")
+print(head(positive_residual_observations, 10), row.names = FALSE)
+
+actual_fitted_path <- "figures/linear_model_training_actual_vs_fitted.png"
+grDevices::png(actual_fitted_path, width = 1800, height = 1100, res = 160)
+par(mfrow = c(1, 1), mar = c(4.5, 4.5, 3, 1))
+plot(
+  training_diagnostics$actual,
+  training_diagnostics$constrained_fitted,
+  xlab = "Actual GRDP per capita",
+  ylab = "Fitted GRDP per capita",
+  main = "Training observations: actual vs fitted",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65),
+  xlim = range(training_diagnostics$actual),
+  ylim = range(
+    training_diagnostics$constrained_fitted,
+    training_diagnostics$ols_fitted
+  )
+)
+points(
+  training_diagnostics$actual,
+  training_diagnostics$ols_fitted,
+  pch = 1,
+  col = grDevices::adjustcolor("#D55E00", alpha.f = 0.65)
+)
+abline(0, 1, lty = 2, col = "gray35")
+legend(
+  "topleft",
+  legend = c("Constrained model", "OLS reference", "Perfect fit"),
+  pch = c(19, 1, NA),
+  lty = c(NA, NA, 2),
+  col = c("#0072B2", "#D55E00", "gray35"),
+  bty = "n"
+)
+grDevices::dev.off()
+knitr::include_graphics(actual_fitted_path)
+```
+
+```{r residual-assumption-diagnostics, echo=FALSE}
+standardized_residual <- training_diagnostics$constrained_residual /
+  sd(training_diagnostics$constrained_residual)
+residual_diagnostics_path <- "figures/linear_model_training_residual_diagnostics.png"
+grDevices::png(residual_diagnostics_path, width = 2800, height = 1600, res = 200)
+par(mfrow = c(2, 4), mar = c(4, 4, 3, 1), oma = c(0, 0, 2, 0))
+
+plot(
+  training_diagnostics$constrained_fitted,
+  training_diagnostics$constrained_residual,
+  xlab = "Fitted values",
+  ylab = "Constrained residual",
+  main = "Constrained: residual vs fitted",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+lines(lowess(
+  training_diagnostics$constrained_fitted,
+  training_diagnostics$constrained_residual
+), col = "#D55E00", lwd = 2)
+
+plot(
+  training_diagnostics$ols_fitted,
+  training_diagnostics$ols_residual,
+  xlab = "OLS fitted values",
+  ylab = "OLS residual",
+  main = "OLS: residual vs fitted",
+  pch = 19,
+  col = grDevices::adjustcolor("#D55E00", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+lines(lowess(
+  training_diagnostics$ols_fitted,
+  training_diagnostics$ols_residual
+), col = "#0072B2", lwd = 2)
+
+qqnorm(
+  training_diagnostics$constrained_residual,
+  main = "Constrained residual normal Q-Q",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+qqline(training_diagnostics$constrained_residual, col = "#D55E00", lwd = 2)
+
+plot(
+  training_diagnostics$constrained_fitted,
+  sqrt(abs(standardized_residual)),
+  xlab = "Fitted values",
+  ylab = expression(sqrt("|standardized residual|")),
+  main = "Constrained: scale-location",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+lines(lowess(
+  training_diagnostics$constrained_fitted,
+  sqrt(abs(standardized_residual))
+), col = "#D55E00", lwd = 2)
+
+plot(
+  training_diagnostics$mean_radiance,
+  training_diagnostics$constrained_residual,
+  xlab = "Mean radiance",
+  ylab = "Constrained residual",
+  main = "Residual vs radiance",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+lines(lowess(
+  training_diagnostics$mean_radiance,
+  training_diagnostics$constrained_residual
+), col = "#D55E00", lwd = 2)
+
+plot(
+  training_diagnostics$population,
+  training_diagnostics$constrained_residual,
+  log = "x",
+  xlab = "Population (log scale)",
+  ylab = "Constrained residual",
+  main = "Residual vs population",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+
+plot(
+  training_diagnostics$pixel_count,
+  training_diagnostics$constrained_residual,
+  xlab = "Pixel count",
+  ylab = "Constrained residual",
+  main = "Residual vs pixel count",
+  pch = 19,
+  col = grDevices::adjustcolor("#0072B2", alpha.f = 0.65)
+)
+abline(h = 0, lty = 2)
+lines(lowess(
+  training_diagnostics$pixel_count,
+  training_diagnostics$constrained_residual
+), col = "#D55E00", lwd = 2)
+
+boxplot(
+  constrained_residual ~ year_factor,
+  data = training_diagnostics,
+  xlab = "Year",
+  ylab = "Constrained residual",
+  main = "Residual distribution by year",
+  col = "#B8D8E8",
+  border = "#0072B2"
+)
+abline(h = 0, lty = 2)
+
+mtext(
+  "Training-model assumption checks (visual diagnostics)",
+  outer = TRUE,
+  cex = 1.1
+)
+grDevices::dev.off()
+knitr::include_graphics(residual_diagnostics_path)
+```
+
 ### 2025 Level-2 Predictions
 
 The fitted model produces an initial prediction for each level-2 unit using the
