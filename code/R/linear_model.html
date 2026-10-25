@@ -1583,7 +1583,13 @@ purposes</p></li>
 <span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>provincial_grdp_data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(</span>
 <span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>  <span class="st">&quot;data/_vnm_indicators/vnm_GRDPpc.csv&quot;</span>,</span>
 <span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>  <span class="at">check.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>)</span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co"># Provincial population totals (thousands) used as the aggregation constraint</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>provincial_population_data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(</span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>  <span class="st">&quot;data/_vnm_indicators/vnm_population.csv&quot;</span>,</span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>  <span class="at">check.names =</span> <span class="cn">FALSE</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="preliminaries" class="section level3">
 <h3>Preliminaries</h3>
@@ -1805,20 +1811,24 @@ model’s RMSE is higher; a negative value means it is lower.</p>
 <h3>2025 Level-2 Predictions</h3>
 <p>The fitted model produces an initial prediction for each level-2 unit
 using the 2025 intercept and the same training-data means and standard
-deviations used when fitting the model. To ensure each province matches
-its observed 2025 GRDP per capita, add a common adjustment <span class="math inline">\(\delta_j\)</span> to every level-2 prediction
+deviations used when fitting the model. Calibrate predictions so the sum
+of level-2 predicted GRDP per capita times level-2 population equals the
+province’s 2025 GRDP per capita times its independently reported
+province-level population. Convert the province-level population from
+thousands to people. Add a common adjustment <span class="math inline">\(\delta_j\)</span> to every level-2 prediction
 within province <span class="math inline">\(j\)</span>: <span class="math display">\[
 \tilde y_{ij} = \hat y_{ij} + \delta_j,
 \qquad
 \delta_j =
-\frac{g_j\sum_{i\in j}P_{ij}
+\frac{g_jN_j
 -\sum_{i\in j}P_{ij}\hat y_{ij}}
 {\sum_{i\in j}P_{ij}},
 \]</span> where <span class="math inline">\(g_j\)</span> is the
 province’s 2025 GRDP per capita and <span class="math inline">\(P_{ij}\)</span> is the population of level-2 unit
-<span class="math inline">\(i\)</span>. Consequently, <span class="math display">\[
+<span class="math inline">\(i\)</span>, and <span class="math inline">\(N_j\)</span> is the reported total population of
+province <span class="math inline">\(j\)</span>. Consequently, <span class="math display">\[
 \sum_{i\in j}P_{ij}\tilde y_{ij}
-=g_j\sum_{i\in j}P_{ij}.
+=g_jN_j.
 \]</span></p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(prediction_data<span class="sc">$</span>year) <span class="sc">||</span> <span class="fu">any</span>(prediction_data<span class="sc">$</span>year <span class="sc">!=</span> <span class="dv">2025</span>)) {</span>
 <span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;The level-2 prediction dataset must contain only 2025 observations.&quot;</span>)</span>
@@ -1841,185 +1851,207 @@ province’s 2025 GRDP per capita and <span class="math inline">\(P_{ij}\)</span
 <span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(provincial_grdp_data<span class="sc">$</span>province)) {</span>
 <span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Provincial GRDP data contains duplicate province targets.&quot;</span>)</span>
 <span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a>}</span>
-<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a></span>
-<span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a>grdp_pc_2025 <span class="ot">&lt;-</span> provincial_grdp_data[[<span class="st">&quot;2025&quot;</span>]][</span>
-<span id="cb13-24"><a href="#cb13-24" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, provincial_grdp_data<span class="sc">$</span>province)</span>
-<span id="cb13-25"><a href="#cb13-25" tabindex="-1"></a>]</span>
-<span id="cb13-26"><a href="#cb13-26" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(grdp_pc_2025) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(grdp_pc_2025))) {</span>
-<span id="cb13-27"><a href="#cb13-27" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or non-finite 2025 GRDP-per-capita target for a prediction province.&quot;</span>)</span>
-<span id="cb13-28"><a href="#cb13-28" tabindex="-1"></a>}</span>
-<span id="cb13-29"><a href="#cb13-29" tabindex="-1"></a></span>
-<span id="cb13-30"><a href="#cb13-30" tabindex="-1"></a>prediction_data<span class="sc">$</span>year_factor <span class="ot">&lt;-</span> <span class="fu">factor</span>(prediction_data<span class="sc">$</span>year, <span class="at">levels =</span> years)</span>
-<span id="cb13-31"><a href="#cb13-31" tabindex="-1"></a><span class="cf">for</span> (feature <span class="cf">in</span> feature_columns) {</span>
-<span id="cb13-32"><a href="#cb13-32" tabindex="-1"></a>  scaled_feature <span class="ot">&lt;-</span> <span class="fu">paste0</span>(feature, <span class="st">&quot;_scaled&quot;</span>)</span>
-<span id="cb13-33"><a href="#cb13-33" tabindex="-1"></a>  prediction_data[[scaled_feature]] <span class="ot">&lt;-</span></span>
-<span id="cb13-34"><a href="#cb13-34" tabindex="-1"></a>    (prediction_data[[feature]] <span class="sc">-</span> feature_means[[feature]]) <span class="sc">/</span></span>
-<span id="cb13-35"><a href="#cb13-35" tabindex="-1"></a>    feature_sds[[feature]]</span>
-<span id="cb13-36"><a href="#cb13-36" tabindex="-1"></a>}</span>
-<span id="cb13-37"><a href="#cb13-37" tabindex="-1"></a></span>
-<span id="cb13-38"><a href="#cb13-38" tabindex="-1"></a>prediction_X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(</span>
-<span id="cb13-39"><a href="#cb13-39" tabindex="-1"></a>  <span class="sc">~</span> <span class="dv">0</span> <span class="sc">+</span> year_factor <span class="sc">+</span> mean_radiance_scaled <span class="sc">+</span> population_scaled <span class="sc">+</span></span>
-<span id="cb13-40"><a href="#cb13-40" tabindex="-1"></a>    pixel_count_scaled,</span>
-<span id="cb13-41"><a href="#cb13-41" tabindex="-1"></a>  <span class="at">data =</span> prediction_data</span>
-<span id="cb13-42"><a href="#cb13-42" tabindex="-1"></a>)</span>
-<span id="cb13-43"><a href="#cb13-43" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">identical</span>(<span class="fu">colnames</span>(prediction_X), <span class="fu">colnames</span>(X))) {</span>
-<span id="cb13-44"><a href="#cb13-44" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Prediction design matrix does not match the fitted model.&quot;</span>)</span>
-<span id="cb13-45"><a href="#cb13-45" tabindex="-1"></a>}</span>
-<span id="cb13-46"><a href="#cb13-46" tabindex="-1"></a></span>
-<span id="cb13-47"><a href="#cb13-47" tabindex="-1"></a>raw_level2_predictions <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(prediction_X <span class="sc">%*%</span> beta_hat)</span>
-<span id="cb13-48"><a href="#cb13-48" tabindex="-1"></a>province_names <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(prediction_data<span class="sc">$</span>level_1))</span>
-<span id="cb13-49"><a href="#cb13-49" tabindex="-1"></a>province_adjustments <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(province_names)), province_names)</span>
-<span id="cb13-50"><a href="#cb13-50" tabindex="-1"></a></span>
-<span id="cb13-51"><a href="#cb13-51" tabindex="-1"></a><span class="cf">for</span> (province <span class="cf">in</span> province_names) {</span>
-<span id="cb13-52"><a href="#cb13-52" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(prediction_data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
-<span id="cb13-53"><a href="#cb13-53" tabindex="-1"></a>  province_population <span class="ot">&lt;-</span> <span class="fu">sum</span>(prediction_data<span class="sc">$</span>population[idx])</span>
-<span id="cb13-54"><a href="#cb13-54" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(province_population) <span class="sc">||</span> province_population <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
-<span id="cb13-55"><a href="#cb13-55" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has no positive level-2 population.&quot;</span>, province))</span>
-<span id="cb13-56"><a href="#cb13-56" tabindex="-1"></a>  }</span>
+<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyDuplicated</span>(provincial_population_data<span class="sc">$</span>province)) {</span>
+<span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Provincial population data contains duplicate province totals.&quot;</span>)</span>
+<span id="cb13-24"><a href="#cb13-24" tabindex="-1"></a>}</span>
+<span id="cb13-25"><a href="#cb13-25" tabindex="-1"></a></span>
+<span id="cb13-26"><a href="#cb13-26" tabindex="-1"></a>grdp_pc_2025 <span class="ot">&lt;-</span> provincial_grdp_data[[<span class="st">&quot;2025&quot;</span>]][</span>
+<span id="cb13-27"><a href="#cb13-27" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, provincial_grdp_data<span class="sc">$</span>province)</span>
+<span id="cb13-28"><a href="#cb13-28" tabindex="-1"></a>]</span>
+<span id="cb13-29"><a href="#cb13-29" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(grdp_pc_2025) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(grdp_pc_2025))) {</span>
+<span id="cb13-30"><a href="#cb13-30" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or non-finite 2025 GRDP-per-capita target for a prediction province.&quot;</span>)</span>
+<span id="cb13-31"><a href="#cb13-31" tabindex="-1"></a>}</span>
+<span id="cb13-32"><a href="#cb13-32" tabindex="-1"></a>province_population_2025 <span class="ot">&lt;-</span> provincial_population_data[[<span class="st">&quot;2025&quot;</span>]][</span>
+<span id="cb13-33"><a href="#cb13-33" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, provincial_population_data<span class="sc">$</span>province)</span>
+<span id="cb13-34"><a href="#cb13-34" tabindex="-1"></a>] <span class="sc">*</span> <span class="dv">1000</span></span>
+<span id="cb13-35"><a href="#cb13-35" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(province_population_2025) <span class="sc">||</span></span>
+<span id="cb13-36"><a href="#cb13-36" tabindex="-1"></a>    <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(province_population_2025)) <span class="sc">||</span></span>
+<span id="cb13-37"><a href="#cb13-37" tabindex="-1"></a>    <span class="fu">any</span>(province_population_2025 <span class="sc">&lt;=</span> <span class="dv">0</span>)) {</span>
+<span id="cb13-38"><a href="#cb13-38" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Missing or invalid 2025 population total for a prediction province.&quot;</span>)</span>
+<span id="cb13-39"><a href="#cb13-39" tabindex="-1"></a>}</span>
+<span id="cb13-40"><a href="#cb13-40" tabindex="-1"></a></span>
+<span id="cb13-41"><a href="#cb13-41" tabindex="-1"></a>prediction_data<span class="sc">$</span>year_factor <span class="ot">&lt;-</span> <span class="fu">factor</span>(prediction_data<span class="sc">$</span>year, <span class="at">levels =</span> years)</span>
+<span id="cb13-42"><a href="#cb13-42" tabindex="-1"></a><span class="cf">for</span> (feature <span class="cf">in</span> feature_columns) {</span>
+<span id="cb13-43"><a href="#cb13-43" tabindex="-1"></a>  scaled_feature <span class="ot">&lt;-</span> <span class="fu">paste0</span>(feature, <span class="st">&quot;_scaled&quot;</span>)</span>
+<span id="cb13-44"><a href="#cb13-44" tabindex="-1"></a>  prediction_data[[scaled_feature]] <span class="ot">&lt;-</span></span>
+<span id="cb13-45"><a href="#cb13-45" tabindex="-1"></a>    (prediction_data[[feature]] <span class="sc">-</span> feature_means[[feature]]) <span class="sc">/</span></span>
+<span id="cb13-46"><a href="#cb13-46" tabindex="-1"></a>    feature_sds[[feature]]</span>
+<span id="cb13-47"><a href="#cb13-47" tabindex="-1"></a>}</span>
+<span id="cb13-48"><a href="#cb13-48" tabindex="-1"></a></span>
+<span id="cb13-49"><a href="#cb13-49" tabindex="-1"></a>prediction_X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(</span>
+<span id="cb13-50"><a href="#cb13-50" tabindex="-1"></a>  <span class="sc">~</span> <span class="dv">0</span> <span class="sc">+</span> year_factor <span class="sc">+</span> mean_radiance_scaled <span class="sc">+</span> population_scaled <span class="sc">+</span></span>
+<span id="cb13-51"><a href="#cb13-51" tabindex="-1"></a>    pixel_count_scaled,</span>
+<span id="cb13-52"><a href="#cb13-52" tabindex="-1"></a>  <span class="at">data =</span> prediction_data</span>
+<span id="cb13-53"><a href="#cb13-53" tabindex="-1"></a>)</span>
+<span id="cb13-54"><a href="#cb13-54" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">identical</span>(<span class="fu">colnames</span>(prediction_X), <span class="fu">colnames</span>(X))) {</span>
+<span id="cb13-55"><a href="#cb13-55" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Prediction design matrix does not match the fitted model.&quot;</span>)</span>
+<span id="cb13-56"><a href="#cb13-56" tabindex="-1"></a>}</span>
 <span id="cb13-57"><a href="#cb13-57" tabindex="-1"></a></span>
-<span id="cb13-58"><a href="#cb13-58" tabindex="-1"></a>  target_total <span class="ot">&lt;-</span> grdp_pc_2025[<span class="fu">match</span>(province, prediction_data<span class="sc">$</span>level_1)] <span class="sc">*</span></span>
-<span id="cb13-59"><a href="#cb13-59" tabindex="-1"></a>    province_population</span>
-<span id="cb13-60"><a href="#cb13-60" tabindex="-1"></a>  raw_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
-<span id="cb13-61"><a href="#cb13-61" tabindex="-1"></a>    prediction_data<span class="sc">$</span>population[idx] <span class="sc">*</span> raw_level2_predictions[idx]</span>
-<span id="cb13-62"><a href="#cb13-62" tabindex="-1"></a>  )</span>
-<span id="cb13-63"><a href="#cb13-63" tabindex="-1"></a>  province_adjustments[[province]] <span class="ot">&lt;-</span> (target_total <span class="sc">-</span> raw_total) <span class="sc">/</span></span>
-<span id="cb13-64"><a href="#cb13-64" tabindex="-1"></a>    province_population</span>
-<span id="cb13-65"><a href="#cb13-65" tabindex="-1"></a>}</span>
-<span id="cb13-66"><a href="#cb13-66" tabindex="-1"></a></span>
-<span id="cb13-67"><a href="#cb13-67" tabindex="-1"></a>prediction_data<span class="sc">$</span>raw_grdp_per_capita <span class="ot">&lt;-</span> raw_level2_predictions</span>
-<span id="cb13-68"><a href="#cb13-68" tabindex="-1"></a>prediction_data<span class="sc">$</span>province_adjustment <span class="ot">&lt;-</span></span>
-<span id="cb13-69"><a href="#cb13-69" tabindex="-1"></a>  province_adjustments[prediction_data<span class="sc">$</span>level_1]</span>
-<span id="cb13-70"><a href="#cb13-70" tabindex="-1"></a>prediction_data<span class="sc">$</span>predicted_grdp_per_capita <span class="ot">&lt;-</span></span>
-<span id="cb13-71"><a href="#cb13-71" tabindex="-1"></a>  prediction_data<span class="sc">$</span>raw_grdp_per_capita <span class="sc">+</span> prediction_data<span class="sc">$</span>province_adjustment</span>
-<span id="cb13-72"><a href="#cb13-72" tabindex="-1"></a>prediction_data<span class="sc">$</span>grdp_per_capita_target_2025 <span class="ot">&lt;-</span> grdp_pc_2025</span>
-<span id="cb13-73"><a href="#cb13-73" tabindex="-1"></a></span>
-<span id="cb13-74"><a href="#cb13-74" tabindex="-1"></a>province_check <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(province_names, <span class="cf">function</span>(province) {</span>
-<span id="cb13-75"><a href="#cb13-75" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(prediction_data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
-<span id="cb13-76"><a href="#cb13-76" tabindex="-1"></a>  province_population <span class="ot">&lt;-</span> <span class="fu">sum</span>(prediction_data<span class="sc">$</span>population[idx])</span>
-<span id="cb13-77"><a href="#cb13-77" tabindex="-1"></a>  target_total <span class="ot">&lt;-</span> prediction_data<span class="sc">$</span>grdp_per_capita_target_2025[idx[<span class="dv">1</span>]] <span class="sc">*</span></span>
-<span id="cb13-78"><a href="#cb13-78" tabindex="-1"></a>    province_population</span>
-<span id="cb13-79"><a href="#cb13-79" tabindex="-1"></a>  predicted_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
-<span id="cb13-80"><a href="#cb13-80" tabindex="-1"></a>    prediction_data<span class="sc">$</span>population[idx] <span class="sc">*</span></span>
-<span id="cb13-81"><a href="#cb13-81" tabindex="-1"></a>      prediction_data<span class="sc">$</span>predicted_grdp_per_capita[idx]</span>
-<span id="cb13-82"><a href="#cb13-82" tabindex="-1"></a>  )</span>
-<span id="cb13-83"><a href="#cb13-83" tabindex="-1"></a></span>
-<span id="cb13-84"><a href="#cb13-84" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
-<span id="cb13-85"><a href="#cb13-85" tabindex="-1"></a>    <span class="at">province =</span> province,</span>
-<span id="cb13-86"><a href="#cb13-86" tabindex="-1"></a>    <span class="at">population =</span> province_population,</span>
-<span id="cb13-87"><a href="#cb13-87" tabindex="-1"></a>    <span class="at">target_grdp_per_capita =</span> prediction_data<span class="sc">$</span>grdp_per_capita_target_2025[idx[<span class="dv">1</span>]],</span>
-<span id="cb13-88"><a href="#cb13-88" tabindex="-1"></a>    <span class="at">target_total_grdp =</span> target_total,</span>
-<span id="cb13-89"><a href="#cb13-89" tabindex="-1"></a>    <span class="at">predicted_total_grdp =</span> predicted_total,</span>
-<span id="cb13-90"><a href="#cb13-90" tabindex="-1"></a>    <span class="at">difference =</span> predicted_total <span class="sc">-</span> target_total</span>
-<span id="cb13-91"><a href="#cb13-91" tabindex="-1"></a>  )</span>
-<span id="cb13-92"><a href="#cb13-92" tabindex="-1"></a>}))</span>
-<span id="cb13-93"><a href="#cb13-93" tabindex="-1"></a></span>
-<span id="cb13-94"><a href="#cb13-94" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>difference) <span class="sc">&gt;</span></span>
-<span id="cb13-95"><a href="#cb13-95" tabindex="-1"></a>        <span class="fl">1e-8</span> <span class="sc">*</span> <span class="fu">pmax</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>target_total_grdp), <span class="dv">1</span>))) {</span>
-<span id="cb13-96"><a href="#cb13-96" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions do not match all provincial GDP targets.&quot;</span>)</span>
-<span id="cb13-97"><a href="#cb13-97" tabindex="-1"></a>}</span>
-<span id="cb13-98"><a href="#cb13-98" tabindex="-1"></a></span>
-<span id="cb13-99"><a href="#cb13-99" tabindex="-1"></a>level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb13-100"><a href="#cb13-100" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
-<span id="cb13-101"><a href="#cb13-101" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
-<span id="cb13-102"><a href="#cb13-102" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
-<span id="cb13-103"><a href="#cb13-103" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
-<span id="cb13-104"><a href="#cb13-104" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> prediction_data<span class="sc">$</span>raw_grdp_per_capita,</span>
-<span id="cb13-105"><a href="#cb13-105" tabindex="-1"></a>  <span class="at">province_adjustment =</span> prediction_data<span class="sc">$</span>province_adjustment,</span>
-<span id="cb13-106"><a href="#cb13-106" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> prediction_data<span class="sc">$</span>predicted_grdp_per_capita,</span>
-<span id="cb13-107"><a href="#cb13-107" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
-<span id="cb13-108"><a href="#cb13-108" tabindex="-1"></a>    prediction_data<span class="sc">$</span>grdp_per_capita_target_2025</span>
-<span id="cb13-109"><a href="#cb13-109" tabindex="-1"></a>)</span>
-<span id="cb13-110"><a href="#cb13-110" tabindex="-1"></a>prediction_output <span class="ot">&lt;-</span> <span class="st">&quot;data/training_data/level2_grdp_pc_predictions_2025.csv&quot;</span></span>
-<span id="cb13-111"><a href="#cb13-111" tabindex="-1"></a><span class="fu">write.csv</span>(level2_predictions, prediction_output, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb13-58"><a href="#cb13-58" tabindex="-1"></a>raw_level2_predictions <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(prediction_X <span class="sc">%*%</span> beta_hat)</span>
+<span id="cb13-59"><a href="#cb13-59" tabindex="-1"></a>province_names <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(prediction_data<span class="sc">$</span>level_1))</span>
+<span id="cb13-60"><a href="#cb13-60" tabindex="-1"></a>province_adjustments <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(province_names)), province_names)</span>
+<span id="cb13-61"><a href="#cb13-61" tabindex="-1"></a></span>
+<span id="cb13-62"><a href="#cb13-62" tabindex="-1"></a><span class="cf">for</span> (province <span class="cf">in</span> province_names) {</span>
+<span id="cb13-63"><a href="#cb13-63" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(prediction_data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
+<span id="cb13-64"><a href="#cb13-64" tabindex="-1"></a>  level2_population <span class="ot">&lt;-</span> <span class="fu">sum</span>(prediction_data<span class="sc">$</span>population[idx])</span>
+<span id="cb13-65"><a href="#cb13-65" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(level2_population) <span class="sc">||</span> level2_population <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
+<span id="cb13-66"><a href="#cb13-66" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has no positive level-2 population.&quot;</span>, province))</span>
+<span id="cb13-67"><a href="#cb13-67" tabindex="-1"></a>  }</span>
+<span id="cb13-68"><a href="#cb13-68" tabindex="-1"></a></span>
+<span id="cb13-69"><a href="#cb13-69" tabindex="-1"></a>  province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, prediction_data<span class="sc">$</span>level_1)</span>
+<span id="cb13-70"><a href="#cb13-70" tabindex="-1"></a>  target_total <span class="ot">&lt;-</span> grdp_pc_2025[province_index] <span class="sc">*</span></span>
+<span id="cb13-71"><a href="#cb13-71" tabindex="-1"></a>    province_population_2025[province_index]</span>
+<span id="cb13-72"><a href="#cb13-72" tabindex="-1"></a>  raw_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
+<span id="cb13-73"><a href="#cb13-73" tabindex="-1"></a>    prediction_data<span class="sc">$</span>population[idx] <span class="sc">*</span> raw_level2_predictions[idx]</span>
+<span id="cb13-74"><a href="#cb13-74" tabindex="-1"></a>  )</span>
+<span id="cb13-75"><a href="#cb13-75" tabindex="-1"></a>  province_adjustments[[province]] <span class="ot">&lt;-</span> (target_total <span class="sc">-</span> raw_total) <span class="sc">/</span></span>
+<span id="cb13-76"><a href="#cb13-76" tabindex="-1"></a>    level2_population</span>
+<span id="cb13-77"><a href="#cb13-77" tabindex="-1"></a>}</span>
+<span id="cb13-78"><a href="#cb13-78" tabindex="-1"></a></span>
+<span id="cb13-79"><a href="#cb13-79" tabindex="-1"></a>prediction_data<span class="sc">$</span>raw_grdp_per_capita <span class="ot">&lt;-</span> raw_level2_predictions</span>
+<span id="cb13-80"><a href="#cb13-80" tabindex="-1"></a>prediction_data<span class="sc">$</span>province_adjustment <span class="ot">&lt;-</span></span>
+<span id="cb13-81"><a href="#cb13-81" tabindex="-1"></a>  province_adjustments[prediction_data<span class="sc">$</span>level_1]</span>
+<span id="cb13-82"><a href="#cb13-82" tabindex="-1"></a>prediction_data<span class="sc">$</span>predicted_grdp_per_capita <span class="ot">&lt;-</span></span>
+<span id="cb13-83"><a href="#cb13-83" tabindex="-1"></a>  prediction_data<span class="sc">$</span>raw_grdp_per_capita <span class="sc">+</span> prediction_data<span class="sc">$</span>province_adjustment</span>
+<span id="cb13-84"><a href="#cb13-84" tabindex="-1"></a>prediction_data<span class="sc">$</span>grdp_per_capita_target_2025 <span class="ot">&lt;-</span> grdp_pc_2025</span>
+<span id="cb13-85"><a href="#cb13-85" tabindex="-1"></a></span>
+<span id="cb13-86"><a href="#cb13-86" tabindex="-1"></a>province_check <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(province_names, <span class="cf">function</span>(province) {</span>
+<span id="cb13-87"><a href="#cb13-87" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">which</span>(prediction_data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
+<span id="cb13-88"><a href="#cb13-88" tabindex="-1"></a>  province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, prediction_data<span class="sc">$</span>level_1)</span>
+<span id="cb13-89"><a href="#cb13-89" tabindex="-1"></a>  province_population <span class="ot">&lt;-</span> province_population_2025[province_index]</span>
+<span id="cb13-90"><a href="#cb13-90" tabindex="-1"></a>  target_total <span class="ot">&lt;-</span> prediction_data<span class="sc">$</span>grdp_per_capita_target_2025[idx[<span class="dv">1</span>]] <span class="sc">*</span></span>
+<span id="cb13-91"><a href="#cb13-91" tabindex="-1"></a>    province_population</span>
+<span id="cb13-92"><a href="#cb13-92" tabindex="-1"></a>  predicted_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
+<span id="cb13-93"><a href="#cb13-93" tabindex="-1"></a>    prediction_data<span class="sc">$</span>population[idx] <span class="sc">*</span></span>
+<span id="cb13-94"><a href="#cb13-94" tabindex="-1"></a>      prediction_data<span class="sc">$</span>predicted_grdp_per_capita[idx]</span>
+<span id="cb13-95"><a href="#cb13-95" tabindex="-1"></a>  )</span>
+<span id="cb13-96"><a href="#cb13-96" tabindex="-1"></a></span>
+<span id="cb13-97"><a href="#cb13-97" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb13-98"><a href="#cb13-98" tabindex="-1"></a>    <span class="at">province =</span> province,</span>
+<span id="cb13-99"><a href="#cb13-99" tabindex="-1"></a>    <span class="at">population =</span> province_population,</span>
+<span id="cb13-100"><a href="#cb13-100" tabindex="-1"></a>    <span class="at">level2_population =</span> <span class="fu">sum</span>(prediction_data<span class="sc">$</span>population[idx]),</span>
+<span id="cb13-101"><a href="#cb13-101" tabindex="-1"></a>    <span class="at">target_grdp_per_capita =</span> prediction_data<span class="sc">$</span>grdp_per_capita_target_2025[idx[<span class="dv">1</span>]],</span>
+<span id="cb13-102"><a href="#cb13-102" tabindex="-1"></a>    <span class="at">target_total_grdp =</span> target_total,</span>
+<span id="cb13-103"><a href="#cb13-103" tabindex="-1"></a>    <span class="at">predicted_total_grdp =</span> predicted_total,</span>
+<span id="cb13-104"><a href="#cb13-104" tabindex="-1"></a>    <span class="at">difference =</span> predicted_total <span class="sc">-</span> target_total</span>
+<span id="cb13-105"><a href="#cb13-105" tabindex="-1"></a>  )</span>
+<span id="cb13-106"><a href="#cb13-106" tabindex="-1"></a>}))</span>
+<span id="cb13-107"><a href="#cb13-107" tabindex="-1"></a></span>
+<span id="cb13-108"><a href="#cb13-108" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>difference) <span class="sc">&gt;</span></span>
+<span id="cb13-109"><a href="#cb13-109" tabindex="-1"></a>        <span class="fl">1e-8</span> <span class="sc">*</span> <span class="fu">pmax</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>target_total_grdp), <span class="dv">1</span>))) {</span>
+<span id="cb13-110"><a href="#cb13-110" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions do not match all provincial GDP targets.&quot;</span>)</span>
+<span id="cb13-111"><a href="#cb13-111" tabindex="-1"></a>}</span>
 <span id="cb13-112"><a href="#cb13-112" tabindex="-1"></a></span>
-<span id="cb13-113"><a href="#cb13-113" tabindex="-1"></a><span class="fu">print</span>(province_check, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
-<pre><code>##          province population target_grdp_per_capita target_total_grdp
-##          An Giang    4995214                   80.2         400616163
-##          Bac Ninh    2059480                  146.2         301095976
-##            Ca Mau    1988464                   78.6         156293270
-##           Can Tho    4112487                   94.9         390275016
-##          Cao Bang     573119                   49.6          28426702
-##           Da Nang    3122915                  110.6         345394399
-##           Dak Lak    3346853                   80.6         269756352
-##         Dien Bien     673091                   53.4          35943059
-##          Dong Nai    4491408                  150.8         677304326
-##         Dong Thap    4370046                   84.0         367083864
-##           Gia Lai    3583691                   85.0         304613735
-##            Ha Noi   45741552                  179.3        8201460274
-##           Ha Tinh    1623061                   90.5         146887020
-##         Hai Phong    4664124                  177.0         825549948
-##  Ho Chi Minh city   14668098                  215.3        3158041499
-##               Hue    1432986                   75.3         107903846
-##          Hung Yen    3567943                   98.9         352869563
-##         Khanh Hoa    2243553                  110.3         247463896
-##          Lai Chau     512601                   79.4          40700519
-##          Lam Dong    3872999                  105.2         407439495
-##          Lang Son     881384                   70.9          62490126
-##           Lao Cai    1770645                   84.7         149973632
-##           Nghe An    3831694                   67.6         259022514
-##         Ninh Binh    4412264                   89.2         393573949
-##           Phu Tho    4022493                  111.3         447703471
-##        Quang Ngai    2161735                  101.9         220280796
-##        Quang Ninh    1497447                  261.2         391133156
-##         Quang Tri    1870844                   77.4         144803326
-##            Son La    1374033                   71.4          98105956
-##          Tay Ninh    3254170                  115.6         376182052
-##       Thai Nguyen    1799489                  112.4         202262564
-##         Thanh Hoa    4320947                   88.5         382403810
-##       Tuyen Quang    1858056                   54.6         101449858
-##         Vinh Long    4257581                   82.4         350824674
-##  predicted_total_grdp    difference
-##             400616163  0.000000e+00
-##             301095976  5.960464e-08
-##             156293270  0.000000e+00
-##             390275016 -1.788139e-07
-##              28426702 -1.117587e-08
-##             345394399 -2.384186e-07
-##             269756352 -1.788139e-07
-##              35943059  2.980232e-08
-##             677304326  1.192093e-07
-##             367083864  3.576279e-07
-##             304613735 -2.384186e-07
-##            8201460274  1.907349e-06
-##             146887020  0.000000e+00
-##             825549948 -1.192093e-07
-##            3158041499 -9.536743e-07
-##             107903846  2.980232e-08
-##             352869563 -1.192093e-07
-##             247463896  2.980232e-08
-##              40700519 -1.490116e-08
-##             407439495  2.384186e-07
-##              62490126 -7.450581e-09
-##             149973632  5.960464e-08
-##             259022514 -2.086163e-07
-##             393573949 -1.788139e-07
-##             447703471  5.960464e-08
-##             220280796 -5.960464e-08
-##             391133156  1.192093e-07
-##             144803326  0.000000e+00
-##              98105956  1.490116e-08
-##             376182052 -5.960464e-08
-##             202262564 -1.490116e-07
-##             382403810  4.172325e-07
-##             101449858  2.980232e-08
-##             350824674  1.192093e-07</code></pre>
+<span id="cb13-113"><a href="#cb13-113" tabindex="-1"></a>level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb13-114"><a href="#cb13-114" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
+<span id="cb13-115"><a href="#cb13-115" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
+<span id="cb13-116"><a href="#cb13-116" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
+<span id="cb13-117"><a href="#cb13-117" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
+<span id="cb13-118"><a href="#cb13-118" tabindex="-1"></a>  <span class="at">province_population_2025 =</span> province_population_2025,</span>
+<span id="cb13-119"><a href="#cb13-119" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> prediction_data<span class="sc">$</span>raw_grdp_per_capita,</span>
+<span id="cb13-120"><a href="#cb13-120" tabindex="-1"></a>  <span class="at">province_adjustment =</span> prediction_data<span class="sc">$</span>province_adjustment,</span>
+<span id="cb13-121"><a href="#cb13-121" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> prediction_data<span class="sc">$</span>predicted_grdp_per_capita,</span>
+<span id="cb13-122"><a href="#cb13-122" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
+<span id="cb13-123"><a href="#cb13-123" tabindex="-1"></a>    prediction_data<span class="sc">$</span>grdp_per_capita_target_2025</span>
+<span id="cb13-124"><a href="#cb13-124" tabindex="-1"></a>)</span>
+<span id="cb13-125"><a href="#cb13-125" tabindex="-1"></a>prediction_output <span class="ot">&lt;-</span> <span class="st">&quot;data/predicted_data/level2_grdp_pc_predictions.csv&quot;</span></span>
+<span id="cb13-126"><a href="#cb13-126" tabindex="-1"></a><span class="fu">write.csv</span>(level2_predictions, prediction_output, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb13-127"><a href="#cb13-127" tabindex="-1"></a></span>
+<span id="cb13-128"><a href="#cb13-128" tabindex="-1"></a><span class="fu">print</span>(province_check, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>##          province population level2_population target_grdp_per_capita
+##          An Giang    3694600           4995214                   80.2
+##          Bac Ninh    3572350           2059480                  146.2
+##            Ca Mau    2150440           1988464                   78.6
+##           Can Tho    3224940           4112487                   94.9
+##          Cao Bang     562930            573119                   49.6
+##           Da Nang    2856380           3122915                  110.6
+##           Dak Lak    2849200           3346853                   80.6
+##         Dien Bien     667420            673091                   53.4
+##          Dong Nai    4493700           4491408                  150.8
+##         Dong Thap    3403780           4370046                   84.0
+##           Gia Lai    3182650           3583691                   85.0
+##            Ha Noi    8857530          45741552                  179.3
+##           Ha Tinh    1335140           1623061                   90.5
+##         Hai Phong    4149870           4664124                  177.0
+##  Ho Chi Minh city   13803800          14668098                  215.3
+##               Hue    1190340           1432986                   75.3
+##          Hung Yen    3235170           3567943                   98.9
+##         Khanh Hoa    1898550           2243553                  110.3
+##          Lai Chau     501160            512601                   79.4
+##          Lam Dong    3356380           3872999                  105.2
+##          Lang Son     820630            881384                   70.9
+##           Lao Cai    1675670           1770645                   84.7
+##           Nghe An    3497750           3831694                   67.6
+##         Ninh Binh    3843770           4412264                   89.2
+##           Phu Tho    3701530           4022493                  111.3
+##        Quang Ngai    1881240           2161735                  101.9
+##        Quang Ninh    1411580           1497447                  261.2
+##         Quang Tri    1594130           1870844                   77.4
+##            Son La    1341220           1374033                   71.4
+##          Tay Ninh    2980280           3254170                  115.6
+##       Thai Nguyen    1711580           1799489                  112.4
+##         Thanh Hoa    3771770           4320947                   88.5
+##       Tuyen Quang    1748250           1858056                   54.6
+##         Vinh Long    3379610           4257581                   82.4
+##  target_total_grdp predicted_total_grdp    difference
+##          296306920            296306920 -2.384186e-07
+##          522277570            522277570 -5.960464e-08
+##          169024584            169024584  2.980232e-08
+##          306046806            306046806 -5.960464e-08
+##           27921328             27921328 -1.862645e-08
+##          315915628            315915628 -3.576279e-07
+##          229645520            229645520 -1.788139e-07
+##           35640228             35640228  2.235174e-08
+##          677649960            677649960  3.576279e-07
+##          285917520            285917520  1.192093e-07
+##          270525250            270525250 -1.192093e-07
+##         1588155129           1588155129 -1.668930e-06
+##          120830170            120830170 -7.450581e-08
+##          734526990            734526990 -4.768372e-07
+##         2971958140           2971958140  4.768372e-07
+##           89632602             89632602  1.490116e-08
+##          319958313            319958313  2.384186e-07
+##          209410065            209410065  5.960464e-08
+##           39792104             39792104 -1.490116e-08
+##          353091176            353091176  0.000000e+00
+##           58182667             58182667  2.980232e-08
+##          141929249            141929249  5.960464e-08
+##          236447900            236447900 -2.980232e-08
+##          342864284            342864284  5.960464e-08
+##          411980289            411980289  0.000000e+00
+##          191698356            191698356  1.192093e-07
+##          368704696            368704696  1.788139e-07
+##          123385662            123385662 -2.980232e-08
+##           95763108             95763108  2.980232e-08
+##          344520368            344520368 -1.192093e-07
+##          192381592            192381592  2.980232e-08
+##          333801645            333801645  1.788139e-07
+##           95454450             95454450  2.980232e-08
+##          278479864            278479864 -1.192093e-07</code></pre>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Wrote level-2 predictions to&quot;</span>, prediction_output, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-<pre><code>## Wrote level-2 predictions to data/training_data/level2_grdp_pc_predictions_2025.csv</code></pre>
+<pre><code>## Wrote level-2 predictions to data/predicted_data/level2_grdp_pc_predictions.csv</code></pre>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">head</span>(level2_predictions)</span></code></pre></div>
-<pre><code>##      level_2  level_1 year population raw_grdp_per_capita province_adjustment
-## 1   Rạch Giá An Giang 2025     250661           148.89180           -21.83576
-## 2   Phú Quốc An Giang 2025     157629           103.55632           -21.83576
-## 3 Long Xuyên An Giang 2025     154858           129.77007           -21.83576
-## 4   Châu Đốc An Giang 2025      97438           109.23309           -21.83576
-## 5    Nhơn Mỹ An Giang 2025      89018            98.81732           -21.83576
-## 6    Chợ Mới An Giang 2025      80832            99.98135           -21.83576
-##   predicted_grdp_per_capita province_grdp_per_capita_target_2025
-## 1                 127.05604                                 80.2
-## 2                  81.72055                                 80.2
-## 3                 107.93431                                 80.2
-## 4                  87.39733                                 80.2
-## 5                  76.98156                                 80.2
-## 6                  78.14558                                 80.2</code></pre>
+<pre><code>##      level_2  level_1 year population province_population_2025
+## 1   Rạch Giá An Giang 2025     250661                  3694600
+## 2   Phú Quốc An Giang 2025     157629                  3694600
+## 3 Long Xuyên An Giang 2025     154858                  3694600
+## 4   Châu Đốc An Giang 2025      97438                  3694600
+## 5    Nhơn Mỹ An Giang 2025      89018                  3694600
+## 6    Chợ Mới An Giang 2025      80832                  3694600
+##   raw_grdp_per_capita province_adjustment predicted_grdp_per_capita
+## 1           148.89180            -42.7176                 106.17420
+## 2           103.55632            -42.7176                  60.83872
+## 3           129.77007            -42.7176                  87.05248
+## 4           109.23309            -42.7176                  66.51549
+## 5            98.81732            -42.7176                  56.09972
+## 6            99.98135            -42.7176                  57.26375
+##   province_grdp_per_capita_target_2025
+## 1                                 80.2
+## 2                                 80.2
+## 3                                 80.2
+## 4                                 80.2
+## 5                                 80.2
+## 6                                 80.2</code></pre>
 </div>
 
 
