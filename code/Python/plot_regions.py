@@ -30,12 +30,6 @@ def name_key(value: object) -> str:
     return " ".join(unicodedata.normalize("NFC", str(value)).split()).casefold()
 
 
-def slug(name: str) -> str:
-    name = name.replace("Đ", "D").replace("đ", "d")
-    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
-
-
 def choose_column(
     columns: pd.Index, requested: str | None, candidates: tuple[str, ...], label: str
 ) -> str:

@@ -1,5 +1,10 @@
-"""Extract valid VIIRS pixels inside a formatted boundary shapefile."""
-
+"""
+Extract valid VIIRS pixels inside a formatted boundary shapefile.
+Author: Kien Le
+AI disclosure: This code was generated with the assistance of AI. 
+The author has reviewed and edited the code to ensure its accuracy and functionality.
+Last Update: 2026-10-28
+"""
 from __future__ import annotations
 
 import csv

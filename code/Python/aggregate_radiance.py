@@ -1,15 +1,21 @@
-"""Calculate mean VIIRS radiance for administrative levels 0, 1, and 2."""
+"""
+Calculate mean VIIRS radiance for administrative levels 0, 1, and 2.
+Author: Kien Le
+AI disclosure: This code was generated with the assistance of AI. 
+The author has reviewed and edited the code to ensure its accuracy and functionality.
+Last Update: 2026-10-01
+"""
 
 from __future__ import annotations
 
 import hashlib
-import re
-import unicodedata
 from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+
+from utils import name_slug, unique_level2_slugs
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -19,12 +25,6 @@ DEFAULT_PROVINCES = PROJECT_ROOT / "data" / "_vnm_indicators" / "vnm_provinces.c
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "average_radiance"
 PIXEL_FILE_SUFFIX = "_pixel_radiance.csv"
 
-
-def name_slug(name: str) -> str:
-    normalized = name.replace("Đ", "D").replace("đ", "d")
-    normalized = unicodedata.normalize("NFKD", normalized)
-    ascii_name = normalized.encode("ascii", "ignore").decode("ascii")
-    return re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
 
 
 def province_file_stems(provinces: list[str]) -> list[tuple[str, str]]:
@@ -41,22 +41,6 @@ def province_file_stems(provinces: list[str]) -> list[tuple[str, str]]:
         provinces_by_slug[province_slug] = province
         province_rows.append((province, province_slug))
     return province_rows
-
-
-def unique_level2_slugs(names: list[str]) -> list[str]:
-    slugs = [name_slug(name) for name in names]
-    counts = {slug: slugs.count(slug) for slug in set(slugs)}
-    unique_slugs = [
-        (
-            f"{slug}_{hashlib.sha1(name.encode('utf-8')).hexdigest()[:8]}"
-            if counts[slug] > 1
-            else slug
-        )
-        for name, slug in zip(names, slugs)
-    ]
-    if len(unique_slugs) != len(set(unique_slugs)):
-        raise ValueError("Level-2 names do not produce unique pixel CSV filenames.")
-    return unique_slugs
 
 
 def read_provinces(provinces_path: Path) -> list[str]:

@@ -9,7 +9,9 @@ from pathlib import Path
 import geopandas as gpd
 
 import extract_viirs_pixels
+
 from shp_wrangling import province_slug
+from utils import name_slug, unique_level2_slugs
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -36,19 +38,6 @@ DEFAULT_LEVEL2_BOUNDARIES_DIR = (
     PROJECT_ROOT / "data" / "shp_boundaries" / "level2"
 )
 
-
-def unique_level2_slugs(names: list[str]) -> list[str]:
-    slugs = [province_slug(name) for name in names]
-    slug_counts = {slug: slugs.count(slug) for slug in set(slugs)}
-    unique_slugs = []
-    for name, slug in zip(names, slugs):
-        if slug_counts[slug] > 1:
-            suffix = hashlib.sha1(name.encode("utf-8")).hexdigest()[:8]
-            slug = f"{slug}_{suffix}"
-        unique_slugs.append(slug)
-    if len(unique_slugs) != len(set(unique_slugs)):
-        raise ValueError("Level-2 names could not be converted to unique file names.")
-    return unique_slugs
 
 
 def list_rasters(raster_dir: Path) -> list[tuple[Path, str]]:
