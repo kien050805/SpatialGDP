@@ -16,6 +16,18 @@ __pycache__/
 .Rhistory
 .RData
 
+# LateX auxiliary files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+
 #generated files
 average_radiance/
 shp_boundaries/
