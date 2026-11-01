@@ -16,6 +16,8 @@ import unicodedata
 import geopandas as gpd
 import pandas as pd
 
+from utils import name_slug
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ADMIN0_SOURCE = PROJECT_ROOT / "data" / "vnm_admin_boundaries" / "vnm_admin0.shp"
@@ -33,13 +35,6 @@ LEVEL1_OUTPUT = (
 DISTRICT_BOUNDARIES = PROJECT_ROOT / "data" / "vnm_district_boundaries"
 DISTRICT_BOUNDARIES_ALTERNATE = PROJECT_ROOT / "data" / "_vnm_district_boundaries"
 LEVEL2_OUTPUT_DIR = PROJECT_ROOT / "data" / "shp_boundaries" / "level2"
-
-
-def province_slug(province: str) -> str:
-	normalized = province.replace("Đ", "D").replace("đ", "d")
-	normalized = unicodedata.normalize("NFKD", normalized)
-	ascii_name = normalized.encode("ascii", "ignore").decode("ascii")
-	return re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
 
 
 def prepare_level0_boundary(
@@ -191,7 +186,7 @@ def prepare_level2_boundary(
 
     province_directories = {}
     for province in province_names:
-        slug = province_slug(province)
+        slug = name_slug(province)
         if not slug or slug in province_directories:
             raise ValueError(
                 f"Province names produce an invalid or duplicate directory: {province!r}"
@@ -222,7 +217,7 @@ def prepare_level2_boundary(
             boundaries["ten_tinh"].dropna().astype(str).str.strip().unique()
         )
         parent_keys = {
-            parent_aliases.get(province_slug(name), province_slug(name))
+            parent_aliases.get(name_slug(name), name_slug(name))
             for name in parent_names
         }
         if parent_keys != {slug}:

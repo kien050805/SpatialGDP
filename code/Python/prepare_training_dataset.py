@@ -8,6 +8,8 @@ import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
+from utils import slug
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INDICATORS_DIR = PROJECT_ROOT / "data" / "_vnm_indicators"
@@ -74,12 +76,6 @@ def write_csv(
         writer = csv.DictWriter(output, fieldnames=columns)
         writer.writeheader()
         writer.writerows(rows)
-
-
-def slug(name: str) -> str:
-    name = name.replace("Đ", "D").replace("đ", "d")
-    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
 def name_key(name: str) -> str:
