@@ -17,8 +17,10 @@ editor_options:
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load Libraries
-
 library(CVXR)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
 
 ```
 
@@ -30,6 +32,10 @@ knitr::opts_knit$set(
     file.path(project_dir, "..", "..")
   )
 )
+
+figure_dir <- file.path(project_dir, "figures")
+
+dir.create(figure_dir, showWarnings = FALSE, recursive = TRUE)
 ```
 
 For this model, we will use two basics training and testing datasets:
@@ -38,11 +44,12 @@ For this model, we will use two basics training and testing datasets:
 
 * `regression_dataset.csv`: For training and regression purposes
 
+Both datasets have been cleaned and contain no missing values.
+
 ### Load dataset
 ```{r}
 # Regression Dataset
 regression_data <- read.csv("data/training_data/regression_dataset.csv")
-
 regression_data$population <- regression_data$population * 1000
 
 # Prediction Dataset
@@ -74,48 +81,40 @@ Supposed:
 * \(\beta \in \mathbb{R}^3\): shared slopes for the explanatory variables.
 * \(a_t \in \mathbb{R}\): specified national GDP total for year \(t\).
 
-The model includes a separate intercept for each year and shared slopes for the
-explanatory variables. The constraints ensure that population-weighted
-predictions match the national GDP target for every year.
+The model includes a separate intercept for each year and shared slopes for the explanatory variables. The constraints ensure that population-weighted predictions match the national GDP target for every year.
 
 ```{r}
-# Definitions
+# y: observed outcome vector
 y <- regression_data$grdp_per_capita
+
+# years: year factor for year intercept
 years <- sort(unique(regression_data$year))
 regression_data$year_factor <- factor(regression_data$year, levels = years)
 
+# feature_columns: list of cols of variables.
 feature_columns <- c("mean_radiance", "population", "pixel_count")
-feature_means <- vapply(regression_data[feature_columns], mean, numeric(1))
-feature_sds <- vapply(regression_data[feature_columns], sd, numeric(1))
-if (any(!is.finite(feature_sds)) || any(feature_sds == 0)) {
-  stop("Training predictors must have finite, non-zero standard deviations.")
-}
 
+# scaled_features: scaled variables
+scaled_features <- scale(regression_data[feature_columns])
+feature_means <- attr(scaled_features, "scaled:center")
+feature_sds <- attr(scaled_features, "scaled:scale")
 scaled_feature_columns <- paste0(feature_columns, "_scaled")
-for (feature in feature_columns) {
-  scaled_feature <- paste0(feature, "_scaled")
-  regression_data[[scaled_feature]] <-
-    (regression_data[[feature]] - feature_means[[feature]]) /
-    feature_sds[[feature]]
-}
+regression_data[scaled_feature_columns] <- as.data.frame(scaled_features)
 
+# X: design matrix
 X <- model.matrix(
   ~ 0 + year_factor + mean_radiance_scaled + population_scaled +
     pixel_count_scaled,
   data = regression_data
 )
 
+# p: dimension
 p <- ncol(X)
+
+# year, population, target_gdp: constrained variables.
 year <- regression_data$year
 population <- regression_data$population
-
 target_gdp <- constrained_data$gdp[match(years, constrained_data$year)]
-if (anyNA(target_gdp) || any(!is.finite(target_gdp))) {
-  stop("Missing or non-finite national GDP target for one or more model years.")
-}
-if (anyDuplicated(constrained_data$year[constrained_data$year %in% years])) {
-  stop("National GDP data contains duplicate targets for a model year.")
-}
 ```
 
 ### Optimization problem
@@ -132,8 +131,6 @@ The optimization problem is
 \end{aligned}
 }
 \]
-
-
 ```{r}
 # Define optimization variable
 beta <- Variable(p)
@@ -141,8 +138,7 @@ beta <- Variable(p)
 # Define fitted values
 y_hat <- X %*% beta
 
-# Define the annual GDP constraints. Scaling each equality by its target
-# improves numerical conditioning without changing the feasible set.
+# Define the annual GDP constraints. Scaling each equality by its target improves numerical conditioning without changing the feasible set.
 constraints <- lapply(seq_along(years), function(i) {
   idx <- which(year == years[i])
   sum_entries(population[idx] * y_hat[idx]) / target_gdp[i] == 1
@@ -157,6 +153,7 @@ problem <- Problem(
 # Solve
 result <- solve(problem, solver = "CLARABEL")
 
+# Print results
 print(result$status)
 
 if (result$status %in% c("optimal", "optimal_inaccurate")) {
@@ -187,10 +184,7 @@ if (result$status %in% c("optimal", "optimal_inaccurate")) {
 
 ### Statistical Summary
 
-For observation \(i=1,\ldots,n\), let \(y_i\) be the observed GRDP per capita,
-\(\hat y_i^{(C)}\) the constrained-model prediction, and
-\(\hat y_i^{(OLS)}\) the ordinary least-squares prediction. The response mean
-and total sum of squares are
+For observation \(i=1,\ldots,n\), let \(y_i\) be the observed GRDP per capita, \(\hat y_i^{(C)}\) the constrained-model prediction, and \(\hat y_i^{(OLS)}\) the ordinary least-squares prediction. The response mean and total sum of squares are
 \[
 \bar y = \frac{1}{n}\sum_{i=1}^{n} y_i,
 \qquad
@@ -224,20 +218,18 @@ The RMSE difference and its absolute percentage relative to OLS are
 =\frac{|\mathrm{RMSE}_C-\mathrm{RMSE}_{OLS}|}
 {\mathrm{RMSE}_{OLS}}\times 100\%.
 \]
-A positive \(\Delta\mathrm{RMSE}\) means the constrained model's RMSE is higher;
-a negative value means it is lower.
+A positive \(\Delta\mathrm{RMSE}\) means the constrained model's RMSE is higher; a negative value means it is lower.
 
 ```{r}
+# Fit an ordinary least-squares (OLS) regression
 ols_fit <- lm.fit(x = X, y = y)
 ols_predictions <- as.vector(X %*% ols_fit$coefficients)
-
 total_sum_squares <- sum((y - mean(y))^2)
-if (total_sum_squares == 0) {
-  stop("Cannot compute R-squared because the observed response has zero variance.")
-}
 
+# Residuals
 constrained_residuals <- y - predictions
 ols_residuals <- y - ols_predictions
+
 
 model_stats <- data.frame(
   model = c("Constrained", "Ordinary least squares"),
@@ -274,6 +266,270 @@ model imposes annual weighted-sum equalities, its residuals are not the
 independent, identically distributed residuals assumed by standard OLS
 inference; interpret the plots as diagnostics, not as a basis for unadjusted
 OLS significance tests.
+
+```{r}
+training_diagnostics <- data.frame(
+  province = regression_data$province,
+  year = year,
+  actual = y,
+  constrained_fitted = predictions,
+  constrained_residual = constrained_residuals,
+  ols_fitted = ols_predictions,
+  ols_residual = ols_residuals,
+  year_factor = factor(year),
+  mean_radiance = regression_data$mean_radiance,
+  population = population,
+  pixel_count = regression_data$pixel_count
+)
+
+dir.create("figures", showWarnings = FALSE, recursive = TRUE)
+dir.create("data/training_data", showWarnings = FALSE, recursive = TRUE)
+
+positive_residual_observations <- training_diagnostics %>%
+  filter(constrained_residual > 0) %>%
+  select(
+    province, year, actual, constrained_fitted,
+    constrained_residual, mean_radiance, population, pixel_count
+  ) %>%
+  arrange(desc(constrained_residual))
+
+write.csv(
+  positive_residual_observations,
+  "data/training_data/linear_model_positive_residual_observations.csv",
+  row.names = FALSE
+)
+
+cat("Training observations with actual GRDP per capita above fitted values:\n")
+print(head(positive_residual_observations, 10), row.names = FALSE)
+
+actual_fitted_plot <- ggplot(training_diagnostics) +
+  geom_point(
+    aes(x = actual, y = constrained_fitted, color = "Constrained model"),
+    size = 2, alpha = 0.65
+  ) +
+  geom_point(
+    aes(x = actual, y = ols_fitted, color = "OLS reference"),
+    shape = 1, size = 2, alpha = 0.65
+  ) +
+  geom_abline(
+  aes(linetype = "Perfect fit"),
+  slope = 1,
+  intercept = 0,
+  color = "gray35"
+) +
+  scale_color_manual(
+    values = c(
+      "Constrained model" = "#0072B2",
+      "OLS reference" = "#D55E00"
+    )
+  ) +
+  scale_linetype_manual(values = c("Perfect fit" = 2)) +
+  coord_cartesian(
+    xlim = range(training_diagnostics$actual),
+    ylim = range(c(
+      training_diagnostics$constrained_fitted,
+      training_diagnostics$ols_fitted
+    ))
+  ) +
+  labs(
+    title = "Training observations: actual vs fitted",
+    x = "Actual GRDP per capita",
+    y = "Fitted GRDP per capita",
+    color = NULL,
+    linetype = NULL
+  ) +
+  theme_minimal()
+
+actual_fitted_path <- file.path(
+  figure_dir,
+  "linear_model_training_actual_vs_fitted.png"
+)
+ggsave(
+  actual_fitted_path,
+  actual_fitted_plot,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(actual_fitted_path)
+
+# Calculate standardized residuals
+training_diagnostics <- training_diagnostics %>%
+  mutate(
+    standardized_residual = constrained_residual /
+      sd(constrained_residual),
+    scale_location = sqrt(abs(standardized_residual))
+  )
+
+# Reusable scatterplot function
+residual_plot <- function(data, x, y, title, xlab, ylab,
+                          log_x = FALSE, smooth = TRUE,
+                          zero_line = TRUE) {
+
+  p <- ggplot(data, aes(x = .data[[x]], y = .data[[y]])) +
+    geom_point(color = "#0072B2", alpha = 0.65, size = 1.8) +
+    labs(title = title, x = xlab, y = ylab) +
+    theme_minimal()
+
+  if (zero_line) {
+    p <- p + geom_hline(yintercept = 0, linetype = 2)
+  }
+
+  if (smooth) {
+    p <- p +
+      geom_line(
+        data = lowess_data(
+          data[[x]],
+          data[[y]]
+        ),
+        aes(x = x, y = y),
+        inherit.aes = FALSE,
+        color = "#D55E00",
+        linewidth = 0.8
+      )
+  }
+
+  if (log_x) {
+    p <- p + scale_x_log10()
+  }
+
+  p
+}
+
+# Preserve the original LOWESS calculation
+lowess_data <- function(x, y) {
+  result <- lowess(x, y)
+
+  data.frame(
+    x = result$x,
+    y = result$y
+  )
+}
+
+# 1. Constrained: residual vs fitted
+p1 <- residual_plot(
+  training_diagnostics,
+  "constrained_fitted", "constrained_residual",
+  "Constrained: residual vs fitted",
+  "Fitted values", "Constrained residual"
+)
+
+# 2. OLS: residual vs fitted
+p2 <- residual_plot(
+  training_diagnostics,
+  "ols_fitted", "ols_residual",
+  "OLS: residual vs fitted",
+  "OLS fitted values", "OLS residual"
+)
+
+# 3. Normal Q-Q plot
+p3 <- ggplot(
+  training_diagnostics,
+  aes(sample = constrained_residual)
+) +
+  stat_qq(
+    color = "#0072B2",
+    alpha = 0.65
+  ) +
+  stat_qq_line(
+    color = "#D55E00",
+    linewidth = 0.8
+  ) +
+  labs(
+    title = "Constrained residual normal Q-Q",
+    x = "Theoretical quantiles",
+    y = "Sample quantiles"
+  ) +
+  theme_minimal()
+
+# 4. Scale-location
+p4 <- residual_plot(
+  training_diagnostics,
+  "constrained_fitted", "scale_location",
+  "Constrained: scale-location",
+  "Fitted values",
+  expression(sqrt("|standardized residual|")),
+  zero_line = FALSE
+)
+
+# 5. Residual vs radiance
+p5 <- residual_plot(
+  training_diagnostics,
+  "mean_radiance", "constrained_residual",
+  "Residual vs radiance",
+  "Mean radiance", "Constrained residual"
+)
+
+# 6. Residual vs population
+p6 <- residual_plot(
+  training_diagnostics,
+  "population", "constrained_residual",
+  "Residual vs population",
+  "Population (log scale)", "Constrained residual",
+  log_x = TRUE,
+  smooth = FALSE
+)
+
+# 7. Residual vs pixel count
+p7 <- residual_plot(
+  training_diagnostics,
+  "pixel_count", "constrained_residual",
+  "Residual vs pixel count",
+  "Pixel count", "Constrained residual"
+)
+
+# 8. Residual distribution by year
+p8 <- ggplot(
+  training_diagnostics,
+  aes(x = year_factor, y = constrained_residual)
+) +
+  geom_boxplot(
+    fill = "#B8D8E8",
+    color = "#0072B2"
+  ) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(
+    title = "Residual distribution by year",
+    x = "Year",
+    y = "Constrained residual"
+  ) +
+  theme_minimal()
+
+# Combine diagnostic plots into a 2 x 4 layout
+residual_diagnostics_plot <-
+  (p1 | p2 | p3 | p4) /
+  (p5 | p6 | p7 | p8) +
+  plot_annotation(
+    title = "Training-model assumption checks (visual diagnostics)"
+  )
+
+# Save and display
+residual_diagnostics_path <- file.path(
+  figure_dir,
+  "linear_model_training_residual_diagnostics.png"
+)
+
+ggsave(
+  residual_diagnostics_path,
+  residual_diagnostics_plot,
+  width = 14,
+  height = 8,
+  dpi = 200
+)
+
+knitr::include_graphics(residual_diagnostics_path)
+
+```
+
+```{r test-plot, echo=FALSE}
+library(ggplot2)
+
+test_plot <- ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point()
+
+print(test_plot)
+```
 
 ```{r training-diagnostics, echo=FALSE}
 training_diagnostics <- data.frame(
