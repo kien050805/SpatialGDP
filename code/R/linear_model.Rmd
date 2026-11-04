@@ -3,15 +3,12 @@ title: "Linear Model"
 author: ""
 output:
   html_document:
-    css: ../lab.css
     highlight: pygments
     theme: cerulean
     toc: true
     toc_float: true
----
----
-editor_options: 
-  markdown: 
+editor_options:
+  markdown:
     wrap: sentence
 ---
 
@@ -51,6 +48,8 @@ source(file.path(source_dir, "graph_utils.R"))
 
 ```
 
+### Load dataset
+
 For this model, we will use two basics training and testing datasets:
 
 * `prediction_dataset.csv`: For prediction purposes
@@ -61,7 +60,6 @@ For this model, we will use two basics training and testing datasets:
 
 All data sets have been cleaned and contain no missing values.
 
-### Load dataset
 ```{r}
 # Regression Dataset
 regression_data <- read.csv(file.path(data_dir, "training_data/regression_dataset.csv"))

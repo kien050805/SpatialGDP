@@ -3,68 +3,88 @@ title: "Ridge Model"
 author: ""
 output:
   html_document:
-    css: ../lab.css
     highlight: pygments
     theme: cerulean
     toc: true
     toc_float: true
----
----
-editor_options: 
-  markdown: 
+editor_options:
+  markdown:
     wrap: sentence
 ---
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load Libraries
-
 library(CVXR)
-
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(here)
 ```
 
 ```{r setup, include=FALSE}
-project_dir <- getwd()
+#Directory setup
+project_dir <- here()
+source_dir <- file.path(project_dir, "code/R")
 
-knitr::opts_knit$set(
-  root.dir = normalizePath(
-    file.path(project_dir, "..", "..")
-  )
-)
+#Figure output path
+figure_dir <- file.path(project_dir, "figures")
+figure_output_dir <- file.path(figure_dir, "ridge_model")
+dir.create(figure_output_dir, showWarnings = FALSE, recursive = TRUE)
+
+#Data output path
+data_dir <- file.path(project_dir, "data")
+data_output_dir <- file.path(data_dir,"predicted_data/ridge_model")
+dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
+
+#Model output path
+model_dir <-file.path(project_dir, "code/R/model")
+model_output_dir <-file.path(project_dir, "code/R/model/ridge_model")
+dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```
 
-This workflow uses a temporal holdout: observations from 2020–2024 are used to
-fit each candidate ridge model, and the 2025 province observations are held out
-to select \(\lambda\) by prediction RMSE. The 2025 national GDP constraint is
-not used during lambda selection, so the holdout measures predictions not
-calibrated to a known 2025 aggregate. After selecting \(\lambda\), the model is
-refit on all years for the level-2 prediction step.
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Load source code
+source(file.path(source_dir, "graph_utils.R"))
+
+```
 
 ### Load dataset
+
+For this model, we will use two basics training and testing datasets:
+
+* `prediction_dataset.csv`: For prediction purposes
+
+* `regression_dataset.csv`: For training and regression purposes
+
+* `vnm_.csv`: For constraints purposes
+
+All data sets have been cleaned and contain no missing values.
+
 ```{r}
 # Regression Dataset
-regression_data <- read.csv("data/training_data/regression_dataset.csv")
-
+regression_data <- read.csv(file.path(data_dir, "training_data/regression_dataset.csv"))
 regression_data$population <- regression_data$population * 1000
 
 # Prediction Dataset
-prediction_data <- read.csv("data/training_data/prediction_dataset.csv")
+prediction_data <- read.csv(file.path(data_dir, "training_data/prediction_dataset.csv"))
 
 # National GDP totals used to constrain the regression fit
-constrained_data <- read.csv("data/_vnm_indicators/vnm_level0_gdp.csv")
+constrained_data <- read.csv(file.path(data_dir, "_vnm_indicators/vnm_level0_gdp.csv"))
 
 # Provincial GRDP per-capita targets used to calibrate 2025 level-2 predictions
-provincial_grdp_data <- read.csv(
-  "data/_vnm_indicators/vnm_GRDPpc.csv",
+provincial_grdp_data <- read.csv(file.path(data_dir,
+  "_vnm_indicators/vnm_GRDPpc.csv"),
   check.names = FALSE
 )
 
 # Provincial population totals (thousands) used as the aggregation constraint
-provincial_population_data <- read.csv(
-  "data/_vnm_indicators/vnm_population.csv",
+provincial_population_data <- read.csv(file.path(data_dir,
+  "_vnm_indicators/vnm_population.csv"),
   check.names = FALSE
 )
+provincial_population_data[, as.character(2020:2025)] <-
+  provincial_population_data[, as.character(2020:2025)] * 1000
 ```
-
 
 ### Preliminaries
 Supposed:
@@ -74,12 +94,17 @@ Supposed:
 * \(\alpha_t \in \mathbb{R}\): year-specific intercept for year \(t\).
 * \(\beta \in \mathbb{R}^3\): shared slopes for the explanatory variables.
 * \(a_t \in \mathbb{R}\): specified national GDP total for year \(t\).
+* \(\lambda\): ridge penalty.
 
-Candidate models have separate, unpenalized intercepts for each training year
-and shared ridge-penalized slopes for standardized explanatory variables.
-National GDP constraints are imposed only on training years. Candidate
-predictions are evaluated on the untouched 2025 province outcomes using holdout
-RMSE and \(R^2\).
+The model uses data from 2020–2024 to train several ridge regression models with different values of \(\lambda\). The 2025 provincial data is kept separate and used to choose the best \(\lambda\) based on prediction RMSE.
+
+The 2025 national GDP constraint is not used during this process, so the model must predict the 2025 provincial values without knowing the national GDP total.
+
+Each candidate model has a separate intercept for each training year but uses the same coefficients for all explanatory variables. The intercepts are not penalized, while the coefficients are penalized using ridge regression. All explanatory variables are standardized before fitting the models.
+
+National GDP constraints are applied only to the training years (2020–2024). Candidate models are then evaluated against the actual 2025 provincial GRDP values using RMSE and \(R^2\).
+
+After selecting the best \(\lambda\), the model is refitted using all available years (2020–2025) and used to generate Level-2 predictions.
 
 ```{r}
 # Define the temporal split and scale features using training years only.
@@ -250,11 +275,11 @@ lambda_results <- data.frame(
   }),
   solver_status = holdout_status
 )
-write.csv(
-  lambda_results,
-  "data/predicted_data/ridge_lambda_grid_metrics.csv",
-  row.names = FALSE
-)
+#write.csv(
+#  lambda_results,
+#  "data/predicted_data/ridge_lambda_grid_metrics.csv",
+#  row.names = FALSE
+#)
 
 selected_index <- which.min(lambda_results$holdout_RMSE)
 selected_lambda <- lambda_results$lambda[selected_index]
@@ -313,7 +338,7 @@ axis(
 )
 abline(v = selected_lambda, lty = 2, col = "#D55E00")
 grDevices::dev.off()
-knitr::include_graphics(lambda_plot_path)
+#knitr::include_graphics(lambda_plot_path)
 ```
 
 ### Refit selected model on all years
@@ -459,11 +484,11 @@ holdout_predictions_table <- data.frame(
   ols_prediction = training_diagnostics$ols_fitted,
   ols_residual = training_diagnostics$ols_residual
 )
-write.csv(
-  holdout_predictions_table,
-  "data/predicted_data/ridge_2025_holdout_predictions.csv",
-  row.names = FALSE
-)
+#write.csv(
+#  holdout_predictions_table,
+#  "data/predicted_data/ridge_2025_holdout_predictions.csv",
+#  row.names = FALSE
+#)
 print(
   holdout_predictions_table[
     order(abs(holdout_predictions_table$ridge_residual), decreasing = TRUE),
@@ -506,7 +531,7 @@ legend(
   bty = "n"
 )
 grDevices::dev.off()
-knitr::include_graphics(actual_fitted_path)
+#knitr::include_graphics(actual_fitted_path)
 ```
 
 ```{r residual-assumption-diagnostics, echo=FALSE}
@@ -636,7 +661,7 @@ mtext(
   cex = 1.1
 )
 grDevices::dev.off()
-knitr::include_graphics(residual_diagnostics_path)
+#knitr::include_graphics(residual_diagnostics_path)
 ```
 
 ### 2025 Level-2 Predictions
@@ -788,7 +813,7 @@ level2_predictions <- data.frame(
     prediction_data$grdp_per_capita_target_2025
 )
 prediction_output <- "data/predicted_data/level2_grdp_pc_ridge_predictions.csv"
-write.csv(level2_predictions, prediction_output, row.names = FALSE)
+#write.csv(level2_predictions, prediction_output, row.names = FALSE)
 
 print(province_check, row.names = FALSE)
 cat("Wrote level-2 predictions to", prediction_output, "\n")
