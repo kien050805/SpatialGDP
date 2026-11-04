@@ -3,7 +3,7 @@ Extract valid VIIRS pixels inside a formatted boundary shapefile.
 Author: Kien Le
 AI disclosure: This code was generated with the assistance of AI. 
 The author has reviewed and edited the code to ensure its accuracy and functionality.
-Last Update: 2026-10-28
+Last Update: 2026-11-02
 """
 from __future__ import annotations
 
@@ -23,6 +23,29 @@ def extract_pixels(
     output_path: Path,
     province_name: str | None = None,
 ) -> int:
+    """
+    Extract valid raster pixels within specified administrative boundaries and save their spatial coordinates and radiance values to a CSV file.
+
+    The function reads the administrative boundary data and optionally selects a specific province by name.
+    It then reprojects the selected geometries to match the raster coordinate reference system and masks the raster to extract pixels within the boundaries.
+    Invalid pixels, including masked values and non-finite values, are excluded.
+    For each valid pixel, the function calculates its geographic coordinates (longitude and latitude) and retrieves its original raster row and column indices.
+
+    The extracted data are saved to a CSV file containing raster indices, geographic coordinates, and radiance values.
+    The output directory is created automatically if it does not exist.
+
+    Args:
+        raster_path (Path): Path to the input raster file.
+        boundary_path (Path): Path to the administrative boundary file.
+        output_path (Path): Path to the output CSV file.
+        province_name (str | None): Name of the province to extract.
+            If None, pixels within all administrative boundaries are extracted.
+            Defaults to None.
+
+    Returns:
+        int: Number of valid raster pixels extracted.
+
+    """
     boundaries = gpd.read_file(boundary_path)
     if province_name is None:
         geometries = boundaries.geometry
@@ -72,3 +95,9 @@ def extract_pixels(
         )
 
     return len(rows)
+
+def main():
+    return
+
+if __name__ == "__main__":
+    main()

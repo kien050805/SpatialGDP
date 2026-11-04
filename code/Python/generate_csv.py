@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 from pathlib import Path
 
@@ -10,25 +9,13 @@ import geopandas as gpd
 
 import extract_viirs_pixels
 
-from shp_wrangling import province_slug
 from utils import name_slug, unique_level2_slugs
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+DEFAULT_RASTER_DIR = PROJECT_ROOT / "data" / "_viirs_raw",
 
-def existing_path(primary: Path, alternate: Path) -> Path:
-    if primary.exists():
-        return primary
-    if alternate.exists():
-        return alternate
-    return primary
-
-
-DEFAULT_RASTER_DIR = existing_path(
-    PROJECT_ROOT / "data" / "viirs_raw",
-    PROJECT_ROOT / "data" / "_viirs_raw",
-)
 DEFAULT_BOUNDARY = PROJECT_ROOT / "data" / "shp_boundaries" / "level0" / "vnm_level0.shp"
 DEFAULT_PROVINCE_BOUNDARIES = (
     PROJECT_ROOT / "data" / "shp_boundaries" / "level1" / "vnm_level1.shp"
@@ -112,7 +99,7 @@ def generate_level1_pixel_csvs(
     ):
         if not province:
             continue
-        slug = province_slug(province)
+        slug = name_slug(province)
         if not slug:
             raise ValueError(
                 f"Province name cannot be converted to a file name: {province!r}"
@@ -164,7 +151,7 @@ def generate_level2_pixel_csvs(
     for province in provinces["name"].dropna().astype(str).str.strip().unique():
         if not province:
             continue
-        province_slug_value = province_slug(province)
+        province_slug_value = name_slug(province)
         if not province_slug_value or province_slug_value in seen_province_slugs:
             raise ValueError(
                 f"Province names produce an invalid or duplicate file stem: {province!r}"

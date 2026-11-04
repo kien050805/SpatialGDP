@@ -9,14 +9,11 @@ Author: Kien Le
 AI disclosure: This code was generated with the assistance of AI. The author has reviewed and edited the code to ensure its accuracy and functionality.
 Last Update: 2026-18-10
 """
-from pathlib import Path
-import re
-import unicodedata
 
+from pathlib import Path
 import geopandas as gpd
 import pandas as pd
-
-from utils import name_slug
+from utils import name_slug, province_key
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -66,13 +63,6 @@ def prepare_level0_boundary(
     level0.to_file(output_path, driver="ESRI Shapefile", index=False)
     print(f"Wrote admin-0 boundary to {output_path.resolve()}")
     return output_path
-
-
-def province_key(name: str) -> str:
-    normalized = name.strip().casefold()
-    if normalized.endswith(" city"):
-        normalized = normalized[:-5].strip()
-    return normalized
 
 
 def prepare_level1_boundary(

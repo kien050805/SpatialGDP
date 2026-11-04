@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import re
-import unicodedata
 from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
 
+from utils import name_slug
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 BOUNDARIES_DIR = PROJECT_ROOT / "data" / "shp_boundaries"
@@ -61,7 +60,7 @@ def generate_level2() -> Path:
     if level1.crs is None or "name" not in level1.columns:
         raise ValueError("The level-1 boundary file must have a CRS and 'name' column.")
     province_names = level1["name"].dropna().astype(str)
-    province_by_slug = {slug(name): name for name in province_names}
+    province_by_slug = {name_slug(name): name for name in province_names}
     if len(province_by_slug) != len(province_names):
         raise ValueError("Level-1 boundary names have ambiguous directory slugs.")
 
@@ -87,12 +86,6 @@ def generate_level2() -> Path:
         raise ValueError("Level-2 boundaries contain duplicate units within a province.")
     centroids.insert(0, "level", 2)
     return write_centroids(centroids, "level2_centroids.csv")
-
-
-def slug(name: str) -> str:
-    name = name.replace("Đ", "D").replace("đ", "d")
-    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
 def write_centroids(centroids: pd.DataFrame, filename: str) -> Path:

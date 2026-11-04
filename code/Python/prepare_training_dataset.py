@@ -3,23 +3,26 @@
 from __future__ import annotations
 
 import csv
-import re
 import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
-from utils import slug
+from utils import name_slug, read_csv
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
 INDICATORS_DIR = PROJECT_ROOT / "data" / "_vnm_indicators"
-OUTPUT_DIR = PROJECT_ROOT / "data" / "training_data"
+
 LEVEL1_POPULATION_PATH = INDICATORS_DIR / "vnm_population.csv"
 GRDP_PATH = INDICATORS_DIR / "vnm_GRDPpc.csv"
 LEVEL1_AREA_PATH = INDICATORS_DIR / "vnm_landUse.csv"
 LEVEL2_POPULATION_PATH = INDICATORS_DIR / "vnm_level2_population.csv"
 RADIANCE_DIR = PROJECT_ROOT / "data" / "average_radiance"
+
 PREDICTION_YEAR = "2025"
+
+OUTPUT_DIR = PROJECT_ROOT / "data" / "training_data"
 PREDICTION_PATH = OUTPUT_DIR / "prediction_dataset.csv"
 PREDICTION_COLUMNS = (
     "name",
@@ -41,15 +44,6 @@ REGRESSION_COLUMNS = (
     "pixel_count",
 )
 
-
-def read_csv(path: Path) -> tuple[list[str], list[dict[str, str]]]:
-    with path.open(newline="", encoding="utf-8-sig") as source:
-        reader = csv.DictReader(source)
-        if not reader.fieldnames:
-            raise ValueError(f"Missing CSV header in {path}")
-        return reader.fieldnames, list(reader)
-
-
 def read_wide_indicator(path: Path) -> tuple[list[str], dict[str, dict[str, str]]]:
     columns, source_rows = read_csv(path)
     if "province" not in columns:
@@ -60,7 +54,6 @@ def read_wide_indicator(path: Path) -> tuple[list[str], dict[str, dict[str, str]
         for row in source_rows
     }
     return sorted(years, key=int), provinces
-
 
 def read_level1_areas(path: Path) -> dict[str, str]:
     columns, rows = read_csv(path)
@@ -225,7 +218,7 @@ def generate_prediction_dataset() -> None:
     province_slugs = {}
     provinces_by_slug = {}
     for province in level2_population:
-        province_slug = slug(province)
+        province_slug = name_slug(province)
         if not province_slug or province_slug in provinces_by_slug:
             other = provinces_by_slug.get(province_slug)
             raise ValueError(
