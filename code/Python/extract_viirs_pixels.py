@@ -96,7 +96,7 @@ def extract_pixels(
 
     return len(rows)
 
-def main():
+def main() -> None:
     return
 
 if __name__ == "__main__":
