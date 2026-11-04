@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import re
 import unicodedata
 from pathlib import Path
 
@@ -12,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from utils import name_slug
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 BOUNDARIES_DIR = PROJECT_ROOT / "data" / "shp_boundaries"
@@ -252,7 +252,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     year_suffix = f"_{args.year}" if args.year is not None else ""
-    province_prefix = f"{slug(args.province)}_" if args.province else ""
+    province_prefix = f"{name_slug(args.province)}_" if args.province else ""
     output_path = args.output or (
         DEFAULT_OUTPUT_DIR
         / f"{province_prefix}level{args.level}_{args.metric}{year_suffix}.png"
