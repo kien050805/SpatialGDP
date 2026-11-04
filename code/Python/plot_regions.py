@@ -59,7 +59,7 @@ def read_level2_boundaries(
     directory: Path, level1_boundaries: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
     province_names = level1_boundaries["unit_name"].dropna().astype(str)
-    province_by_slug = {slug(name): name for name in province_names}
+    province_by_slug = {name_slug(name): name for name in province_names}
     if len(province_by_slug) != len(province_names):
         raise ValueError("Level-1 boundary names have ambiguous directory slugs.")
     shapefiles = sorted(directory.glob("*/*.shp"))

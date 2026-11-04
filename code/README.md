@@ -13,7 +13,7 @@ From the repository root, run a Python script without changing directories:
 Pass script arguments after the filename as usual:
 
 ```bash
-./run-python.sh plot_viirs_pixels.py --help
+./run-python.sh plot_pixels.py --help
 ```
 
 ## VIIRS Workflow
@@ -38,14 +38,20 @@ Pass script arguments after the filename as usual:
    shapefiles keep their original Vietnamese names; CSV filenames receive a
    short suffix when different names normalize to the same ASCII slug.
 
-3. Generate national and provincial maps with:
+3. Generate a pixel-radiance map with:
 
    ```bash
-   python code/Python/plot_viirs_pixels.py
+   python code/Python/plot_pixels.py
    ```
 
-   Figures are saved under `figures/`. Use `--raster`, `--csv`, or the output
-   options to select different input and output files.
+   The latest available year is used by default. Use `--level 0`, `--level 1`,
+   or `--level 2` to choose national, provincial, or level-2 boundaries. Levels
+   0 and 1 use the national level-0 pixel CSV; level 2 uses the level-1
+   province pixel CSVs (or one province with `--province "<name>"`). This keeps
+   the plotted pixels aligned with the boundary scope without reusing pixels
+   clipped to each level-2 outline. `--year` selects a different year and
+   `--output` overrides the generated figure path. Pixels are read from
+   `data/viirs_pixel_radiance/` and boundaries from `data/shp_boundaries/`.
 
 4. Calculate average radiance for all administrative levels:
 
