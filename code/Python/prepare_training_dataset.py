@@ -19,6 +19,9 @@ GRDP_PATH = INDICATORS_DIR / "vnm_GRDPpc.csv"
 LEVEL1_AREA_PATH = INDICATORS_DIR / "vnm_landUse.csv"
 LEVEL2_POPULATION_PATH = INDICATORS_DIR / "vnm_level2_population.csv"
 RADIANCE_DIR = PROJECT_ROOT / "data" / "average_radiance"
+CENTROID_DIR = PROJECT_ROOT / "data" / "centroid"
+LEVEL1_CENTROID_PATH = CENTROID_DIR / "level1_centroids.csv"
+LEVEL2_CENTROID_PATH = CENTROID_DIR / "level2_centroids.csv"
 
 PREDICTION_YEAR = "2025"
 
@@ -32,6 +35,8 @@ PREDICTION_COLUMNS = (
     "total_area",
     "mean_radiance",
     "pixel_count",
+    "latitude",
+    "longitude",
 )
 REGRESSION_PATH = OUTPUT_DIR / "regression_dataset.csv"
 REGRESSION_COLUMNS = (
@@ -42,6 +47,8 @@ REGRESSION_COLUMNS = (
     "total_area",
     "mean_radiance",
     "pixel_count",
+    "latitude",
+    "longitude",
 )
 
 def read_wide_indicator(path: Path) -> tuple[list[str], dict[str, dict[str, str]]]:
@@ -66,13 +73,46 @@ def write_csv(
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as output:
-        writer = csv.DictWriter(output, fieldnames=columns)
+        writer = csv.DictWriter(output, fieldnames=columns, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
 
 def name_key(name: str) -> str:
     return " ".join(unicodedata.normalize("NFC", name).split()).casefold()
+
+
+def read_centroids(
+    path: Path, province_column: str | None = None
+) -> dict[tuple[str, ...], tuple[str, str]]:
+    columns, rows = read_csv(path)
+    expected = {"name", "latitude", "longitude"}
+    if province_column:
+        expected.add(province_column)
+    if not expected.issubset(columns):
+        raise ValueError(f"Missing required centroid columns in {path}")
+
+    centroids = {}
+    for row in rows:
+        key = (
+            (name_key(row[province_column]), name_key(row["name"]))
+            if province_column
+            else (name_key(row["name"]),)
+        )
+        if key in centroids:
+            raise ValueError(f"Duplicate centroid key in {path}: {key}")
+        latitude = row["latitude"].strip()
+        longitude = row["longitude"].strip()
+        if not latitude or not longitude:
+            raise ValueError(f"Missing centroid coordinates in {path}: {key}")
+        centroids[key] = (latitude, longitude)
+    return centroids
+
+
+def centroid_key(name: str, province: str | None = None) -> tuple[str, ...]:
+    if province is not None:
+        return (name_key(province), name_key(name))
+    return (name_key(name),)
 
 
 def number_string(value: float) -> str:
@@ -189,6 +229,7 @@ def generate_regression_dataset() -> None:
     if years != grdp_years:
         raise ValueError("GRDP and population year columns do not match")
     level1_areas = read_level1_areas(LEVEL1_AREA_PATH)
+    level1_centroids = read_centroids(LEVEL1_CENTROID_PATH)
     records = []
 
     for year in years:
@@ -197,6 +238,10 @@ def generate_regression_dataset() -> None:
         )
         for province, year_values in level1_population.items():
             radiance = level1_radiance[name_key(province)]
+            centroid_key_value = centroid_key(province)
+            if centroid_key_value not in level1_centroids:
+                raise ValueError(f"Missing level-1 centroid for {province!r}")
+            latitude, longitude = level1_centroids[centroid_key_value]
             records.append(
                 {
                     "province": province,
@@ -206,6 +251,8 @@ def generate_regression_dataset() -> None:
                     "total_area": level1_areas[province],
                     "mean_radiance": radiance["mean_radiance"],
                     "pixel_count": radiance["pixel_count"],
+                    "latitude": latitude,
+                    "longitude": longitude,
                 }
             )
 
@@ -215,6 +262,7 @@ def generate_regression_dataset() -> None:
 
 def generate_prediction_dataset() -> None:
     level2_population = level2_population_by_province(LEVEL2_POPULATION_PATH)
+    level2_centroids = read_centroids(LEVEL2_CENTROID_PATH, "province")
     province_slugs = {}
     provinces_by_slug = {}
     for province in level2_population:
@@ -244,6 +292,14 @@ def generate_prediction_dataset() -> None:
         province_records, unmatched_pop, unmatched_rad = merge_level2(
             province, population_rows, radiance_rows
         )
+        for record in province_records:
+            key = centroid_key(record["name"], record["level_1"])
+            if key not in level2_centroids:
+                raise ValueError(
+                    f"Missing level-2 centroid for "
+                    f"{record['level_1']!r} / {record['name']!r}"
+                )
+            record["latitude"], record["longitude"] = level2_centroids[key]
         unmatched_level2_population.extend((province, name) for name in unmatched_pop)
         unmatched_level2_radiance.extend((province, name) for name in unmatched_rad)
         records.extend(

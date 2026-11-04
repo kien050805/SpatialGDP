@@ -53,19 +53,21 @@ to generate two files under `data/training_data/`:
 
 - `prediction_dataset.csv` contains level-2 units for 2025 only. It keeps
   `name` and includes `level_1`, `year`, `population`, `total_area`,
-  `mean_radiance`, and `pixel_count`. Population and area come from
-  `vnm_level2_population.csv`; radiance comes from the level-2 2025 radiance
-  files. It does not include GRDP per capita or an administrative-level
-  indicator.
+  `mean_radiance`, `pixel_count`, `latitude`, and `longitude`. Population and
+  area come from `vnm_level2_population.csv`; radiance comes from the level-2
+  2025 radiance files, and coordinates come from
+  `centroid/level2_centroids.csv`. It does not include GRDP per capita or an
+  administrative-level indicator.
 - Level-2 names are matched using Unicode-normalized, case-insensitive exact
   names. Apostrophes in the source names use the straight form.
   Accent-stripped slugs are used only for file/directory names, never to decide
   whether two administrative units are the same. Unmatched names are printed
   for review rather than being merged based on a potentially colliding slug.
   This matching rule applies only to level 2; level-1 matching is unchanged.
-- `vnm_regression_dataset.csv` contains level-1 province-year observations for
+- `regression_dataset.csv` contains level-1 province-year observations for
   2020–2025, including GRDP per capita, population, total area, mean radiance,
-  and pixel count. Total area is sourced from `vnm_landUse.csv`.
+  pixel count, latitude, and longitude. Coordinates come from
+  `centroid/level1_centroids.csv`; total area is sourced from `vnm_landUse.csv`.
 
 ## Region maps
 
