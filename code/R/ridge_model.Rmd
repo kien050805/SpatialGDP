@@ -45,7 +45,6 @@ dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load source code
 source(file.path(source_dir, "graph_utils.R"))
-
 ```
 
 ### Load dataset
@@ -100,6 +99,23 @@ The model uses data from 2020–2024 to train several ridge regression models wi
 
 The 2025 national GDP constraint is not used during this process, so the model must predict the 2025 provincial values without knowing the national GDP total.
 
+Temporal extrapolation weights: Because 2025 is outside the training period, its year-specific intercept cannot be estimated directly from the training observations.
+
+Instead, we compute temporal extrapolation weights based on a linear trend across the five training years. These weights extrapolate the year-specific intercepts to 2025.
+
+The weights are calculated as:
+
+\[ w_t = \frac{1}{T} + \frac{(t^*-\bar{t})(t-\bar{t})} {\sum_{j=1}^{T}(j-\bar{t})^2} \]
+
+where:
+
+- \(T\) is the number of training years.
+- \(t\) represents an individual training year.
+- \(t^*\) is the holdout year (2025).
+- \(\bar{t}\) is the mean training year.
+
+The resulting weights are used to construct the year-effect component of `X_holdout`. The standardized explanatory variables are appended to complete the holdout design matrix.
+
 Each candidate model has a separate intercept for each training year but uses the same coefficients for all explanatory variables. The intercepts are not penalized, while the coefficients are penalized using ridge regression. All explanatory variables are standardized before fitting the models.
 
 National GDP constraints are applied only to the training years (2020–2024). Candidate models are then evaluated against the actual 2025 provincial GRDP values using RMSE and \(R^2\).
@@ -110,6 +126,8 @@ After selecting the best \(\lambda\), the model is refitted using all available 
 # Define the temporal split and scale features using training years only.
 training_years <- 2020:2024
 holdout_year <- 2025
+
+# Separate observations into training and holdout datasets.
 training_data <- regression_data[
   regression_data$year %in% training_years,
   ,
@@ -120,26 +138,18 @@ holdout_data <- regression_data[
   ,
   drop = FALSE
 ]
-if (nrow(training_data) == 0 || nrow(holdout_data) == 0) {
-  stop("Training data must include 2020-2024 and holdout data must include 2025.")
-}
-if (!setequal(sort(unique(training_data$year)), training_years)) {
-  stop("Training data must contain observations for every year from 2020 to 2024.")
-}
-if (anyDuplicated(training_data[c("province", "year")]) ||
-    anyDuplicated(holdout_data$province)) {
-  stop("Training province-year rows and 2025 holdout provinces must be unique.")
-}
 
+# Extract the response variable for each dataset.
 y_train <- training_data$grdp_per_capita
 y_holdout <- holdout_data$grdp_per_capita
+
+
+# Standardize features using training-set statistics.
 feature_columns <- c("mean_radiance", "population", "pixel_count")
 feature_means <- vapply(training_data[feature_columns], mean, numeric(1))
 feature_sds <- vapply(training_data[feature_columns], sd, numeric(1))
-if (any(!is.finite(feature_sds)) || any(feature_sds == 0)) {
-  stop("Training predictors must have finite, non-zero standard deviations.")
-}
 
+# Apply the training-set means and standard deviations to both datasets.
 scaled_training <- scale(
   training_data[feature_columns],
   center = feature_means,
@@ -150,16 +160,22 @@ scaled_holdout <- scale(
   center = feature_means,
   scale = feature_sds
 )
+
+# Construct the training design matrix with year-specific intercepts.
 training_data$year_factor <- factor(training_data$year, levels = training_years)
 X_train <- cbind(
   model.matrix(~ 0 + year_factor, data = training_data),
   as.matrix(scaled_training)
 )
+
+# Calculate temporal extrapolation weights for the holdout year.
 time_extrapolation_weights <-
   rep(1 / length(training_years), length(training_years)) +
   (holdout_year - mean(training_years)) *
     (training_years - mean(training_years)) /
     sum((training_years - mean(training_years))^2)
+
+# Construct the holdout design matrix using extrapolated year effects.
 X_holdout <- cbind(
   matrix(
     rep(time_extrapolation_weights, each = nrow(holdout_data)),
@@ -167,29 +183,19 @@ X_holdout <- cbind(
   ),
   as.matrix(scaled_holdout)
 )
-if (ncol(X_train) != ncol(X_holdout)) {
-  stop("Training and holdout design matrices have different column counts.")
-}
 
+
+# Prepare population weights and annual GDP constraint targets.
 training_population <- training_data$population
 training_year <- training_data$year
 target_gdp_training <- constrained_data$gdp[
   match(training_years, constrained_data$year)
 ]
-if (anyNA(target_gdp_training) || any(!is.finite(target_gdp_training))) {
-  stop("Missing or non-finite national GDP target for a training year.")
-}
-if (anyDuplicated(constrained_data$year[
-  constrained_data$year %in% training_years
-])) {
-  stop("National GDP data contains duplicate targets for a training year.")
-}
 ```
 
 ### Optimization problem
 
-For each candidate \(\lambda\), fit observations from 2020–2024 subject to
-national GDP constraints for those training years:
+For each candidate \(\lambda\), fit observations from 2020–2024 subject to national GDP constraints for those training years:
 \[
 \boxed{
 \begin{aligned}
@@ -204,39 +210,51 @@ national GDP constraints for those training years:
 \end{aligned}
 }
 \]
-Only the standardized feature slopes \(\beta\) are penalized; the yearly
-intercepts remain unpenalized. The 2025 intercept is predicted by linearly
-extrapolating the fitted 2020–2024 intercepts; this extrapolation uses training
-years only.
+Only the standardized feature slopes \(\beta\) are penalized. The yearly intercepts remain unpenalized. The 2025 intercept is predicted by linearly extrapolating the fitted 2020–2024 intercepts. This extrapolation uses training years only.
 
 
 ```{r}
-# Evaluate a logarithmic penalty grid from 10^-3 through 10^3 on the holdout.
+# Define a logarithmically spaced ridge penalty grid from 10^-3 to 10^3.
 lambda_grid <- 10^seq(-3, 3, length.out = 61)
+
+# Determine the total number of model parameters and identify the indices corresponding to explanatory-variable coefficients.
 training_parameter_count <- ncol(X_train)
 feature_parameter_indices <- (length(training_years) + 1):training_parameter_count
+
+# Initialize storage for the estimated coefficients, holdout predictions, and solver statuses across all candidate lambda values.
 holdout_coefficients <- matrix(
   NA_real_,
   nrow = training_parameter_count,
   ncol = length(lambda_grid)
 )
+
 holdout_predictions <- matrix(
   NA_real_,
   nrow = length(y_holdout),
   ncol = length(lambda_grid)
 )
+
 holdout_status <- character(length(lambda_grid))
 
+
+# Evaluate each candidate lambda using constrained ridge regression.
 for (lambda_index in seq_along(lambda_grid)) {
+
+  # Define the optimization variable representing regression coefficients.
   ridge_beta <- Variable(training_parameter_count)
+
+  # Calculate fitted values for the training observations.
   ridge_fitted <- X_train %*% ridge_beta
 
+  # Construct annual national GDP constraints.
   training_constraints <- lapply(seq_along(training_years), function(i) {
     idx <- which(training_year == training_years[i])
+
     sum_entries(training_population[idx] * ridge_fitted[idx]) /
       target_gdp_training[i] == 1
   })
 
+  # Define the constrained ridge regression optimization problem.
   ridge_problem <- Problem(
     Minimize(
       sum_squares(y_train - ridge_fitted) +
@@ -245,8 +263,19 @@ for (lambda_index in seq_along(lambda_grid)) {
     ),
     training_constraints
   )
-  ridge_result <- solve(ridge_problem, solver = "CLARABEL")
+
+  # Solve the optimization problem
+  ridge_result <- solve(
+    ridge_problem,
+    solver = "CLARABEL",
+    max_iter = 1000
+  )
+
+  # Record the solver status for the current lambda.
   holdout_status[lambda_index] <- ridge_result$status
+
+  # Stop execution if the optimization problem does not return
+  # an acceptable solution.
   if (!ridge_result$status %in% c("optimal", "optimal_inaccurate")) {
     stop(sprintf(
       "Training ridge fit failed for lambda=%g with solver status: %s",
@@ -255,44 +284,82 @@ for (lambda_index in seq_along(lambda_grid)) {
     ))
   }
 
-  holdout_coefficients[, lambda_index] <- as.numeric(value(ridge_beta))
+  # Store the estimated regression coefficients.
+  holdout_coefficients[, lambda_index] <-
+    as.numeric(value(ridge_beta))
+
+  # Generate predictions for the 2025 holdout observations using the estimated coefficients and the holdout design matrix.
   holdout_predictions[, lambda_index] <-
     as.vector(X_holdout %*% holdout_coefficients[, lambda_index])
 }
 
-holdout_total_sum_squares <- sum((y_holdout - mean(y_holdout))^2)
-if (holdout_total_sum_squares == 0) {
-  stop("Cannot compute holdout R-squared because 2025 outcomes have zero variance.")
-}
 
+# Calculate the total sum of squares of the observed 2025 GRDP per capita values for the holdout R-squared calculation.
+holdout_total_sum_squares <- sum(
+  (y_holdout - mean(y_holdout))^2
+)
+
+# Evaluate predictive performance for each candidate lambda.
 lambda_results <- data.frame(
   lambda = lambda_grid,
+
+  # Calculate the root mean squared prediction error.
   holdout_RMSE = apply(holdout_predictions, 2, function(fit) {
     sqrt(mean((y_holdout - fit)^2))
   }),
+
+  # Calculate the holdout coefficient of determination.
   holdout_R_squared = apply(holdout_predictions, 2, function(fit) {
     1 - sum((y_holdout - fit)^2) / holdout_total_sum_squares
   }),
+
+  # Retain the optimization status for each candidate lambda.
   solver_status = holdout_status
 )
-#write.csv(
-#  lambda_results,
-#  "data/predicted_data/ridge_lambda_grid_metrics.csv",
-#  row.names = FALSE
-#)
 
+
+# Export the lambda evaluation results for subsequent analysis.
+write.csv(
+  lambda_results,
+  file.path(data_output_dir, "ridge_lambda_grid_metrics.csv"),
+  row.names = FALSE
+)
+
+# Select the regularization parameter that minimizes the 2025 holdout RMSE.
 selected_index <- which.min(lambda_results$holdout_RMSE)
 selected_lambda <- lambda_results$lambda[selected_index]
+
+# Extract the holdout predictions corresponding to the selected lambda.
 best_holdout_predictions <- holdout_predictions[, selected_index]
+
+# Calculate prediction residuals for the selected model.
 holdout_residuals <- y_holdout - best_holdout_predictions
 
-cat(sprintf("Selected lambda by minimum 2025 holdout RMSE: %.8g\n", selected_lambda))
-print(lambda_results, row.names = FALSE)
+# Report the selected regularization parameter and evaluation metrics.
+cat(sprintf(
+  "Selected lambda by minimum 2025 holdout RMSE: %.8g\n",
+  selected_lambda
+))
+```
 
-lambda_plot_path <- "figures/ridge_lambda_grid_metrics.png"
-dir.create("figures", showWarnings = FALSE, recursive = TRUE)
-grDevices::png(lambda_plot_path, width = 2000, height = 900, res = 160)
+```{r}
+# Define the output path for the lambda evaluation figure.
+lambda_plot_path <- file.path(
+  figure_output_dir,
+  "ridge_lambda_grid_metrics.png"
+)
+
+# Open a PNG graphics device for saving the diagnostic plots.
+grDevices::png(
+  lambda_plot_path,
+  width = 2000,
+  height = 900,
+  res = 160
+)
 par(mfrow = c(1, 2), mar = c(4.5, 4.5, 3, 1))
+
+
+# p1: 2025 holdout RMSE across candidate lambda values.
 plot(
   lambda_results$lambda,
   lambda_results$holdout_RMSE,
@@ -304,15 +371,37 @@ plot(
   log = "x",
   yaxt = "n"
 )
+
+# Highlight the selected lambda and distinguish it from other candidates.
 points(
   lambda_results$lambda,
   lambda_results$holdout_RMSE,
   pch = 19,
-  col = ifelse(seq_len(nrow(lambda_results)) == selected_index, "#D55E00", "#0072B2")
+  col = ifelse(
+    seq_len(nrow(lambda_results)) == selected_index,
+    "#D55E00",
+    "#0072B2"
+  )
 )
+
+# Generate readable y-axis tick marks for the RMSE values.
 rmse_ticks <- pretty(lambda_results$holdout_RMSE)
-axis(2, at = rmse_ticks, labels = formatC(rmse_ticks, format = "f", digits = 8))
-abline(v = selected_lambda, lty = 2, col = "#D55E00")
+
+axis(
+  2,
+  at = rmse_ticks,
+  labels = formatC(rmse_ticks, format = "f", digits = 8)
+)
+
+# Add a vertical reference line indicating the selected lambda.
+abline(
+  v = selected_lambda,
+  lty = 2,
+  col = "#D55E00"
+)
+
+
+# p2: 2025 holdout R-squared across candidate lambda values.
 plot(
   lambda_results$lambda,
   lambda_results$holdout_R_squared,
@@ -324,74 +413,136 @@ plot(
   log = "x",
   yaxt = "n"
 )
+
+# Highlight the selected lambda and distinguish it from other candidates.
 points(
   lambda_results$lambda,
   lambda_results$holdout_R_squared,
   pch = 19,
-  col = ifelse(seq_len(nrow(lambda_results)) == selected_index, "#D55E00", "#0072B2")
+  col = ifelse(
+    seq_len(nrow(lambda_results)) == selected_index,
+    "#D55E00",
+    "#0072B2"
+  )
 )
+
+# Generate readable y-axis tick marks for the R-squared values.
 r_squared_ticks <- pretty(lambda_results$holdout_R_squared)
+
 axis(
   2,
   at = r_squared_ticks,
   labels = formatC(r_squared_ticks, format = "f", digits = 8)
 )
-abline(v = selected_lambda, lty = 2, col = "#D55E00")
-grDevices::dev.off()
-#knitr::include_graphics(lambda_plot_path)
+
+# Add a vertical reference line indicating the selected lambda.
+abline(
+  v = selected_lambda,
+  lty = 2,
+  col = "#D55E00"
+)
+
+
+# Close the graphics device and finalize the PNG output.
+invisible(grDevices::dev.off())
+
+# Include the saved figure in the rendered R Markdown document.
+knitr::include_graphics(lambda_plot_path)
 ```
 
 ### Refit selected model on all years
 
-After selecting \(\lambda\) using only 2025 holdout RMSE, refit the constrained
-ridge model on all available years. This final fit is used only to generate the
-2025 level-2 predictions; the reported holdout metrics above remain predictions
-from models trained on 2020–2024.
+After selecting \(\lambda\) using only 2025 holdout RMSE, refit the constrained ridge model on all available years.
+This final fit is used only to generate the 2025 level-2 predictions.
+The reported holdout metrics above remain predictions from models trained on 2020–2024.
 
 ```{r}
+# All years
 years <- sort(unique(regression_data$year))
-regression_data$year_factor <- factor(regression_data$year, levels = years)
+
+# Convert year into a factor with explicitly ordered levels.
+regression_data$year_factor <- factor(
+  regression_data$year,
+  levels = years
+)
+
+# Standardize all predictor variables using the feature means and standard deviations calculated previously.
 scaled_all <- scale(
   regression_data[feature_columns],
   center = feature_means,
   scale = feature_sds
 )
+
+# Construct the full design matrix:
+# - Year-specific intercept columns (one for each year).
+# - Standardized predictor columns.
 X <- cbind(
   model.matrix(~ 0 + year_factor, data = regression_data),
   as.matrix(scaled_all)
 )
+
+# Extract the response variable, calendar year, and population.
 y <- regression_data$grdp_per_capita
 year <- regression_data$year
 population <- regression_data$population
-p <- ncol(X)
-feature_parameter_indices <- (length(years) + 1):p
-target_gdp <- constrained_data$gdp[match(years, constrained_data$year)]
-if (anyNA(target_gdp) || any(!is.finite(target_gdp))) {
-  stop("Missing or non-finite national GDP target for a refit year.")
-}
 
+# Record the total number of model parameters.
+p <- ncol(X)
+
+# Identify the parameter indices corresponding to the predictors.
+feature_parameter_indices <- (length(years) + 1):p
+
+# Retrieve the national GDP target corresponding to each year.
+target_gdp <- constrained_data$gdp[
+  match(years, constrained_data$year)
+]
+
+# Define the optimization variable containing all model coefficients.
 final_beta <- Variable(p)
+
+# Calculate fitted GRDP per capita for every observation.
 final_fitted <- X %*% final_beta
+
+# Construct one national GDP constraint for each year.
 final_constraints <- lapply(seq_along(years), function(i) {
   idx <- which(year == years[i])
-  sum_entries(population[idx] * final_fitted[idx]) / target_gdp[i] == 1
+
+  sum_entries(
+    population[idx] * final_fitted[idx]
+  ) / target_gdp[i] == 1
 })
+
+# Define the final constrained ridge regression problem.
 final_problem <- Problem(
   Minimize(
     sum_squares(y - final_fitted) +
-      selected_lambda * sum_squares(final_beta[feature_parameter_indices])
+      selected_lambda * sum_squares(
+        final_beta[feature_parameter_indices]
+      )
   ),
   final_constraints
 )
-final_result <- solve(final_problem, solver = "CLARABEL")
+
+# Solve
+final_result <- solve(
+  final_problem,
+  solver = "CLARABEL",
+  max_iter = 1000
+)
 if (!final_result$status %in% c("optimal", "optimal_inaccurate")) {
   stop(sprintf(
     "Final all-years ridge refit failed with solver status: %s",
     final_result$status
   ))
 }
+
+# Extract the estimated regression coefficients as a numeric vector.
 beta_hat <- as.numeric(value(final_beta))
+
+# Calculate the final fitted GRDP per capita values using the estimated coefficients.
 predictions <- as.vector(X %*% beta_hat)
+
+# Construct a diagnostic table to evaluate the annual GDP constraints.
 final_constraint_check <- data.frame(
   year = years,
   predicted_total = vapply(years, function(t) {
@@ -400,13 +551,21 @@ final_constraint_check <- data.frame(
   }, numeric(1)),
   target_total = target_gdp
 )
+
+# Calculate the difference between the predicted and target totals.
 final_constraint_check$difference <-
   final_constraint_check$predicted_total -
   final_constraint_check$target_total
-if (any(abs(final_constraint_check$difference) >
-        1e-8 * pmax(abs(final_constraint_check$target_total), 1))) {
+
+# Verify that all annual GDP constraints are satisfied
+if (any(
+  abs(final_constraint_check$difference) >
+    1e-8 * pmax(abs(final_constraint_check$target_total), 1)
+)) {
   stop("Final ridge refit does not satisfy the annual GDP constraints.")
 }
+
+# Display the constraint-checking results for all years.
 print(final_constraint_check, row.names = FALSE)
 ```
 
@@ -666,28 +825,17 @@ grDevices::dev.off()
 
 ### 2025 Level-2 Predictions
 
-The fitted model produces an initial prediction for each level-2 unit using the
-2025 intercept and the same training-data means and standard deviations used
-when fitting the model. Calibrate predictions so the sum of level-2 predicted
-GRDP per capita times level-2 population equals the province's 2025 GRDP per
-capita times its independently reported province-level population. Convert the
-province-level population from thousands to people. Add a common adjustment
-\(\delta_j\) to every level-2 prediction within province \(j\):
-\[
-\tilde y_{ij} = \hat y_{ij} + \delta_j,
-\qquad
-\delta_j =
-\frac{g_jN_j
--\sum_{i\in j}P_{ij}\hat y_{ij}}
-{\sum_{i\in j}P_{ij}},
-\]
-where \(g_j\) is the province's 2025 GRDP per capita and \(P_{ij}\) is the
-population of level-2 unit \(i\), and \(N_j\) is the reported total population
-of province \(j\). Consequently,
-\[
-\sum_{i\in j}P_{ij}\tilde y_{ij}
-=g_jN_j.
-\]
+The model first predicts GRDP per capita for each level-2 unit using the 2025 intercept and the same means and standard deviations used to standardize the training data.
+Next, we adjust these predictions so that their population weighted total matches the province's reported 2025 GRDP per capita multiplied by its total population.
+To do this, we add the same adjustment \(\delta_j\) to every level-2 prediction within province \(j\):
+
+\[ \tilde y_{ij} = \hat y_{ij} + \delta_j \]
+
+The adjustment is calculated as:
+
+\[ \delta_j = \frac{g_jN_j-\sum_{i\in j}P_{ij}\hat y_{ij}} {\sum_{i\in j}P_{ij}} \]
+
+where \(g_j\) is the province's reported GRDP per capita, \(N_j\) is its total population, and \(P_{ij}\) is the population of level-2 unit \(i\).
 
 ```{r}
 if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {

@@ -1773,16 +1773,6 @@ R_{OLS}^2
 \mathrm{RMSE}_{OLS}
 =\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}.
 \]</span></p>
-<p>The RMSE difference and its absolute percentage relative to OLS are
-<span class="math display">\[
-\Delta\mathrm{RMSE}
-=\mathrm{RMSE}_C-\mathrm{RMSE}_{OLS},
-\qquad
-\%\mathrm{Difference}
-=\frac{|\mathrm{RMSE}_C-\mathrm{RMSE}_{OLS}|}
-{\mathrm{RMSE}_{OLS}}\times 100\%.
-\]</span> A positive <span class="math inline">\(\Delta\mathrm{RMSE}\)</span> means the constrained
-model’s RMSE is higher; a negative value means it is lower.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Fit an ordinary least-squares (OLS) regression</span></span>
 <span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>ols_fit <span class="ot">&lt;-</span> <span class="fu">lm.fit</span>(<span class="at">x =</span> X, <span class="at">y =</span> y)</span>
 <span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>ols_predictions <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(X <span class="sc">%*%</span> ols_fit<span class="sc">$</span>coefficients)</span>

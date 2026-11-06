@@ -240,17 +240,6 @@ The root mean squared error (RMSE), in GRDP-per-capita units, is
 =\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}.
 \]
 
-The RMSE difference and its absolute percentage relative to OLS are
-\[
-\Delta\mathrm{RMSE}
-=\mathrm{RMSE}_C-\mathrm{RMSE}_{OLS},
-\qquad
-\%\mathrm{Difference}
-=\frac{|\mathrm{RMSE}_C-\mathrm{RMSE}_{OLS}|}
-{\mathrm{RMSE}_{OLS}}\times 100\%.
-\]
-A positive \(\Delta\mathrm{RMSE}\) means the constrained model's RMSE is higher; a negative value means it is lower.
-
 ```{r}
 # Fit an ordinary least-squares (OLS) regression
 ols_fit <- lm.fit(x = X, y = y)
