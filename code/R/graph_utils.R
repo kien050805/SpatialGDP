@@ -1,4 +1,4 @@
-
+library(ggplot2)
 
 # Reusable scatterplot function
 residual_plot <- function(data, x, y, title, xlab, ylab,

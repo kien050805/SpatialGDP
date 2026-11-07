@@ -91,6 +91,11 @@
 
 \maketitle
 
+\begin{abstract}
+Gross domestic product (GDP) is a fundamental indicator of economic activity within a country or region. However, GDP statistics are often reported at relatively aggregated administrative levels, making it difficult for researchers and policymakers to examine small-scale patterns of economic development. Nighttime light (NTL) data collected by the Suomi National Polar-orbiting Partnership (Suomi NPP) satellite provide an alternative source of information for estimating economic activity at finer spatial scales. This paper evaluates four predictive paradigms to estimate commune-level GDP per capita in Vietnam using NTL data, while accounting for population and imposing constraints based on known regional GDP totals. The paradigms include Ordinary Least Squares, Ridge Regression, Geographically Weighted Regression, and Neural Network.  These methods explain up to 47\% of the variation when used at the provincial administrative level, while overestimating known outliers when applied at the commune level. By combining NTL radiance with economic data, this study aims to produce reliable estimations of economic activity across communes in Vietnam, while commune-level self-computation might create a mismatch in fine-level GDP estimates.
+\end{abstract}
+
+
 \section{Introduction}
 
 \emph{Gross domestic product} (GDP) is a fundamental economic indicator within a country or region. More detailed GDP estimates can provide researchers and policymakers with a clearer understanding of regional economic disparities and development patterns. However, conventional socioeconomic statistics used to measure GDP often suffer from inconsistent statistical scales and limited spatial resolution, making it difficult to capture regional economic disparities at a fine spatial scale. Therefore, many studies have proposed various methods for constructing maps and data on regional GDP with respect to real world coordinates. Researchers have shown that \emph{nighttime light} (NTL) data are a useful economic indicator and have adopted and developed methods for spatializing GDP using NTL data, including both statistical and machine learning approaches. However, applications of NTL data for GDP spatialization in Vietnam remain limited, motivating this study to spatialize regional GDP in Vietnam using NTL data.
@@ -234,7 +239,7 @@ We can see that imposing the aggregation constraints has a negligible impact on 
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.5\linewidth]{ha_noi_level2_predicted_grdp_per_capita.png}
+    \includegraphics[width=0.5\linewidth]{linear_model/ha_noi_level2_predicted_grdp_per_capita.png}
     \caption{Predicted GRDP per capita at the commune level in Ha Noi}
     \label{fig:ha_noi_level2_predicted_grdp_per_capita}
 \end{figure}
@@ -265,12 +270,12 @@ To select the regularization parameter \(\lambda\), I evaluate model performance
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{ridge_lambda_grid_metrics.png}
+    \includegraphics[width=\linewidth]{ridge_model/ridge_lambda_grid_metrics.png}
     \caption{RMSE and \(R^2\) across candidate values of the ridge regularization parameter \(\lambda\).}
     \label{fig:ridge_lambda_grid_metrics}
 \end{figure}
 
-\section{Outlier Problem}
+\section{Discussion}
 
 Using ridge regression with a tuned $\lambda$, I estimate GRDP per capita for each commune. Figure~\ref{fig:level_1_ridge_predictions_2025} and~\ref{fig:level_2_ridge_predictions_2025}  presents the holdout predictions at two administrative levels. At Level 1, the predicted values are reasonable, with Ho Chi Minh City and Ha Noi having the highest estimated GRDP per capita. However, the Level 2 predictions reveal a potential outlier problem. Lam Dong exhibits an exceptionally high estimated GRDP per capita, with nighttime lights from dragon fruit farms potentially contributing to this result. The predicted value is disproportionately high, even compared with those of the country's two largest cities.
 

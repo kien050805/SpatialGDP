@@ -265,11 +265,12 @@ for (lambda_index in seq_along(lambda_grid)) {
   )
 
   # Solve the optimization problem
+  suppressMessages({
   ridge_result <- solve(
     ridge_problem,
     solver = "CLARABEL",
     max_iter = 1000
-  )
+  )})
 
   # Record the solver status for the current lambda.
   holdout_status[lambda_index] <- ridge_result$status
@@ -456,7 +457,7 @@ After selecting \(\lambda\) using only 2025 holdout RMSE, refit the constrained 
 This final fit is used only to generate the 2025 level-2 predictions.
 The reported holdout metrics above remain predictions from models trained on 2020–2024.
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # All years
 years <- sort(unique(regression_data$year))
 

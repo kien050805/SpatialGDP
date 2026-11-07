@@ -1,29 +1,666 @@
 ---
-title: "gw_model"
-output: html_document
-date: "2026-10-25"
+title: "Geographically Weighted Model"
+author: ""
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+editor_options:
+  markdown:
+    wrap: sentence
 ---
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Load Libraries
+library(CVXR)
+library(GWmodel)
+library(ggplot2)
+library(dplyr)
+library(here)
+library(sf)
+```
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+#Directory setup
+project_dir <- here()
+
+#Figure output path
+figure_dir <- file.path(project_dir, "figures")
+figure_output_dir <- file.path(figure_dir, "gw_model")
+dir.create(figure_output_dir, showWarnings = FALSE, recursive = TRUE)
+
+#Data output path
+data_dir <- file.path(project_dir, "data")
+data_output_dir <- file.path(data_dir, "predicted_data/gw_model")
+dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
+
+#Model output path
+model_dir <- file.path(project_dir, "code/R/model")
+model_output_dir <- file.path(model_dir, "gw_model")
+dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```
 
-## R Markdown
+### Load data and define the holdout
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+The spatial coordinates in both datasets are longitude/latitude centroids. Distances are therefore calculated with `longlat = TRUE`. The 2025 observations are held out while selecting the adaptive bandwidth; their outcomes are not used in either model fit or in the holdout predictions.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+The response is GRDP per capita. Both models use standardized radiance, population, pixel count, and a linear year trend. The linear trend lets the model extrapolate from 2020–2024 to 2025 without estimating a 2025 year effect from held-out outcomes.
 
-```{r cars}
-summary(cars)
+```{r}
+regression_data <- read.csv(
+  file.path(data_dir, "training_data/regression_dataset.csv")
+)
+prediction_data <- read.csv(
+  file.path(data_dir, "training_data/prediction_dataset.csv")
+)
+provincial_grdp_data <- read.csv(
+  file.path(data_dir, "_vnm_indicators/vnm_GRDPpc.csv"),
+  check.names = FALSE
+)
+provincial_population_data <- read.csv(
+  file.path(data_dir, "_vnm_indicators/vnm_population.csv"),
+  check.names = FALSE
+)
+
+# Regression populations are stored in thousands; use persons consistently.
+regression_data$population <- regression_data$population * 1000
+provincial_population_data[["2025"]] <-
+  provincial_population_data[["2025"]] * 1000
+
+training_years <- 2020:2024
+holdout_year <- 2025
+training_data <- regression_data[
+  regression_data$year %in% training_years,
+  ,
+  drop = FALSE
+]
+holdout_data <- regression_data[
+  regression_data$year == holdout_year,
+  ,
+  drop = FALSE
+]
+
+if (nrow(training_data) == 0 || nrow(holdout_data) == 0) {
+  stop("The regression data must contain 2020–2024 training and 2025 holdout rows.")
+}
+if (any(!complete.cases(training_data[, c(
+  "grdp_per_capita", "population", "mean_radiance", "pixel_count",
+  "latitude", "longitude", "year"
+)])) || any(!complete.cases(holdout_data[, c(
+  "grdp_per_capita", "population", "mean_radiance", "pixel_count",
+  "latitude", "longitude", "year"
+)]))) {
+  stop("The regression data contains missing values required for fitting or prediction.")
+}
+
+feature_columns <- c("mean_radiance", "population", "pixel_count")
+feature_means <- vapply(training_data[feature_columns], mean, numeric(1))
+feature_sds <- vapply(training_data[feature_columns], sd, numeric(1))
+if (any(!is.finite(feature_sds)) || any(feature_sds <= 0)) {
+  stop("All regression features must have a positive, finite training standard deviation.")
+}
+year_mean <- mean(training_years)
+year_sd <- sd(training_years)
+
+prepare_model_data <- function(data) {
+  for (feature in feature_columns) {
+    data[[paste0(feature, "_scaled")]] <-
+      (data[[feature]] - feature_means[[feature]]) /
+      feature_sds[[feature]]
+  }
+  data$year_scaled <- (data$year - year_mean) / year_sd
+  data
+}
+
+training_data <- prepare_model_data(training_data)
+holdout_data <- prepare_model_data(holdout_data)
+prediction_data <- prepare_model_data(prediction_data)
+
+model_formula <- grdp_per_capita ~ mean_radiance_scaled +
+  population_scaled + pixel_count_scaled + year_scaled
+feature_formula <- ~ mean_radiance_scaled + population_scaled +
+  pixel_count_scaled + year_scaled
+X_train <- model.matrix(feature_formula, data = training_data)
+X_holdout <- model.matrix(feature_formula, data = holdout_data)
+y_train <- training_data$grdp_per_capita
+y_holdout <- holdout_data$grdp_per_capita
+
+training_coordinates <- as.matrix(
+  training_data[, c("longitude", "latitude")]
+)
+holdout_coordinates <- as.matrix(
+  holdout_data[, c("longitude", "latitude")]
+)
+if (any(!is.finite(training_coordinates)) ||
+    any(!is.finite(holdout_coordinates))) {
+  stop("Regression centroids must contain finite longitude and latitude values.")
+}
+
+training_sf <- st_as_sf(
+  training_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+holdout_sf <- st_as_sf(
+  holdout_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+
+# GWmodel's adaptive bandwidth is a neighbor count, not a fraction.
+bandwidth_fractions <- c(0.35, 0.50, 0.65, 0.80, 0.95)
+bandwidth_grid <- unique(pmax(
+  ncol(X_train) + 2,
+  ceiling(bandwidth_fractions * nrow(training_data))
+))
+bandwidth_grid <- pmin(bandwidth_grid, nrow(training_data))
+kernel_name <- "bisquare"
+
+# gw.dist returns prediction-by-training distances; transpose to the
+# training-by-prediction orientation expected by gwr.predict and CVXR.
+holdout_distances <- t(gw.dist(
+  dp.locat = training_coordinates,
+  rp.locat = holdout_coordinates,
+  longlat = TRUE
+))
+training_distances <- t(gw.dist(
+  dp.locat = training_coordinates,
+  longlat = TRUE
+))
+holdout_weights <- lapply(bandwidth_grid, function(bandwidth) {
+  gw.weight(
+    holdout_distances,
+    bw = bandwidth,
+    kernel = kernel_name,
+    adaptive = TRUE
+  )
+})
 ```
 
-## Including Plots
+### GWmodel bandwidth selection
 
-You can also embed plots, for example:
+`GWmodel::gwr.predict()` estimates local coefficients from 2020–2024 and predicts each 2025 centroid. Bandwidth is selected by the lowest raw 2025 holdout RMSE.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+gwmodel_holdout_predictions <- matrix(
+  NA_real_,
+  nrow = nrow(holdout_data),
+  ncol = length(bandwidth_grid)
+)
+for (bandwidth_index in seq_along(bandwidth_grid)) {
+  gwr_fit <- gwr.predict(
+    model_formula,
+    data = training_sf,
+    predictdata = holdout_sf,
+    bw = bandwidth_grid[bandwidth_index],
+    kernel = kernel_name,
+    adaptive = TRUE,
+    longlat = TRUE,
+    dMat1 = holdout_distances,
+    dMat2 = training_distances
+  )
+  gwmodel_holdout_predictions[, bandwidth_index] <-
+    gwr_fit$SDF$prediction
+}
+
+holdout_total_sum_squares <- sum((y_holdout - mean(y_holdout))^2)
+gwmodel_bandwidth_results <- data.frame(
+  bandwidth_neighbors = bandwidth_grid,
+  bandwidth_fraction = bandwidth_grid / nrow(training_data),
+  holdout_RMSE = apply(gwmodel_holdout_predictions, 2, function(prediction) {
+    sqrt(mean((y_holdout - prediction)^2))
+  }),
+  holdout_R_squared = apply(gwmodel_holdout_predictions, 2, function(prediction) {
+    1 - sum((y_holdout - prediction)^2) / holdout_total_sum_squares
+  })
+)
+selected_gwmodel_index <- which.min(gwmodel_bandwidth_results$holdout_RMSE)
+selected_gwmodel_bandwidth <-
+  gwmodel_bandwidth_results$bandwidth_neighbors[selected_gwmodel_index]
+best_gwmodel_holdout_predictions <-
+  gwmodel_holdout_predictions[, selected_gwmodel_index]
+
+write.csv(
+  gwmodel_bandwidth_results,
+  file.path(data_output_dir, "gwmodel_bandwidth_metrics.csv"),
+  row.names = FALSE
+)
+print(gwmodel_bandwidth_results, row.names = FALSE)
+cat(sprintf(
+  "Selected GWmodel bandwidth: %d neighbors; 2025 holdout RMSE: %.6f\n",
+  selected_gwmodel_bandwidth,
+  gwmodel_bandwidth_results$holdout_RMSE[selected_gwmodel_index]
+))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+### CVXR locally weighted regression
+
+For each prediction centroid, CVXR minimizes the same bisquare spatially weighted squared error used by GWR. A ridge penalty on the four slopes is added as an optional stabilizer; the intercept is not penalized. Bandwidth and penalty are selected together using 2025 holdout RMSE.
+
+```{r}
+cvxr_local_predict <- function(
+  X,
+  y,
+  target_X,
+  weights,
+  lambda,
+  chunk_size = 20
+) {
+  predictions <- numeric(nrow(target_X))
+  coefficient_estimates <- matrix(
+    NA_real_,
+    nrow = ncol(X),
+    ncol = nrow(target_X),
+    dimnames = list(colnames(X), NULL)
+  )
+
+  chunk_starts <- seq.int(1, nrow(target_X), by = chunk_size)
+  for (chunk_start in chunk_starts) {
+    target_indices <- chunk_start:min(
+      chunk_start + chunk_size - 1,
+      nrow(target_X)
+    )
+    chunk_weights <- weights[, target_indices, drop = FALSE]
+    local_coefficients <- Variable(
+      shape = c(ncol(X), length(target_indices))
+    )
+    response_matrix <- matrix(
+      y,
+      nrow = length(y),
+      ncol = length(target_indices)
+    )
+    weighted_residuals <- sqrt(chunk_weights) *
+      (X %*% local_coefficients - response_matrix)
+    objective <- sum_squares(weighted_residuals)
+    if (lambda > 0) {
+      objective <- objective +
+        lambda * sum_squares(local_coefficients[2:ncol(X), ])
+    }
+
+    fit <- solve(
+      Problem(Minimize(objective)),
+      solver = "CLARABEL",
+      max_iter = 1000
+    )
+    if (!fit$status %in% c("optimal", "optimal_inaccurate")) {
+      stop(sprintf(
+        "CVXR local regression failed for bandwidth/lambda (%g) with status: %s",
+        lambda,
+        fit$status
+      ))
+    }
+
+    chunk_coefficients <- value(local_coefficients)
+    coefficient_estimates[, target_indices] <- chunk_coefficients
+    predictions[target_indices] <- rowSums(
+      target_X[target_indices, , drop = FALSE] *
+        t(chunk_coefficients)
+    )
+  }
+
+  list(
+    predictions = predictions,
+    coefficients = coefficient_estimates
+  )
+}
+
+lambda_grid <- c(0, 0.01, 0.1, 1, 10)
+cvxr_grid <- expand.grid(
+  bandwidth_index = seq_along(bandwidth_grid),
+  lambda = lambda_grid
+)
+cvxr_grid$bandwidth_neighbors <-
+  bandwidth_grid[cvxr_grid$bandwidth_index]
+cvxr_grid$holdout_RMSE <- NA_real_
+cvxr_grid$holdout_R_squared <- NA_real_
+
+cvxr_holdout_predictions <- vector("list", nrow(cvxr_grid))
+for (grid_index in seq_len(nrow(cvxr_grid))) {
+  prediction_fit <- cvxr_local_predict(
+    X = X_train,
+    y = y_train,
+    target_X = X_holdout,
+    weights = holdout_weights[[cvxr_grid$bandwidth_index[grid_index]]],
+    lambda = cvxr_grid$lambda[grid_index]
+  )
+  cvxr_holdout_predictions[[grid_index]] <- prediction_fit$predictions
+  residuals <- y_holdout - prediction_fit$predictions
+  cvxr_grid$holdout_RMSE[grid_index] <- sqrt(mean(residuals^2))
+  cvxr_grid$holdout_R_squared[grid_index] <-
+    1 - sum(residuals^2) / holdout_total_sum_squares
+}
+
+selected_cvxr_index <- which.min(cvxr_grid$holdout_RMSE)
+selected_cvxr_bandwidth_index <-
+  cvxr_grid$bandwidth_index[selected_cvxr_index]
+selected_cvxr_bandwidth <- bandwidth_grid[selected_cvxr_bandwidth_index]
+selected_cvxr_lambda <- cvxr_grid$lambda[selected_cvxr_index]
+best_cvxr_holdout_predictions <-
+  cvxr_holdout_predictions[[selected_cvxr_index]]
+
+write.csv(
+  cvxr_grid,
+  file.path(data_output_dir, "cvxr_gwmodel_hyperparameter_metrics.csv"),
+  row.names = FALSE
+)
+print(cvxr_grid, row.names = FALSE)
+cat(sprintf(
+  "Selected CVXR bandwidth: %d neighbors; lambda: %g; 2025 holdout RMSE: %.6f\n",
+  selected_cvxr_bandwidth,
+  selected_cvxr_lambda,
+  cvxr_grid$holdout_RMSE[selected_cvxr_index]
+))
+```
+
+### Compare 2025 holdout predictions
+
+The holdout scores compare uncalibrated model predictions with the observed 2025 regression outcomes. Provincial GDP targets are not used to select either model.
+
+```{r}
+holdout_model_comparison <- data.frame(
+  model = c("GWmodel GWR", "CVXR local regression"),
+  bandwidth_neighbors = c(
+    selected_gwmodel_bandwidth,
+    selected_cvxr_bandwidth
+  ),
+  lambda = c(NA_real_, selected_cvxr_lambda),
+  RMSE = c(
+    sqrt(mean((y_holdout - best_gwmodel_holdout_predictions)^2)),
+    sqrt(mean((y_holdout - best_cvxr_holdout_predictions)^2))
+  ),
+  R_squared = c(
+    1 - sum((y_holdout - best_gwmodel_holdout_predictions)^2) /
+      holdout_total_sum_squares,
+    1 - sum((y_holdout - best_cvxr_holdout_predictions)^2) /
+      holdout_total_sum_squares
+  )
+)
+print(holdout_model_comparison, row.names = FALSE)
+
+holdout_prediction_table <- data.frame(
+  province = holdout_data$province,
+  year = holdout_year,
+  actual = y_holdout,
+  gwmodel_prediction = best_gwmodel_holdout_predictions,
+  gwmodel_residual = y_holdout - best_gwmodel_holdout_predictions,
+  cvxr_prediction = best_cvxr_holdout_predictions,
+  cvxr_residual = y_holdout - best_cvxr_holdout_predictions
+)
+write.csv(
+  holdout_prediction_table,
+  file.path(data_output_dir, "gw_model_2025_holdout_predictions.csv"),
+  row.names = FALSE
+)
+
+holdout_plot_data <- rbind(
+  data.frame(
+    actual = y_holdout,
+    prediction = best_gwmodel_holdout_predictions,
+    model = "GWmodel GWR"
+  ),
+  data.frame(
+    actual = y_holdout,
+    prediction = best_cvxr_holdout_predictions,
+    model = "CVXR local regression"
+  )
+)
+holdout_plot <- ggplot(
+  holdout_plot_data,
+  aes(x = actual, y = prediction, color = model)
+) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "gray35") +
+  labs(
+    title = "2025 spatial-model holdout predictions",
+    x = "Observed GRDP per capita",
+    y = "Predicted GRDP per capita",
+    color = NULL
+  ) +
+  theme_minimal()
+ggsave(
+  file.path(figure_output_dir, "gw_model_2025_holdout_actual_vs_predicted.png"),
+  holdout_plot,
+  width = 10,
+  height = 6,
+  dpi = 160
+)
+holdout_plot
+```
+
+### Refit and predict level-2 units
+
+After selecting the hyperparameters, each model is refitted with all available regression years. The selected neighbor fraction is preserved when the training sample grows. Raw predictions are then adjusted within each province so their population-weighted total matches the 2025 provincial GRDP-per-capita target, following the ridge model's output convention.
+
+```{r}
+final_training_data <- prepare_model_data(regression_data)
+final_training_sf <- st_as_sf(
+  final_training_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+final_coordinates <- as.matrix(
+  final_training_data[, c("longitude", "latitude")]
+)
+final_X <- model.matrix(feature_formula, data = final_training_data)
+final_y <- final_training_data$grdp_per_capita
+final_bandwidth_gwmodel <- min(
+  nrow(final_training_data),
+  max(ncol(final_X) + 2, ceiling(
+    (selected_gwmodel_bandwidth / nrow(training_data)) *
+      nrow(final_training_data)
+  ))
+)
+final_bandwidth_cvxr <- min(
+  nrow(final_training_data),
+  max(ncol(final_X) + 2, ceiling(
+    (selected_cvxr_bandwidth / nrow(training_data)) *
+      nrow(final_training_data)
+  ))
+)
+
+prediction_sf <- st_as_sf(
+  prediction_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+prediction_X <- model.matrix(feature_formula, data = prediction_data)
+prediction_coordinates <- as.matrix(
+  prediction_data[, c("longitude", "latitude")]
+)
+final_training_distances <- t(gw.dist(
+  dp.locat = final_coordinates,
+  longlat = TRUE
+))
+prediction_distances <- t(gw.dist(
+  dp.locat = final_coordinates,
+  rp.locat = prediction_coordinates,
+  longlat = TRUE
+))
+
+final_gwr <- gwr.predict(
+  model_formula,
+  data = final_training_sf,
+  predictdata = prediction_sf,
+  bw = final_bandwidth_gwmodel,
+  kernel = kernel_name,
+  adaptive = TRUE,
+  longlat = TRUE,
+  dMat1 = prediction_distances,
+  dMat2 = final_training_distances
+)
+raw_gwmodel_predictions <- final_gwr$SDF$prediction
+
+final_cvxr_weights <- gw.weight(
+  prediction_distances,
+  bw = final_bandwidth_cvxr,
+  kernel = kernel_name,
+  adaptive = TRUE
+)
+final_cvxr_fit <- cvxr_local_predict(
+  X = final_X,
+  y = final_y,
+  target_X = prediction_X,
+  weights = final_cvxr_weights,
+  lambda = selected_cvxr_lambda
+)
+raw_cvxr_predictions <- final_cvxr_fit$predictions
+
+calibrate_province_predictions <- function(raw_predictions, data) {
+  if (anyNA(data$year) || any(data$year != 2025)) {
+    stop("The level-2 prediction dataset must contain only 2025 observations.")
+  }
+  if (any(!is.finite(raw_predictions)) ||
+      any(!is.finite(data$population)) ||
+      any(data$population < 0)) {
+    stop("Level-2 predictions and populations must be finite and populations non-negative.")
+  }
+  if (anyDuplicated(paste(data$level_1, data$name, sep = "\r"))) {
+    stop("The level-2 prediction data contains duplicate units within a province.")
+  }
+
+  target_grdp <- provincial_grdp_data[["2025"]][
+    match(data$level_1, provincial_grdp_data$province)
+  ]
+  province_population <- provincial_population_data[["2025"]][
+    match(data$level_1, provincial_population_data$province)
+  ]
+  if (anyNA(target_grdp) || any(!is.finite(target_grdp)) ||
+      anyNA(province_population) || any(!is.finite(province_population)) ||
+      any(province_population <= 0)) {
+    stop("Missing or invalid 2025 provincial GRDP/population target.")
+  }
+
+  province_names <- unique(data$level_1)
+  adjustments <- setNames(numeric(length(province_names)), province_names)
+  for (province in province_names) {
+    idx <- which(data$level_1 == province)
+    level2_population <- sum(data$population[idx])
+    if (!is.finite(level2_population) || level2_population <= 0) {
+      stop(sprintf("Province %s has no positive level-2 population.", province))
+    }
+    province_index <- match(province, data$level_1)
+    target_total <- target_grdp[province_index] *
+      province_population[province_index]
+    raw_total <- sum(data$population[idx] * raw_predictions[idx])
+    adjustments[[province]] <- (target_total - raw_total) / level2_population
+  }
+
+  calibrated <- raw_predictions + adjustments[data$level_1]
+  check <- do.call(rbind, lapply(province_names, function(province) {
+    idx <- which(data$level_1 == province)
+    province_index <- match(province, data$level_1)
+    target_total <- target_grdp[province_index] *
+      province_population[province_index]
+    predicted_total <- sum(data$population[idx] * calibrated[idx])
+    data.frame(
+      province = province,
+      target_total_grdp = target_total,
+      predicted_total_grdp = predicted_total,
+      difference = predicted_total - target_total
+    )
+  }))
+  if (any(abs(check$difference) >
+          1e-8 * pmax(abs(check$target_total_grdp), 1))) {
+    stop("Calibrated level-2 predictions do not match all provincial GDP targets.")
+  }
+
+  list(
+    calibrated = calibrated,
+    adjustment = unname(adjustments[data$level_1]),
+    target_grdp_per_capita = target_grdp,
+    province_check = check
+  )
+}
+
+gwmodel_calibration <- calibrate_province_predictions(
+  raw_gwmodel_predictions,
+  prediction_data
+)
+cvxr_calibration <- calibrate_province_predictions(
+  raw_cvxr_predictions,
+  prediction_data
+)
+
+gwmodel_level2_predictions <- data.frame(
+  level_2 = prediction_data$name,
+  level_1 = prediction_data$level_1,
+  year = prediction_data$year,
+  population = prediction_data$population,
+  latitude = prediction_data$latitude,
+  longitude = prediction_data$longitude,
+  bandwidth_neighbors = final_bandwidth_gwmodel,
+  raw_grdp_per_capita = raw_gwmodel_predictions,
+  province_adjustment = gwmodel_calibration$adjustment,
+  predicted_grdp_per_capita = gwmodel_calibration$calibrated,
+  province_grdp_per_capita_target_2025 =
+    gwmodel_calibration$target_grdp_per_capita
+)
+cvxr_level2_predictions <- data.frame(
+  level_2 = prediction_data$name,
+  level_1 = prediction_data$level_1,
+  year = prediction_data$year,
+  population = prediction_data$population,
+  latitude = prediction_data$latitude,
+  longitude = prediction_data$longitude,
+  bandwidth_neighbors = final_bandwidth_cvxr,
+  lambda = selected_cvxr_lambda,
+  raw_grdp_per_capita = raw_cvxr_predictions,
+  province_adjustment = cvxr_calibration$adjustment,
+  predicted_grdp_per_capita = cvxr_calibration$calibrated,
+  province_grdp_per_capita_target_2025 =
+    cvxr_calibration$target_grdp_per_capita
+)
+
+write.csv(
+  gwmodel_level2_predictions,
+  file.path(data_output_dir, "gwmodel_level2_predictions.csv"),
+  row.names = FALSE
+)
+write.csv(
+  cvxr_level2_predictions,
+  file.path(data_output_dir, "cvxr_gw_level2_predictions.csv"),
+  row.names = FALSE
+)
+write.csv(
+  gwmodel_calibration$province_check,
+  file.path(data_output_dir, "gwmodel_province_constraint_check.csv"),
+  row.names = FALSE
+)
+write.csv(
+  cvxr_calibration$province_check,
+  file.path(data_output_dir, "cvxr_gw_province_constraint_check.csv"),
+  row.names = FALSE
+)
+
+saveRDS(
+  list(
+    model = final_gwr,
+    formula = model_formula,
+    bandwidth_neighbors = final_bandwidth_gwmodel,
+    bandwidth_fraction = selected_gwmodel_bandwidth / nrow(training_data),
+    kernel = kernel_name,
+    holdout_metrics = gwmodel_bandwidth_results[selected_gwmodel_index, ]
+  ),
+  file.path(model_output_dir, "gwmodel_gwr.rds")
+)
+saveRDS(
+  list(
+    coefficients = final_cvxr_fit$coefficients,
+    feature_columns = colnames(final_X),
+    bandwidth_neighbors = final_bandwidth_cvxr,
+    bandwidth_fraction = selected_cvxr_bandwidth / nrow(training_data),
+    lambda = selected_cvxr_lambda,
+    kernel = kernel_name,
+    holdout_metrics = cvxr_grid[selected_cvxr_index, ]
+  ),
+  file.path(model_output_dir, "cvxr_gw_model.rds")
+)
+
+print(holdout_model_comparison, row.names = FALSE)
+head(gwmodel_level2_predictions)
+```
