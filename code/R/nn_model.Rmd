@@ -56,7 +56,13 @@ provincial_grdp_data <- read.csv(
   file.path(data_dir, "_vnm_indicators/vnm_GRDPpc.csv"),
   check.names = FALSE
 )
+provincial_population_data <- read.csv(
+  file.path(data_dir, "_vnm_indicators/vnm_population.csv"),
+  check.names = FALSE
+)
 regression_data$population <- regression_data$population * 1000
+provincial_population_data[, as.character(2020:2025)] <-
+  provincial_population_data[, as.character(2020:2025)] * 1000
 
 training_years <- 2020:2024
 holdout_year <- 2025
@@ -482,7 +488,7 @@ ggsave(
 
 ### 2025 level-2 predictions
 
-Predict each level-2 unit using the final model, then apply an additive province adjustment so the population-weighted predictions match the provincial 2025 GRDP-per-capita targets. The unadjusted neural-network prediction and province adjustment are both retained in the output.
+Predict each level-2 unit using the final model, then apply an additive province adjustment so the level-2 population-weighted prediction total equals 2025 provincial GRDP per capita multiplied by the official provincial population. The adjustment uses the level-2 population sum as its denominator, so differing level-2 population coverage does not change the official target. The unadjusted neural-network prediction and province adjustment are both retained in the output.
 
 ```{r}
 if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {
@@ -516,9 +522,15 @@ if (any(!is.finite(raw_predictions))) {
 prediction_data$grdp_pc_2025 <- provincial_grdp_data[["2025"]][
   match(prediction_data$level_1, provincial_grdp_data$province)
 ]
+prediction_data$province_population_2025 <- provincial_population_data[["2025"]][
+  match(prediction_data$level_1, provincial_population_data$province)
+]
 if (anyNA(prediction_data$grdp_pc_2025) ||
-    any(!is.finite(prediction_data$grdp_pc_2025))) {
-  stop("Missing or invalid 2025 provincial GRDP-per-capita target.")
+    any(!is.finite(prediction_data$grdp_pc_2025)) ||
+    anyNA(prediction_data$province_population_2025) ||
+    any(!is.finite(prediction_data$province_population_2025)) ||
+    any(prediction_data$province_population_2025 <= 0)) {
+  stop("Missing or invalid 2025 provincial GRDP-per-capita or population target.")
 }
 
 province_names <- sort(unique(prediction_data$level_1))
@@ -530,7 +542,7 @@ for (province in province_names) {
     stop(sprintf("Province %s has no positive level-2 population.", province))
   }
   target_total <- prediction_data$grdp_pc_2025[index[1]] *
-    level2_population
+    prediction_data$province_population_2025[index[1]]
   raw_total <- sum(
     prediction_data$population[index] * raw_predictions[index]
   )
@@ -547,7 +559,8 @@ prediction_data$predicted_grdp_per_capita <-
 
 province_check <- do.call(rbind, lapply(province_names, function(province) {
   index <- which(prediction_data$level_1 == province)
-  province_population <- sum(prediction_data$population[index])
+  level2_population <- sum(prediction_data$population[index])
+  province_population <- prediction_data$province_population_2025[index[1]]
   target_total <- prediction_data$grdp_pc_2025[index[1]] *
     province_population
   predicted_total <- sum(
@@ -557,7 +570,7 @@ province_check <- do.call(rbind, lapply(province_names, function(province) {
   data.frame(
     province = province,
     population = province_population,
-    level2_population = sum(prediction_data$population[index]),
+    level2_population = level2_population,
     target_grdp_per_capita = prediction_data$grdp_pc_2025[index[1]],
     predicted_grdp_per_capita = predicted_total / province_population,
     target_total_grdp = target_total,
@@ -575,6 +588,7 @@ level2_predictions <- data.frame(
   level_1 = prediction_data$level_1,
   year = prediction_data$year,
   population = prediction_data$population,
+  province_population_2025 = prediction_data$province_population_2025,
   raw_grdp_per_capita = prediction_data$raw_grdp_per_capita,
   province_adjustment = prediction_data$province_adjustment,
   predicted_grdp_per_capita = prediction_data$predicted_grdp_per_capita,
@@ -598,6 +612,7 @@ saveRDS(
     feature_columns = feature_columns,
     feature_means = feature_means,
     feature_sds = feature_sds,
+    calibration_population = "official provincial 2025 population",
     response_mean = final_response_mean,
     response_sd = final_response_sd,
     year_effects = all_years,

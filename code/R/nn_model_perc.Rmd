@@ -47,7 +47,13 @@ provincial_grdp_data <- read.csv(
   file.path(data_dir, "_vnm_indicators/vnm_GRDPpc.csv"),
   check.names = FALSE
 )
+provincial_population_data <- read.csv(
+  file.path(data_dir, "_vnm_indicators/vnm_population.csv"),
+  check.names = FALSE
+)
 regression_data$population <- regression_data$population * 1000
+provincial_population_data[, as.character(2020:2025)] <-
+  provincial_population_data[, as.character(2020:2025)] * 1000
 
 training_years <- 2020:2024
 holdout_year <- 2025
@@ -82,6 +88,8 @@ f_{\mathrm{NN}}\left(
 \]
 
 Population and pixel count are represented as percentages of the immediate parent total. For 2020–2025 provincial regression observations, the parent is the country, so shares are computed across provinces within each year. For the 2025 level-2 predictions, the parent is the province, so the level-2 population shares and pixel-count shares sum to 100 separately in each province. The pixel-count denominator is the sum of the level-2 pixel counts in that province; overlaps are not deduplicated. Radiance continues to use training-set standardization. Year effects \(\alpha_t\) follow the linear/ridge setup: 2025 is held out, and its year-indicator inputs are linearly extrapolated from 2020–2024 when selecting the hidden-unit count and weight decay by 2025 RMSE.
+
+After level-2 prediction, an additive province adjustment makes the level-2 population-weighted prediction total equal 2025 provincial GRDP per capita multiplied by the official provincial population. The adjustment is divided by the summed level-2 population, which accommodates differences between official and level-2 population totals.
 
 ```{r}
 make_parent_percentage_features <- function(
@@ -594,26 +602,32 @@ if (any(!is.finite(raw_predictions))) {
 prediction_data$grdp_pc_2025 <- provincial_grdp_data[["2025"]][
   match(prediction_data$level_1, provincial_grdp_data$province)
 ]
+prediction_data$province_population_2025 <- provincial_population_data[["2025"]][
+  match(prediction_data$level_1, provincial_population_data$province)
+]
 if (anyNA(prediction_data$grdp_pc_2025) ||
-    any(!is.finite(prediction_data$grdp_pc_2025))) {
-  stop("Missing or invalid 2025 provincial GRDP-per-capita target.")
+    any(!is.finite(prediction_data$grdp_pc_2025)) ||
+    anyNA(prediction_data$province_population_2025) ||
+    any(!is.finite(prediction_data$province_population_2025)) ||
+    any(prediction_data$province_population_2025 <= 0)) {
+  stop("Missing or invalid 2025 provincial GRDP-per-capita or population target.")
 }
 
 province_names <- sort(unique(prediction_data$level_1))
 province_adjustments <- setNames(numeric(length(province_names)), province_names)
 for (province in province_names) {
   index <- which(prediction_data$level_1 == province)
-  province_population <- sum(prediction_data$population[index])
-  if (!is.finite(province_population) || province_population <= 0) {
+  level2_population <- sum(prediction_data$population[index])
+  if (!is.finite(level2_population) || level2_population <= 0) {
     stop(sprintf("Province %s has no positive level-2 population.", province))
   }
   target_total <- prediction_data$grdp_pc_2025[index[1]] *
-    province_population
+    prediction_data$province_population_2025[index[1]]
   raw_total <- sum(
     prediction_data$population[index] * raw_predictions[index]
   )
   province_adjustments[[province]] <-
-    (target_total - raw_total) / province_population
+    (target_total - raw_total) / level2_population
 }
 
 prediction_data$raw_grdp_per_capita <- raw_predictions
@@ -625,7 +639,8 @@ prediction_data$predicted_grdp_per_capita <-
 
 province_check <- do.call(rbind, lapply(province_names, function(province) {
   index <- which(prediction_data$level_1 == province)
-  province_population <- sum(prediction_data$population[index])
+  level2_population <- sum(prediction_data$population[index])
+  province_population <- prediction_data$province_population_2025[index[1]]
   target_total <- prediction_data$grdp_pc_2025[index[1]] *
     province_population
   predicted_total <- sum(
@@ -635,6 +650,7 @@ province_check <- do.call(rbind, lapply(province_names, function(province) {
   data.frame(
     province = province,
     population = province_population,
+    level2_population = level2_population,
     target_grdp_per_capita = prediction_data$grdp_pc_2025[index[1]],
     predicted_grdp_per_capita = predicted_total / province_population,
     target_total_grdp = target_total,
@@ -656,6 +672,7 @@ level2_predictions <- data.frame(
   level_1 = prediction_data$level_1,
   year = prediction_data$year,
   population = prediction_data$population,
+  province_population_2025 = prediction_data$province_population_2025,
   population_pct = prediction_data$population_pct,
   pixel_count = prediction_data$pixel_count,
   pixel_count_pct = prediction_data$pixel_count_pct,
@@ -693,6 +710,7 @@ saveRDS(
     ),
     radiance_mean = radiance_mean,
     radiance_sd = radiance_sd,
+    calibration_population = "official provincial 2025 population",
     training_population_denominator = "sum of provincial populations within year",
     training_pixel_count_denominator = "sum of provincial pixel counts within year",
     prediction_population_denominator = "sum of level-2 populations within province-year",
