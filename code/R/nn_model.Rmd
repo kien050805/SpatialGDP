@@ -1,0 +1,612 @@
+---
+title: "Neural Network Model"
+author: ""
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(nnet)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(here)
+```
+
+```{r setup, include=FALSE}
+project_dir <- here()
+data_dir <- file.path(project_dir, "data")
+figure_output_dir <- file.path(project_dir, "figures", "nn_model")
+data_output_dir <- file.path(data_dir, "predicted_data", "nn_model")
+model_output_dir <- file.path(project_dir, "code", "R", "model", "nn_model")
+
+dir.create(figure_output_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
+```
+
+### Load data
+
+The regression data are used to train and evaluate the model. The level-2 prediction data contain the 2025 features to predict. As in the linear model, regression populations are converted from thousands to persons, features are standardized from training observations only, and the final predictions are adjusted within each province to match the reported 2025 provincial GRDP-per-capita total.
+
+```{r}
+regression_data <- read.csv(
+  file.path(data_dir, "training_data/regression_dataset.csv")
+)
+prediction_data <- read.csv(
+  file.path(data_dir, "training_data/prediction_dataset.csv")
+)
+provincial_grdp_data <- read.csv(
+  file.path(data_dir, "_vnm_indicators/vnm_GRDPpc.csv"),
+  check.names = FALSE
+)
+regression_data$population <- regression_data$population * 1000
+
+training_years <- 2020:2024
+holdout_year <- 2025
+training_data <- regression_data[
+  regression_data$year %in% training_years,
+  ,
+  drop = FALSE
+]
+holdout_data <- regression_data[
+  regression_data$year == holdout_year,
+  ,
+  drop = FALSE
+]
+if (!identical(sort(unique(training_data$year)), training_years) ||
+    nrow(holdout_data) == 0) {
+  stop("The regression data must contain 2020–2024 training and 2025 holdout rows.")
+}
+```
+
+### Preliminaries
+
+Let \(y_{it}\) be GRDP per capita for unit \(i\) in year \(t\), and let \(x_{it}\) contain standardized radiance, population, and pixel count. The neural network uses a single hidden layer with a linear output:
+
+\[
+\hat{y}_{it} =
+f_{\mathrm{NN}}\left(x_{it},\,\alpha_{2021,t},\ldots,\alpha_{2024,t}\right).
+\]
+
+The year indicators represent the same year-specific effects \(\alpha_t\) used by the linear and ridge models. Since 2025 outcomes are held out during tuning, the 2025 year-effect inputs are formed by linearly extrapolating the 2020–2024 indicators using training-year trend weights. Hidden-unit count and weight decay are selected by 2025 holdout RMSE. The final model is refit on all available years and uses the 2025 year effect to predict level-2 observations.
+
+```{r}
+feature_columns <- c("mean_radiance", "population", "pixel_count")
+scaled_feature_columns <- paste0(feature_columns, "_scaled")
+feature_means <- vapply(training_data[feature_columns], mean, numeric(1))
+feature_sds <- vapply(training_data[feature_columns], sd, numeric(1))
+if (any(!is.finite(feature_sds)) || any(feature_sds <= 0)) {
+  stop("All model features must have positive, finite training standard deviations.")
+}
+
+prepare_features <- function(data) {
+  for (feature in feature_columns) {
+    data[[paste0(feature, "_scaled")]] <-
+      (data[[feature]] - feature_means[[feature]]) /
+      feature_sds[[feature]]
+  }
+  data
+}
+
+temporal_extrapolation_weights <-
+  rep(1 / length(training_years), length(training_years)) +
+  (holdout_year - mean(training_years)) *
+    (training_years - mean(training_years)) /
+    sum((training_years - mean(training_years))^2)
+names(temporal_extrapolation_weights) <- as.character(training_years)
+
+add_year_effects <- function(data, effect_years, extrapolation_weights = NULL) {
+  for (year in effect_years) {
+    column <- paste0("year_", year)
+    if (is.null(extrapolation_weights)) {
+      data[[column]] <- as.numeric(data$year == year)
+    } else {
+      data[[column]] <- unname(extrapolation_weights[as.character(year)])
+    }
+  }
+  data
+}
+
+training_data <- add_year_effects(
+  prepare_features(training_data),
+  training_years
+)
+holdout_data <- add_year_effects(
+  prepare_features(holdout_data),
+  training_years,
+  temporal_extrapolation_weights
+)
+prediction_data <- prepare_features(prediction_data)
+
+year_effect_columns <- paste0("year_", training_years)
+model_predictors <- c(year_effect_columns, scaled_feature_columns)
+design_formula <- reformulate(model_predictors, intercept = FALSE)
+X_train <- model.matrix(design_formula, data = training_data)
+X_holdout <- model.matrix(design_formula, data = holdout_data)
+y_train <- training_data$grdp_per_capita
+y_holdout <- holdout_data$grdp_per_capita
+
+response_mean <- mean(y_train)
+response_sd <- sd(y_train)
+if (!is.finite(response_sd) || response_sd <= 0) {
+  stop("Training outcomes must have positive, finite standard deviation.")
+}
+y_train_scaled <- (y_train - response_mean) / response_sd
+holdout_total_sum_squares <- sum((y_holdout - mean(y_holdout))^2)
+if (!is.finite(holdout_total_sum_squares) || holdout_total_sum_squares <= 0) {
+  stop("The 2025 holdout outcomes must have positive finite variance.")
+}
+
+fit_neural_network <- function(
+  x,
+  y,
+  size,
+  decay,
+  seed,
+  maxit = 3000
+) {
+  set.seed(seed)
+  fit <- nnet(
+    x = x,
+    y = matrix(y, ncol = 1),
+    size = size,
+    decay = decay,
+    linout = TRUE,
+    maxit = maxit,
+    MaxNWts = 5000,
+    rang = 0.1,
+    trace = FALSE
+  )
+  if (fit$convergence != 0) {
+    stop(sprintf(
+      "Neural network did not converge (size=%d, decay=%g, seed=%d).",
+      size,
+      decay,
+      seed
+    ))
+  }
+  fit
+}
+
+predict_grdp <- function(model, newdata) {
+  as.vector(predict(model, newdata = newdata)) * response_sd +
+    response_mean
+}
+```
+
+### 2025 holdout tuning
+
+For each candidate hidden-layer size and weight-decay value, fit only 2020–2024 and predict the 2025 holdout using the extrapolated year-effect inputs. Each candidate uses a fixed seed so hyperparameter comparisons are reproducible.
+
+```{r}
+hidden_units_grid <- c(1, 2, 3, 5)
+decay_grid <- c(0, 0.01, 0.1, 1)
+nn_grid <- expand.grid(
+  hidden_units = hidden_units_grid,
+  weight_decay = decay_grid
+)
+nn_grid$holdout_RMSE <- NA_real_
+nn_grid$holdout_R_squared <- NA_real_
+nn_holdout_predictions <- vector("list", nrow(nn_grid))
+
+for (grid_index in seq_len(nrow(nn_grid))) {
+  candidate <- fit_neural_network(
+    x = X_train,
+    y = y_train_scaled,
+    size = nn_grid$hidden_units[grid_index],
+    decay = nn_grid$weight_decay[grid_index],
+    seed = 401 + grid_index
+  )
+  prediction <- predict_grdp(candidate, X_holdout)
+  residual <- y_holdout - prediction
+  nn_holdout_predictions[[grid_index]] <- prediction
+  nn_grid$holdout_RMSE[grid_index] <- sqrt(mean(residual^2))
+  nn_grid$holdout_R_squared[grid_index] <-
+    1 - sum(residual^2) / holdout_total_sum_squares
+}
+
+selected_nn_index <- which.min(nn_grid$holdout_RMSE)
+selected_hidden_units <- nn_grid$hidden_units[selected_nn_index]
+selected_weight_decay <- nn_grid$weight_decay[selected_nn_index]
+best_holdout_predictions <- nn_holdout_predictions[[selected_nn_index]]
+holdout_residuals <- y_holdout - best_holdout_predictions
+
+write.csv(
+  nn_grid,
+  file.path(data_output_dir, "nn_model_hyperparameter_metrics.csv"),
+  row.names = FALSE
+)
+cat(sprintf(
+  "Selected hidden units: %d; weight decay: %g; 2025 holdout RMSE: %.6f; R-squared: %.6f\n",
+  selected_hidden_units,
+  selected_weight_decay,
+  nn_grid$holdout_RMSE[selected_nn_index],
+  nn_grid$holdout_R_squared[selected_nn_index]
+))
+```
+
+### Holdout metrics and diagnostics
+
+An ordinary least-squares fit on the same training design is included as a reference. Both sets of holdout scores use the actual 2025 provincial outcomes, which were not used to fit either model.
+
+```{r}
+ols_fit <- lm.fit(x = X_train, y = y_train_scaled)
+ols_holdout_predictions <- as.vector(X_holdout %*% ols_fit$coefficients) *
+  response_sd + response_mean
+ols_holdout_residuals <- y_holdout - ols_holdout_predictions
+
+holdout_model_stats <- data.frame(
+  model = c("Neural network", "Ordinary least squares reference"),
+  R_squared = c(
+    1 - sum(holdout_residuals^2) / holdout_total_sum_squares,
+    1 - sum(ols_holdout_residuals^2) / holdout_total_sum_squares
+  ),
+  RMSE = c(
+    sqrt(mean(holdout_residuals^2)),
+    sqrt(mean(ols_holdout_residuals^2))
+  )
+)
+print(holdout_model_stats, row.names = FALSE)
+
+holdout_diagnostics <- data.frame(
+  province = holdout_data$province,
+  year = holdout_year,
+  actual = y_holdout,
+  nn_fitted = best_holdout_predictions,
+  nn_residual = holdout_residuals,
+  ols_fitted = ols_holdout_predictions,
+  ols_residual = ols_holdout_residuals,
+  mean_radiance = holdout_data$mean_radiance,
+  population = holdout_data$population,
+  pixel_count = holdout_data$pixel_count
+)
+write.csv(
+  holdout_diagnostics,
+  file.path(data_output_dir, "nn_model_2025_holdout_predictions.csv"),
+  row.names = FALSE
+)
+
+holdout_actual_fitted <- ggplot(holdout_diagnostics) +
+  geom_point(
+    aes(x = actual, y = nn_fitted, color = "Neural network"),
+    size = 2,
+    alpha = 0.65
+  ) +
+  geom_point(
+    aes(x = actual, y = ols_fitted, color = "OLS reference"),
+    shape = 1,
+    size = 2,
+    alpha = 0.65
+  ) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "gray35") +
+  scale_color_manual(
+    values = c("Neural network" = "#0072B2", "OLS reference" = "#D55E00")
+  ) +
+  labs(
+    title = "2025 holdout: actual vs fitted",
+    x = "Actual GRDP per capita",
+    y = "Predicted GRDP per capita",
+    color = NULL
+  ) +
+  theme_minimal()
+ggsave(
+  file.path(figure_output_dir, "nn_model_2025_holdout_actual_vs_fitted.png"),
+  holdout_actual_fitted,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+```
+
+### Refit selected model and training diagnostics
+
+Refit the selected neural-network architecture on all available years. As in the linear model, the final model includes separate year effects from 2020 through 2025.
+
+```{r}
+all_years <- sort(unique(regression_data$year))
+final_training_data <- add_year_effects(
+  prepare_features(regression_data),
+  all_years
+)
+final_year_effect_columns <- paste0("year_", all_years)
+final_predictors <- c(final_year_effect_columns, scaled_feature_columns)
+final_design_formula <- reformulate(final_predictors, intercept = FALSE)
+final_X <- model.matrix(final_design_formula, data = final_training_data)
+final_y <- final_training_data$grdp_per_capita
+final_response_mean <- mean(final_y)
+final_response_sd <- sd(final_y)
+if (!is.finite(final_response_sd) || final_response_sd <= 0) {
+  stop("All-years outcomes must have positive, finite standard deviation.")
+}
+final_y_scaled <- (final_y - final_response_mean) / final_response_sd
+
+set.seed(1401)
+final_nn_model <- nnet(
+  x = final_X,
+  y = matrix(final_y_scaled, ncol = 1),
+  size = selected_hidden_units,
+  decay = selected_weight_decay,
+  linout = TRUE,
+  maxit = 3000,
+  MaxNWts = 5000,
+  rang = 0.1,
+  trace = FALSE
+)
+if (final_nn_model$convergence != 0) {
+  stop("Final all-years neural network did not converge.")
+}
+final_nn_fitted <- as.vector(predict(final_nn_model, newdata = final_X)) *
+  final_response_sd + final_response_mean
+final_nn_residuals <- final_y - final_nn_fitted
+
+final_ols_fit <- lm.fit(x = final_X, y = final_y_scaled)
+final_ols_fitted <- as.vector(final_X %*% final_ols_fit$coefficients) *
+  final_response_sd + final_response_mean
+
+training_diagnostics <- data.frame(
+  province = final_training_data$province,
+  year = final_training_data$year,
+  year_factor = factor(final_training_data$year),
+  actual = final_y,
+  nn_fitted = final_nn_fitted,
+  nn_residual = final_nn_residuals,
+  ols_fitted = final_ols_fitted,
+  ols_residual = final_y - final_ols_fitted,
+  mean_radiance = final_training_data$mean_radiance,
+  population = final_training_data$population,
+  pixel_count = final_training_data$pixel_count
+)
+training_diagnostics <- training_diagnostics %>%
+  mutate(
+    standardized_residual = nn_residual / sd(nn_residual),
+    scale_location = sqrt(abs(standardized_residual))
+  )
+write.csv(
+  training_diagnostics,
+  file.path(data_output_dir, "nn_model_training_diagnostics.csv"),
+  row.names = FALSE
+)
+
+training_total_sum_squares <- sum((final_y - mean(final_y))^2)
+training_model_stats <- data.frame(
+  model = c("Neural network", "Ordinary least squares reference"),
+  R_squared = c(
+    1 - sum(training_diagnostics$nn_residual^2) /
+      training_total_sum_squares,
+    1 - sum(training_diagnostics$ols_residual^2) /
+      training_total_sum_squares
+  ),
+  RMSE = c(
+    sqrt(mean(training_diagnostics$nn_residual^2)),
+    sqrt(mean(training_diagnostics$ols_residual^2))
+  )
+)
+print(training_model_stats, row.names = FALSE)
+```
+
+```{r}
+training_actual_fitted <- ggplot(training_diagnostics) +
+  geom_point(
+    aes(x = actual, y = nn_fitted, color = "Neural network"),
+    size = 1.8,
+    alpha = 0.65
+  ) +
+  geom_point(
+    aes(x = actual, y = ols_fitted, color = "OLS reference"),
+    shape = 1,
+    size = 1.8,
+    alpha = 0.65
+  ) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "gray35") +
+  scale_color_manual(
+    values = c("Neural network" = "#0072B2", "OLS reference" = "#D55E00")
+  ) +
+  labs(
+    title = "Training observations: actual vs fitted",
+    x = "Actual GRDP per capita",
+    y = "Fitted GRDP per capita",
+    color = NULL
+  ) +
+  theme_minimal()
+ggsave(
+  file.path(figure_output_dir, "nn_model_training_actual_vs_fitted.png"),
+  training_actual_fitted,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+residual_fitted_plot <- ggplot(training_diagnostics) +
+  geom_point(
+    aes(x = nn_fitted, y = nn_residual),
+    color = "#0072B2",
+    alpha = 0.65
+  ) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(
+    title = "Neural network: residual vs fitted",
+    x = "Fitted values",
+    y = "Residual"
+  ) +
+  theme_minimal()
+residual_qq_plot <- ggplot(training_diagnostics, aes(sample = nn_residual)) +
+  stat_qq(color = "#0072B2", alpha = 0.65) +
+  stat_qq_line(color = "#D55E00") +
+  labs(
+    title = "Neural-network residual Q-Q",
+    x = "Theoretical quantiles",
+    y = "Sample quantiles"
+  ) +
+  theme_minimal()
+residual_by_year_plot <- ggplot(
+  training_diagnostics,
+  aes(x = year_factor, y = nn_residual)
+) +
+  geom_boxplot(fill = "#B8D8E8", color = "#0072B2") +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(title = "Residual distribution by year", x = "Year", y = "Residual") +
+  theme_minimal()
+residual_radiance_plot <- ggplot(
+  training_diagnostics,
+  aes(x = mean_radiance, y = nn_residual)
+) +
+  geom_point(color = "#0072B2", alpha = 0.65) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(title = "Residual vs radiance", x = "Mean radiance", y = "Residual") +
+  theme_minimal()
+residual_diagnostics_plot <-
+  (residual_fitted_plot | residual_qq_plot) /
+  (residual_by_year_plot | residual_radiance_plot) +
+  plot_annotation(title = "Neural-network training residual diagnostics")
+ggsave(
+  file.path(figure_output_dir, "nn_model_training_residual_diagnostics.png"),
+  residual_diagnostics_plot,
+  width = 12,
+  height = 8,
+  dpi = 180
+)
+```
+
+### 2025 level-2 predictions
+
+Predict each level-2 unit using the final model, then apply an additive province adjustment so the population-weighted predictions match the provincial 2025 GRDP-per-capita targets. The unadjusted neural-network prediction and province adjustment are both retained in the output.
+
+```{r}
+if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {
+  stop("The level-2 prediction dataset must contain only 2025 observations.")
+}
+if (any(!complete.cases(prediction_data[, c(
+  "name", "level_1", "population", "mean_radiance", "pixel_count"
+)]))) {
+  stop("The level-2 prediction data contains missing required values.")
+}
+if (any(!is.finite(prediction_data$population)) ||
+    any(prediction_data$population < 0)) {
+  stop("Level-2 populations must be finite and non-negative.")
+}
+if (anyDuplicated(paste(prediction_data$level_1, prediction_data$name, sep = "\r"))) {
+  stop("The level-2 prediction data contains duplicate units within a province.")
+}
+
+prediction_data <- add_year_effects(prediction_data, all_years)
+prediction_X <- model.matrix(final_design_formula, data = prediction_data)
+if (!identical(colnames(prediction_X), colnames(final_X))) {
+  stop("Level-2 prediction design does not match the final neural-network model.")
+}
+raw_predictions <- as.vector(
+  predict(final_nn_model, newdata = prediction_X)
+) * final_response_sd + final_response_mean
+if (any(!is.finite(raw_predictions))) {
+  stop("Neural-network level-2 predictions must be finite.")
+}
+
+prediction_data$grdp_pc_2025 <- provincial_grdp_data[["2025"]][
+  match(prediction_data$level_1, provincial_grdp_data$province)
+]
+if (anyNA(prediction_data$grdp_pc_2025) ||
+    any(!is.finite(prediction_data$grdp_pc_2025))) {
+  stop("Missing or invalid 2025 provincial GRDP-per-capita target.")
+}
+
+province_names <- sort(unique(prediction_data$level_1))
+province_adjustments <- setNames(numeric(length(province_names)), province_names)
+for (province in province_names) {
+  index <- which(prediction_data$level_1 == province)
+  level2_population <- sum(prediction_data$population[index])
+  if (!is.finite(level2_population) || level2_population <= 0) {
+    stop(sprintf("Province %s has no positive level-2 population.", province))
+  }
+  target_total <- prediction_data$grdp_pc_2025[index[1]] *
+    level2_population
+  raw_total <- sum(
+    prediction_data$population[index] * raw_predictions[index]
+  )
+  province_adjustments[[province]] <-
+    (target_total - raw_total) / level2_population
+}
+
+prediction_data$raw_grdp_per_capita <- raw_predictions
+prediction_data$province_adjustment <-
+  unname(province_adjustments[prediction_data$level_1])
+prediction_data$predicted_grdp_per_capita <-
+  prediction_data$raw_grdp_per_capita +
+  prediction_data$province_adjustment
+
+province_check <- do.call(rbind, lapply(province_names, function(province) {
+  index <- which(prediction_data$level_1 == province)
+  province_population <- sum(prediction_data$population[index])
+  target_total <- prediction_data$grdp_pc_2025[index[1]] *
+    province_population
+  predicted_total <- sum(
+    prediction_data$population[index] *
+      prediction_data$predicted_grdp_per_capita[index]
+  )
+  data.frame(
+    province = province,
+    population = province_population,
+    level2_population = sum(prediction_data$population[index]),
+    target_grdp_per_capita = prediction_data$grdp_pc_2025[index[1]],
+    predicted_grdp_per_capita = predicted_total / province_population,
+    target_total_grdp = target_total,
+    predicted_total_grdp = predicted_total,
+    difference = predicted_total - target_total
+  )
+}))
+if (any(abs(province_check$difference) >
+        1e-8 * pmax(abs(province_check$target_total_grdp), 1))) {
+  stop("Calibrated level-2 predictions do not match all provincial GDP targets.")
+}
+
+level2_predictions <- data.frame(
+  level_2 = prediction_data$name,
+  level_1 = prediction_data$level_1,
+  year = prediction_data$year,
+  population = prediction_data$population,
+  raw_grdp_per_capita = prediction_data$raw_grdp_per_capita,
+  province_adjustment = prediction_data$province_adjustment,
+  predicted_grdp_per_capita = prediction_data$predicted_grdp_per_capita,
+  province_grdp_per_capita_target_2025 = prediction_data$grdp_pc_2025
+)
+prediction_output <- file.path(
+  data_output_dir,
+  "nn_model_level2_predictions.csv"
+)
+write.csv(level2_predictions, prediction_output, row.names = FALSE)
+write.csv(
+  province_check,
+  file.path(data_output_dir, "nn_model_province_constraint_check.csv"),
+  row.names = FALSE
+)
+
+saveRDS(
+  list(
+    model = final_nn_model,
+    formula = final_design_formula,
+    feature_columns = feature_columns,
+    feature_means = feature_means,
+    feature_sds = feature_sds,
+    response_mean = final_response_mean,
+    response_sd = final_response_sd,
+    year_effects = all_years,
+    hidden_units = selected_hidden_units,
+    weight_decay = selected_weight_decay,
+    training_seed = 1401,
+    holdout_metrics = nn_grid[selected_nn_index, ],
+    holdout_model_stats = holdout_model_stats,
+    training_model_stats = training_model_stats
+  ),
+  file.path(model_output_dir, "neural_network_model.rds")
+)
+
+print(province_check, row.names = FALSE)
+cat("Wrote level-2 predictions to", prediction_output, "\n")
+head(level2_predictions)
+```
