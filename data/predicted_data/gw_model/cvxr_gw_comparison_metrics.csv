@@ -1,0 +1,5 @@
+"split","model","R_squared","RMSE"
+"training","CVXR local regression with outlier correction",0.725668357664981,19.5637342683185
+"training","Ordinary least squares reference",0.457940246644364,27.5002970551732
+"holdout","CVXR local regression with outlier correction",0.854263762822282,17.3349851944466
+"holdout","Ordinary least squares reference",0.373151897003679,35.9518180357549

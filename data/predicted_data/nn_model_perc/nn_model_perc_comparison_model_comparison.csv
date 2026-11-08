@@ -1,0 +1,5 @@
+"split","model","R_squared","RMSE"
+"training","Percentage-feature neural network",0.902986360814838,11.6340305953209
+"training","Ordinary least squares reference",0.457940246644364,27.5002970551732
+"holdout","Percentage-feature neural network",0.867979728846537,16.4990906709253
+"holdout","Ordinary least squares reference",0.373151897003679,35.9518180357549

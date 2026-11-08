@@ -45,12 +45,12 @@ dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load source code
 source(file.path(source_dir, "graph_utils.R"))
-
+source(file.path(source_dir, "model_comparison_setup.R"))
 ```
 
 ### Load dataset
 
-For this model, we will use two basics training and testing datasets:
+For this model, we will use the following training and testing datasets:
 
 * `prediction_dataset.csv`: For prediction purposes
 
@@ -63,7 +63,6 @@ All data sets have been cleaned and contain no missing values.
 ```{r}
 # Regression Dataset
 regression_data <- read.csv(file.path(data_dir, "training_data/regression_dataset.csv"))
-regression_data$population <- regression_data$population * 1000
 
 # Prediction Dataset
 prediction_data <- read.csv(file.path(data_dir, "training_data/prediction_dataset.csv"))
@@ -82,8 +81,40 @@ provincial_population_data <- read.csv(file.path(data_dir,
   "_vnm_indicators/vnm_population.csv"),
   check.names = FALSE
 )
+
+# Provincial population data are in thousands; convert to persons.
 provincial_population_data[, as.character(2020:2025)] <-
   provincial_population_data[, as.character(2020:2025)] * 1000
+```
+
+### Shared training and holdout setup
+
+The shared setup converts regression population to persons, splits 2020–2024
+from the 2025 holdout, standardizes the common features and outcome using
+training-only statistics, applies those transformations to both partitions,
+and computes linear temporal extrapolation weights. The native OLS reference
+predictions are saved for comparison; the constrained linear fit remains
+model-specific.
+
+```{r}
+model_setup <- prepare_model_comparison_setup(regression_data)
+regression_data <- model_setup$regression_data
+training_data <- model_setup$training_data
+holdout_data <- model_setup$holdout_data
+training_years <- model_setup$training_years
+holdout_year <- model_setup$holdout_year
+feature_columns <- model_setup$feature_columns
+scaled_feature_columns <- model_setup$scaled_feature_columns
+feature_means <- model_setup$feature_means
+feature_sds <- model_setup$feature_sds
+temporal_extrapolation_weights <- model_setup$temporal_extrapolation_weights
+ols_comparison <- fit_ols_comparison(model_setup)
+ols_reference_predictions <- ols_comparison$holdout
+ols_reference_predictions$residual <-
+  ols_reference_predictions$actual - ols_reference_predictions$predicted
+ols_reference_predictions$residual_scaled <-
+  ols_reference_predictions$actual_scaled -
+  ols_reference_predictions$predicted_scaled
 ```
 
 
@@ -96,52 +127,37 @@ Supposed:
 * \(\beta \in \mathbb{R}^3\): shared slopes for the explanatory variables.
 * \(a_t \in \mathbb{R}\): specified national GDP total for year \(t\).
 
-The model includes a separate intercept for each year and shared slopes for the explanatory variables. The constraints ensure that population-weighted predictions match the national GDP target for every year.
+The model includes a separate training-year intercept and shared slopes for the explanatory variables. It is fit on standardized 2020–2024 data only; the population-weighted national GDP constraints apply to those training years. The 2025 holdout is scored against the shared OLS baseline without refitting.
 
 ```{r}
-# y: observed outcome vector
-y <- regression_data$grdp_per_capita
-
-# years: year factor for year intercept
-years <- sort(unique(regression_data$year))
-regression_data$year_factor <- factor(regression_data$year, levels = years)
-
-# feature_columns: list of cols of variables.
-feature_columns <- c("mean_radiance", "population", "pixel_count")
-
-# scaled_features: scaled variables
-scaled_features <- scale(regression_data[feature_columns])
-feature_means <- attr(scaled_features, "scaled:center")
-feature_sds <- attr(scaled_features, "scaled:scale")
-scaled_feature_columns <- paste0(feature_columns, "_scaled")
-regression_data[scaled_feature_columns] <- as.data.frame(scaled_features)
-
-# X: design matrix
-X <- model.matrix(
-  ~ 0 + year_factor + mean_radiance_scaled + population_scaled +
-    pixel_count_scaled,
-  data = regression_data
-)
-
-# p: dimension
+# Constrained fitting uses exactly the shared training partition and design.
+X <- model_setup$X_train
+X_test <- model_setup$X_test
+y_train_scaled <- model_setup$y_train
+y <- model_setup$y_train_raw
+y_test <- model_setup$y_test_raw
+training_population <- training_data$population
+year <- training_data$year
+years <- training_years
+population <- training_population
 p <- ncol(X)
-
-# year, population, target_gdp: constrained variables.
-year <- regression_data$year
-population <- regression_data$population
-target_gdp <- constrained_data$gdp[match(years, constrained_data$year)]
+target_gdp <- constrained_data$gdp[
+  match(training_years, constrained_data$year)
+]
 ```
 
 ### Optimization problem
 
-The optimization problem is
+Fit only the 2020–2024 training data using the shared standardized response
+and design matrix. National GDP constraints are retained for these training
+years only; 2025 remains an untouched evaluation partition.
 \[
 \boxed{ 
 \begin{aligned}
-\min_{\alpha,\beta}\quad & \|y-\hat y\|_2^2\\
+\min_{\alpha,\beta}\quad & \|y_{\mathrm{train}}-\hat y_{\mathrm{train}}\|_2^2\\
 \text{s.t.}\quad
-&\sum_{i:\,\mathrm{year}_i=t} P_i\hat y_i=a_t,
-\quad t\in\{2020,\ldots,2025\},\\
+&\sum_{i:\,\mathrm{year}_i=t} P_i(\bar y+s_y\hat y_i)=a_t,
+\quad t\in\{2020,\ldots,2024\},\\
 &\hat y_i=\alpha_{\mathrm{year}_i}+x_i^\top\beta
 \end{aligned}
 }
@@ -150,10 +166,12 @@ The optimization problem is
 # Define optimization variable
 beta <- Variable(p)
 
-# Define fitted values
-y_hat <- X %*% beta
+# Define standardized fitted values and convert them to GRDP-per-capita units.
+y_hat_scaled <- X %*% beta
+y_hat <- model_setup$response_mean +
+  model_setup$response_sd * y_hat_scaled
 
-# Define the annual GDP constraints. Scaling each equality by its target improves numerical conditioning without changing the feasible set.
+# Define the annual GDP constraints for training years only.
 constraints <- lapply(seq_along(years), function(i) {
   idx <- which(year == years[i])
   sum_entries(population[idx] * y_hat[idx]) / target_gdp[i] == 1
@@ -161,7 +179,7 @@ constraints <- lapply(seq_along(years), function(i) {
 
 # Define constrained least-squares problem
 problem <- Problem(
-  Minimize(sum_squares(y - y_hat)),
+  Minimize(sum_squares(y_train_scaled - y_hat_scaled)),
   constraints
 )
 
@@ -173,7 +191,12 @@ print(result$status)
 
 if (result$status %in% c("optimal", "optimal_inaccurate")) {
   beta_hat <- value(beta)
-  predictions <- as.vector(X %*% beta_hat)
+  predictions <- as.vector(X %*% beta_hat) *
+    model_setup$response_sd + model_setup$response_mean
+  holdout_predictions <- as.vector(X_test %*% beta_hat) *
+    model_setup$response_sd + model_setup$response_mean
+  ols_predictions <- ols_comparison$training$predicted
+  ols_holdout_predictions <- ols_comparison$holdout$predicted
   
   # Optimality and Constraints check
   yearly_check <- data.frame(
@@ -197,7 +220,9 @@ if (result$status %in% c("optimal", "optimal_inaccurate")) {
   fitted_model <- list(
     coefficients = beta_hat,
     variable_names = colnames(X),
-    years = years,
+    years = training_years,
+    response_mean = model_setup$response_mean,
+    response_sd = model_setup$response_sd,
     solver = "CLARABEL",
     solver_status = result$status,
     objective_value = result$value
@@ -215,7 +240,7 @@ if (result$status %in% c("optimal", "optimal_inaccurate")) {
 
 ### Statistical Summary
 
-For observation \(i=1,\ldots,n\), let \(y_i\) be the observed GRDP per capita, \(\hat y_i^{(C)}\) the constrained-model prediction, and \(\hat y_i^{(OLS)}\) the ordinary least-squares prediction. The response mean and total sum of squares are
+For each split, the response mean and total sum of squares are computed over that split's observed GRDP-per-capita values. The reported comparison table contains training-fit diagnostics and the 2025 holdout scores for both the constrained model and the shared OLS reference.
 \[
 \bar y = \frac{1}{n}\sum_{i=1}^{n} y_i,
 \qquad
@@ -241,29 +266,30 @@ The root mean squared error (RMSE), in GRDP-per-capita units, is
 \]
 
 ```{r}
-# Fit an ordinary least-squares (OLS) regression
-ols_fit <- lm.fit(x = X, y = y)
-ols_predictions <- as.vector(X %*% ols_fit$coefficients)
-total_sum_squares <- sum((y - mean(y))^2)
-
-# Residuals
 constrained_residuals <- y - predictions
 ols_residuals <- y - ols_predictions
-
-# R^2 and RMSE
-model_stats <- data.frame(
-  model = c("Constrained", "Ordinary least squares"),
-  R_squared = c(
-    1 - sum(constrained_residuals^2) / total_sum_squares,
-    1 - sum(ols_residuals^2) / total_sum_squares
-  ),
-  RMSE = c(
-    sqrt(mean(constrained_residuals^2)),
-    sqrt(mean(ols_residuals^2))
-  )
+comparison_metrics <- write_model_comparison_diagnostics(
+  model_name = "Constrained linear model",
+  training_data = training_data,
+  holdout_data = holdout_data,
+  training_fitted = predictions,
+  holdout_fitted = holdout_predictions,
+  ols_training = ols_predictions,
+  ols_holdout = ols_holdout_predictions,
+  data_output_dir = data_output_dir,
+  figure_output_dir = figure_output_dir,
+  file_prefix = "linear_model",
+  feature_columns = feature_columns
 )
-
-print(model_stats, row.names = FALSE)
+holdout_model_stats <- comparison_metrics[
+  comparison_metrics$split == "holdout",
+  c("model", "R_squared", "RMSE")
+]
+training_model_stats <- comparison_metrics[
+  comparison_metrics$split == "training",
+  c("model", "R_squared", "RMSE")
+]
+print(holdout_model_stats, row.names = FALSE)
 ```
 
 ### Training fit and residual diagnostics
@@ -272,7 +298,7 @@ Save the training diagnostics
 ```{r}
 # Training diagnostics data frame
 training_diagnostics <- data.frame(
-  province = regression_data$province,
+  province = training_data$province,
   year = year,
   actual = y,
   constrained_fitted = predictions,
@@ -280,9 +306,9 @@ training_diagnostics <- data.frame(
   ols_fitted = ols_predictions,
   ols_residual = ols_residuals,
   year_factor = factor(year),
-  mean_radiance = regression_data$mean_radiance,
+  mean_radiance = training_data$mean_radiance,
   population = population,
-  pixel_count = regression_data$pixel_count
+  pixel_count = training_data$pixel_count
 )
 
 # Calculate standardized residuals
@@ -296,7 +322,7 @@ training_diagnostics <- training_diagnostics %>%
 # Save
 write.csv(
   training_diagnostics,
-  file.path(data_output_dir, "linear_model_training_diagnostics.csv"),
+  file.path(data_output_dir, "linear_model_training_fit_diagnostics.csv"),
   row.names = FALSE
 )
 ```
@@ -476,7 +502,7 @@ ggsave(
   dpi = 200
 )
 
-knitr::include_graphics(residual_diagnostics_path)
+knitr::include_graphics(normalizePath(residual_diagnostics_path))
 
 ```
 
@@ -504,12 +530,7 @@ prediction_data$province_population_2025 <- provincial_population_data[["2025"]]
   match(prediction_data$level_1, provincial_population_data$province)
 ]
 
-# Scale features
-prediction_data$year_factor <- factor(
-  prediction_data$year,
-  levels = years
-)
-
+# Scale features with the shared training statistics.
 for (feature in feature_columns) {
   prediction_data[[paste0(feature, "_scaled")]] <-
     (prediction_data[[feature]] - feature_means[[feature]]) /
@@ -524,14 +545,18 @@ prediction_features <- as.matrix(
 
 
 ```{r}
-# Generate initial level-2 predictions
-prediction_X <- model.matrix(
-  ~ 0 + year_factor + mean_radiance_scaled +
-    population_scaled + pixel_count_scaled,
-  data = prediction_data
+# Extrapolate the fitted year effects to 2025, matching the shared holdout setup.
+prediction_X <- cbind(
+  matrix(
+    rep(temporal_extrapolation_weights, each = nrow(prediction_data)),
+    nrow = nrow(prediction_data)
+  ),
+  as.matrix(prediction_data[paste0(feature_columns, "_scaled")])
 )
+colnames(prediction_X) <- colnames(model_setup$X_train)
 
-raw_predictions <- as.vector(prediction_X %*% beta_hat)
+raw_predictions <- as.vector(prediction_X %*% beta_hat) *
+  model_setup$response_sd + model_setup$response_mean
 
 
 # Calculate a common adjustment for each province

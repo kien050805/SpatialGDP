@@ -39,43 +39,76 @@ dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
 model_dir <-file.path(project_dir, "code/R/model")
 model_output_dir <-file.path(project_dir, "code/R/model/nn_model")
 dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
+source(file.path(source_dir, "model_comparison_setup.R"))
 ```
 
-### Load data
+### Load dataset
 
-The regression data are used to train and evaluate the model. The level-2 prediction data contain the 2025 features to predict. As in the linear model, regression populations are converted from thousands to persons, features are standardized from training observations only, and the final predictions are adjusted within each province to match the reported 2025 provincial GRDP-per-capita total.
+For this model, we will use the following training and testing datasets:
+
+* `prediction_dataset.csv`: For prediction purposes
+
+* `regression_dataset.csv`: For training and regression purposes
+
+* `vnm_.csv`: For constraints purposes
+
+All data sets have been cleaned and contain no missing values.
 
 ```{r}
-regression_data <- read.csv(
-  file.path(data_dir, "training_data/regression_dataset.csv")
-)
-prediction_data <- read.csv(
-  file.path(data_dir, "training_data/prediction_dataset.csv")
-)
-provincial_grdp_data <- read.csv(
-  file.path(data_dir, "_vnm_indicators/vnm_GRDPpc.csv"),
+# Regression Dataset
+regression_data <- read.csv(file.path(data_dir, "training_data/regression_dataset.csv"))
+
+# Prediction Dataset
+prediction_data <- read.csv(file.path(data_dir, "training_data/prediction_dataset.csv"))
+
+# National GDP totals used to constrain the regression fit
+constrained_data <- read.csv(file.path(data_dir, "_vnm_indicators/vnm_level0_gdp.csv"))
+
+# Provincial GRDP per-capita targets used to calibrate 2025 level-2 predictions
+provincial_grdp_data <- read.csv(file.path(data_dir,
+  "_vnm_indicators/vnm_GRDPpc.csv"),
   check.names = FALSE
 )
-provincial_population_data <- read.csv(
-  file.path(data_dir, "_vnm_indicators/vnm_population.csv"),
+
+# Provincial population totals (thousands) used as the aggregation constraint
+provincial_population_data <- read.csv(file.path(data_dir,
+  "_vnm_indicators/vnm_population.csv"),
   check.names = FALSE
 )
-regression_data$population <- regression_data$population * 1000
+
+# Provincial population data are in thousands; convert to persons.
 provincial_population_data[, as.character(2020:2025)] <-
   provincial_population_data[, as.character(2020:2025)] * 1000
+```
 
-training_years <- 2020:2024
-holdout_year <- 2025
-training_data <- regression_data[
-  regression_data$year %in% training_years,
-  ,
-  drop = FALSE
-]
-holdout_data <- regression_data[
-  regression_data$year == holdout_year,
-  ,
-  drop = FALSE
-]
+### Shared training and holdout setup
+
+The shared setup uses 2020–2024 for training and 2025 for the holdout. It
+standardizes the common features and outcome using training-only statistics,
+applies those transformations to the holdout, and computes temporal
+extrapolation weights. A native OLS reference is generated from this same
+design and saved for cross-model comparison; neural-network tuning and
+calibration remain model-specific.
+
+```{r}
+model_setup <- prepare_model_comparison_setup(regression_data)
+regression_data <- model_setup$regression_data
+training_data <- model_setup$training_data
+holdout_data <- model_setup$holdout_data
+training_years <- model_setup$training_years
+holdout_year <- model_setup$holdout_year
+feature_columns <- model_setup$feature_columns
+feature_means <- model_setup$feature_means
+feature_sds <- model_setup$feature_sds
+temporal_extrapolation_weights <-
+  model_setup$temporal_extrapolation_weights
+ols_comparison <- fit_ols_comparison(model_setup)
+ols_reference_predictions <- ols_comparison$holdout
+ols_reference_predictions$residual <-
+  ols_reference_predictions$actual - ols_reference_predictions$predicted
+ols_reference_predictions$residual_scaled <-
+  ols_reference_predictions$actual_scaled -
+  ols_reference_predictions$predicted_scaled
 ```
 
 ### Preliminaries
@@ -94,9 +127,7 @@ feature_columns <- c("mean_radiance", "population", "pixel_count")
 scaled_feature_columns <- paste0(feature_columns, "_scaled")
 feature_means <- vapply(training_data[feature_columns], mean, numeric(1))
 feature_sds <- vapply(training_data[feature_columns], sd, numeric(1))
-if (any(!is.finite(feature_sds)) || any(feature_sds <= 0)) {
-  stop("All model features must have positive, finite training standard deviations.")
-}
+
 
 prepare_features <- function(data) {
   for (feature in feature_columns) {
@@ -106,13 +137,6 @@ prepare_features <- function(data) {
   }
   data
 }
-
-temporal_extrapolation_weights <-
-  rep(1 / length(training_years), length(training_years)) +
-  (holdout_year - mean(training_years)) *
-    (training_years - mean(training_years)) /
-    sum((training_years - mean(training_years))^2)
-names(temporal_extrapolation_weights) <- as.character(training_years)
 
 add_year_effects <- function(data, effect_years, extrapolation_weights = NULL) {
   for (year in effect_years) {
@@ -142,11 +166,23 @@ model_predictors <- c(year_effect_columns, scaled_feature_columns)
 design_formula <- reformulate(model_predictors, intercept = FALSE)
 X_train <- model.matrix(design_formula, data = training_data)
 X_holdout <- model.matrix(design_formula, data = holdout_data)
+if (!isTRUE(all.equal(
+      unname(X_train),
+      unname(model_setup$X_train),
+      check.attributes = FALSE
+    )) ||
+    !isTRUE(all.equal(
+      unname(X_holdout),
+      unname(model_setup$X_test),
+      check.attributes = FALSE
+    ))) {
+  stop("Neural-network design matrices do not match the shared comparison setup.")
+}
 y_train <- training_data$grdp_per_capita
 y_holdout <- holdout_data$grdp_per_capita
 
-response_mean <- mean(y_train)
-response_sd <- sd(y_train)
+response_mean <- model_setup$response_mean
+response_sd <- model_setup$response_sd
 if (!is.finite(response_sd) || response_sd <= 0) {
   stop("Training outcomes must have positive, finite standard deviation.")
 }
@@ -155,7 +191,9 @@ holdout_total_sum_squares <- sum((y_holdout - mean(y_holdout))^2)
 if (!is.finite(holdout_total_sum_squares) || holdout_total_sum_squares <= 0) {
   stop("The 2025 holdout outcomes must have positive finite variance.")
 }
+```
 
+```{r}
 fit_neural_network <- function(
   x,
   y,
@@ -229,6 +267,14 @@ selected_hidden_units <- nn_grid$hidden_units[selected_nn_index]
 selected_weight_decay <- nn_grid$weight_decay[selected_nn_index]
 best_holdout_predictions <- nn_holdout_predictions[[selected_nn_index]]
 holdout_residuals <- y_holdout - best_holdout_predictions
+selected_nn_model <- fit_neural_network(
+  x = X_train,
+  y = y_train_scaled,
+  size = selected_hidden_units,
+  decay = selected_weight_decay,
+  seed = 401 + selected_nn_index
+)
+training_fitted_predictions <- predict_grdp(selected_nn_model, X_train)
 
 write.csv(
   nn_grid,
@@ -246,25 +292,33 @@ cat(sprintf(
 
 ### Holdout metrics and diagnostics
 
-An ordinary least-squares fit on the same training design is included as a reference. Both sets of holdout scores use the actual 2025 provincial outcomes, which were not used to fit either model.
+The selected network is trained only on `X_train`, `y_train`; its training and 2025 holdout metrics are compared with the OLS reference fit on the same training inputs. Both sets of diagnostics are saved separately.
 
 ```{r}
-ols_fit <- lm.fit(x = X_train, y = y_train_scaled)
-ols_holdout_predictions <- as.vector(X_holdout %*% ols_fit$coefficients) *
-  response_sd + response_mean
+ols_holdout_predictions <- ols_comparison$holdout$predicted
 ols_holdout_residuals <- y_holdout - ols_holdout_predictions
 
-holdout_model_stats <- data.frame(
-  model = c("Neural network", "Ordinary least squares reference"),
-  R_squared = c(
-    1 - sum(holdout_residuals^2) / holdout_total_sum_squares,
-    1 - sum(ols_holdout_residuals^2) / holdout_total_sum_squares
-  ),
-  RMSE = c(
-    sqrt(mean(holdout_residuals^2)),
-    sqrt(mean(ols_holdout_residuals^2))
-  )
+comparison_metrics <- write_model_comparison_diagnostics(
+  model_name = "Neural network",
+  training_data = training_data,
+  holdout_data = holdout_data,
+  training_fitted = training_fitted_predictions,
+  holdout_fitted = best_holdout_predictions,
+  ols_training = ols_comparison$training$predicted,
+  ols_holdout = ols_comparison$holdout$predicted,
+  data_output_dir = data_output_dir,
+  figure_output_dir = figure_output_dir,
+  file_prefix = "nn_model",
+  feature_columns = feature_columns
 )
+holdout_model_stats <- comparison_metrics[
+  comparison_metrics$split == "holdout",
+  c("model", "R_squared", "RMSE")
+]
+training_model_stats <- comparison_metrics[
+  comparison_metrics$split == "training",
+  c("model", "R_squared", "RMSE")
+]
 print(holdout_model_stats, row.names = FALSE)
 
 holdout_diagnostics <- data.frame(
@@ -382,12 +436,12 @@ training_diagnostics <- training_diagnostics %>%
   )
 write.csv(
   training_diagnostics,
-  file.path(data_output_dir, "nn_model_training_diagnostics.csv"),
+  file.path(data_output_dir, "nn_model_all_year_refit_diagnostics.csv"),
   row.names = FALSE
 )
 
 training_total_sum_squares <- sum((final_y - mean(final_y))^2)
-training_model_stats <- data.frame(
+final_refit_model_stats <- data.frame(
   model = c("Neural network", "Ordinary least squares reference"),
   R_squared = c(
     1 - sum(training_diagnostics$nn_residual^2) /
@@ -400,7 +454,7 @@ training_model_stats <- data.frame(
     sqrt(mean(training_diagnostics$ols_residual^2))
   )
 )
-print(training_model_stats, row.names = FALSE)
+print(final_refit_model_stats, row.names = FALSE)
 ```
 
 ```{r}
@@ -428,7 +482,7 @@ training_actual_fitted <- ggplot(training_diagnostics) +
   ) +
   theme_minimal()
 ggsave(
-  file.path(figure_output_dir, "nn_model_training_actual_vs_fitted.png"),
+  file.path(figure_output_dir, "nn_model_all_year_refit_actual_vs_fitted.png"),
   training_actual_fitted,
   width = 11.25,
   height = 6.875,
@@ -478,7 +532,7 @@ residual_diagnostics_plot <-
   (residual_by_year_plot | residual_radiance_plot) +
   plot_annotation(title = "Neural-network training residual diagnostics")
 ggsave(
-  file.path(figure_output_dir, "nn_model_training_residual_diagnostics.png"),
+  file.path(figure_output_dir, "nn_model_all_year_refit_residual_diagnostics.png"),
   residual_diagnostics_plot,
   width = 12,
   height = 8,

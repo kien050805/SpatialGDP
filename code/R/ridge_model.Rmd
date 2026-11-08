@@ -43,11 +43,12 @@ dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load source code
 source(file.path(source_dir, "graph_utils.R"))
+source(file.path(source_dir, "model_comparison_setup.R"))
 ```
 
 ### Load dataset
 
-For this model, we will use two basics training and testing datasets:
+For this model, we will use the following training and testing datasets:
 
 * `prediction_dataset.csv`: For prediction purposes
 
@@ -60,7 +61,6 @@ All data sets have been cleaned and contain no missing values.
 ```{r}
 # Regression Dataset
 regression_data <- read.csv(file.path(data_dir, "training_data/regression_dataset.csv"))
-regression_data$population <- regression_data$population * 1000
 
 # Prediction Dataset
 prediction_data <- read.csv(file.path(data_dir, "training_data/prediction_dataset.csv"))
@@ -79,9 +79,48 @@ provincial_population_data <- read.csv(file.path(data_dir,
   "_vnm_indicators/vnm_population.csv"),
   check.names = FALSE
 )
+
+# Provincial population data are in thousands; convert to persons.
 provincial_population_data[, as.character(2020:2025)] <-
   provincial_population_data[, as.character(2020:2025)] * 1000
 ```
+
+
+### Shared training and holdout setup
+
+The shared setup converts regression population to persons, splits 2020–2024
+from the 2025 holdout, standardizes the common features and outcome using
+training-only statistics, and computes linear temporal extrapolation weights.
+Its native OLS holdout reference is saved alongside the ridge outputs.
+```{r}
+model_setup <- prepare_model_comparison_setup(regression_data)
+regression_data <- model_setup$regression_data
+training_data <- model_setup$training_data
+holdout_data <- model_setup$holdout_data
+training_years <- model_setup$training_years
+holdout_year <- model_setup$holdout_year
+feature_columns <- model_setup$feature_columns
+feature_means <- model_setup$feature_means
+feature_sds <- model_setup$feature_sds
+temporal_extrapolation_weights <-
+  model_setup$temporal_extrapolation_weights
+ols_comparison <- fit_ols_comparison(model_setup)
+ols_reference_predictions <- ols_comparison$holdout
+ols_reference_predictions$residual <-
+  ols_reference_predictions$actual - ols_reference_predictions$predicted
+ols_reference_predictions$residual_scaled <-
+  ols_reference_predictions$actual_scaled -
+  ols_reference_predictions$predicted_scaled
+write.csv(
+  ols_reference_predictions,
+  file.path(data_output_dir, "ols_reference_holdout_predictions.csv"),
+  row.names = FALSE
+)
+
+scaled_training <- as.matrix(training_data[paste0(feature_columns, "_scaled")])
+scaled_holdout <- as.matrix(holdout_data[paste0(feature_columns, "_scaled")])
+```
+
 
 ### Preliminaries
 Supposed:
@@ -121,44 +160,6 @@ National GDP constraints are applied only to the training years (2020–2024). C
 After selecting the best \(\lambda\), the model is refitted using all available years (2020–2025) and used to generate Level-2 predictions.
 
 ```{r}
-# Define the temporal split and scale features using training years only.
-training_years <- 2020:2024
-holdout_year <- 2025
-
-# Separate observations into training and holdout datasets.
-training_data <- regression_data[
-  regression_data$year %in% training_years,
-  ,
-  drop = FALSE
-]
-holdout_data <- regression_data[
-  regression_data$year == holdout_year,
-  ,
-  drop = FALSE
-]
-
-# Extract the response variable for each dataset.
-y_train <- training_data$grdp_per_capita
-y_holdout <- holdout_data$grdp_per_capita
-
-
-# Standardize features using training-set statistics.
-feature_columns <- c("mean_radiance", "population", "pixel_count")
-feature_means <- vapply(training_data[feature_columns], mean, numeric(1))
-feature_sds <- vapply(training_data[feature_columns], sd, numeric(1))
-
-# Apply the training-set means and standard deviations to both datasets.
-scaled_training <- scale(
-  training_data[feature_columns],
-  center = feature_means,
-  scale = feature_sds
-)
-scaled_holdout <- scale(
-  holdout_data[feature_columns],
-  center = feature_means,
-  scale = feature_sds
-)
-
 # Construct the training design matrix with year-specific intercepts.
 training_data$year_factor <- factor(training_data$year, levels = training_years)
 X_train <- cbind(
@@ -166,12 +167,8 @@ X_train <- cbind(
   as.matrix(scaled_training)
 )
 
-# Calculate temporal extrapolation weights for the holdout year.
-time_extrapolation_weights <-
-  rep(1 / length(training_years), length(training_years)) +
-  (holdout_year - mean(training_years)) *
-    (training_years - mean(training_years)) /
-    sum((training_years - mean(training_years))^2)
+# Reuse the shared setup's training-only temporal extrapolation weights.
+time_extrapolation_weights <- temporal_extrapolation_weights
 
 # Construct the holdout design matrix using extrapolated year effects.
 X_holdout <- cbind(
@@ -181,6 +178,18 @@ X_holdout <- cbind(
   ),
   as.matrix(scaled_holdout)
 )
+if (!isTRUE(all.equal(
+      unname(X_train),
+      unname(model_setup$X_train),
+      check.attributes = FALSE
+    )) ||
+    !isTRUE(all.equal(
+      unname(X_holdout),
+      unname(model_setup$X_test),
+      check.attributes = FALSE
+    ))) {
+  stop("Ridge model design matrices do not match the shared comparison setup.")
+}
 
 
 # Prepare population weights and annual GDP constraint targets.
@@ -189,11 +198,15 @@ training_year <- training_data$year
 target_gdp_training <- constrained_data$gdp[
   match(training_years, constrained_data$year)
 ]
+y_train <- model_setup$y_train
+y_holdout <- model_setup$y_test
+y_train_raw <- model_setup$y_train_raw
+y_holdout_raw <- model_setup$y_test_raw
 ```
 
 ### Optimization problem
 
-For each candidate \(\lambda\), fit observations from 2020–2024 subject to national GDP constraints for those training years:
+For each candidate \(\lambda\), fit the shared standardized response on `X_train` and `y_train`. Predictions are returned to GRDP-per-capita units for the training-year national GDP constraints and 2025 holdout scoring:
 \[
 \boxed{
 \begin{aligned}
@@ -248,7 +261,11 @@ for (lambda_index in seq_along(lambda_grid)) {
   training_constraints <- lapply(seq_along(training_years), function(i) {
     idx <- which(training_year == training_years[i])
 
-    sum_entries(training_population[idx] * ridge_fitted[idx]) /
+    sum_entries(
+      training_population[idx] *
+        (model_setup$response_mean +
+          model_setup$response_sd * ridge_fitted[idx])
+    ) /
       target_gdp_training[i] == 1
   })
 
@@ -289,13 +306,14 @@ for (lambda_index in seq_along(lambda_grid)) {
 
   # Generate predictions for the 2025 holdout observations using the estimated coefficients and the holdout design matrix.
   holdout_predictions[, lambda_index] <-
-    as.vector(X_holdout %*% holdout_coefficients[, lambda_index])
+    as.vector(X_holdout %*% holdout_coefficients[, lambda_index]) *
+      model_setup$response_sd + model_setup$response_mean
 }
 
 
 # Calculate the total sum of squares of the observed 2025 GRDP per capita values for the holdout R-squared calculation.
 holdout_total_sum_squares <- sum(
-  (y_holdout - mean(y_holdout))^2
+  (y_holdout_raw - mean(y_holdout_raw))^2
 )
 
 # Evaluate predictive performance for each candidate lambda.
@@ -304,12 +322,12 @@ lambda_results <- data.frame(
 
   # Calculate the root mean squared prediction error.
   holdout_RMSE = apply(holdout_predictions, 2, function(fit) {
-    sqrt(mean((y_holdout - fit)^2))
+    sqrt(mean((y_holdout_raw - fit)^2))
   }),
 
   # Calculate the holdout coefficient of determination.
   holdout_R_squared = apply(holdout_predictions, 2, function(fit) {
-    1 - sum((y_holdout - fit)^2) / holdout_total_sum_squares
+    1 - sum((y_holdout_raw - fit)^2) / holdout_total_sum_squares
   }),
 
   # Retain the optimization status for each candidate lambda.
@@ -332,7 +350,7 @@ selected_lambda <- lambda_results$lambda[selected_index]
 best_holdout_predictions <- holdout_predictions[, selected_index]
 
 # Calculate prediction residuals for the selected model.
-holdout_residuals <- y_holdout - best_holdout_predictions
+holdout_residuals <- y_holdout_raw - best_holdout_predictions
 
 # Report the selected regularization parameter and evaluation metrics.
 cat(sprintf(
@@ -573,28 +591,39 @@ print(final_constraint_check, row.names = FALSE)
 
 ### Statistical Summary
 
-The final model comparison and lambda selection use only 2025 holdout
-predictions from models fitted on 2020–2024. Holdout \(R^2\) is computed
-relative to the mean of the observed 2025 provinces. The OLS model is included
-as an unconstrained reference and uses the same training features.
+Lambda selection uses 2025 holdout predictions from models fitted on
+2020–2024. The split comparison tables and diagnostics report training and
+holdout performance against the shared OLS reference fit on `X_train`, `y_train`.
 
 ```{r}
-ols_fit <- lm.fit(x = X_train, y = y_train)
-ols_holdout_predictions <- as.vector(X_holdout %*% ols_fit$coefficients)
-ols_holdout_residuals <- y_holdout - ols_holdout_predictions
+ols_holdout_predictions <- ols_reference_predictions$predicted
+ols_holdout_residuals <- y_holdout_raw - ols_holdout_predictions
 ridge_residuals <- holdout_residuals
+selected_ridge_coefficients <- holdout_coefficients[, selected_index]
+ridge_training_predictions <- as.vector(X_train %*% selected_ridge_coefficients) *
+  model_setup$response_sd + model_setup$response_mean
 
-holdout_model_stats <- data.frame(
-  model = c("Constrained ridge", "Ordinary least squares reference"),
-  R_squared = c(
-    1 - sum(ridge_residuals^2) / holdout_total_sum_squares,
-    1 - sum(ols_holdout_residuals^2) / holdout_total_sum_squares
-  ),
-  RMSE = c(
-    sqrt(mean(ridge_residuals^2)),
-    sqrt(mean(ols_holdout_residuals^2))
-  )
+comparison_metrics <- write_model_comparison_diagnostics(
+  model_name = "Constrained ridge",
+  training_data = training_data,
+  holdout_data = holdout_data,
+  training_fitted = ridge_training_predictions,
+  holdout_fitted = best_holdout_predictions,
+  ols_training = ols_comparison$training$predicted,
+  ols_holdout = ols_comparison$holdout$predicted,
+  data_output_dir = data_output_dir,
+  figure_output_dir = figure_output_dir,
+  file_prefix = "ridge_model",
+  feature_columns = feature_columns
 )
+holdout_model_stats <- comparison_metrics[
+  comparison_metrics$split == "holdout",
+  c("model", "R_squared", "RMSE")
+]
+training_model_stats <- comparison_metrics[
+  comparison_metrics$split == "training",
+  c("model", "R_squared", "RMSE")
+]
 
 print(holdout_model_stats, row.names = FALSE)
 cat(sprintf(
@@ -626,7 +655,7 @@ descriptive checks rather than formal inference.
 ```{r holdout-diagnostics, echo=FALSE}
 training_diagnostics <- data.frame(
   province = holdout_data$province,
-  actual = y_holdout,
+  actual = y_holdout_raw,
   constrained_fitted = best_holdout_predictions,
   constrained_residual = ridge_residuals,
   ols_fitted = ols_holdout_predictions,
@@ -697,7 +726,7 @@ legend(
   bty = "n"
 )
 grDevices::dev.off()
-#knitr::include_graphics(actual_fitted_path)
+knitr::include_graphics(actual_fitted_path)
 ```
 
 ```{r residual-assumption-diagnostics, echo=FALSE}
@@ -830,7 +859,7 @@ mtext(
   cex = 1.1
 )
 grDevices::dev.off()
-#knitr::include_graphics(residual_diagnostics_path)
+knitr::include_graphics(residual_diagnostics_path)
 ```
 
 ### 2025 Level-2 Predictions
@@ -848,37 +877,10 @@ The adjustment is calculated as:
 where \(g_j\) is the province's reported GRDP per capita, \(N_j\) is its total population, and \(P_{ij}\) is the population of level-2 unit \(i\).
 
 ```{r}
-if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {
-  stop("The level-2 prediction dataset must contain only 2025 observations.")
-}
-if (any(!complete.cases(prediction_data[, c(
-  "name", "level_1", "population", "mean_radiance", "pixel_count"
-)]))) {
-  stop("The level-2 prediction data contains missing required values.")
-}
 prediction_features <- as.matrix(prediction_data[feature_columns])
-if (any(!is.finite(prediction_features))) {
-  stop("Level-2 prediction features must be finite.")
-}
-if (any(prediction_data$population < 0)) {
-  stop("Level-2 populations must be finite and non-negative.")
-}
-if (anyDuplicated(paste(prediction_data$level_1, prediction_data$name, sep = "\r"))) {
-  stop("The level-2 prediction data contains duplicate units within a province.")
-}
-if (anyDuplicated(provincial_grdp_data$province)) {
-  stop("Provincial GRDP data contains duplicate province targets.")
-}
-if (anyDuplicated(provincial_population_data$province)) {
-  stop("Provincial population data contains duplicate province totals.")
-}
-
 grdp_pc_2025 <- provincial_grdp_data[["2025"]][
   match(prediction_data$level_1, provincial_grdp_data$province)
 ]
-if (anyNA(grdp_pc_2025) || any(!is.finite(grdp_pc_2025))) {
-  stop("Missing or non-finite 2025 GRDP-per-capita target for a prediction province.")
-}
 province_population_2025 <- provincial_population_data[["2025"]][
   match(prediction_data$level_1, provincial_population_data$province)
 ] * 1000
@@ -898,9 +900,6 @@ prediction_X <- cbind(
   model.matrix(~ 0 + year_factor, data = prediction_data),
   as.matrix(scaled_prediction)
 )
-if (!identical(colnames(prediction_X), colnames(X))) {
-  stop("Prediction design matrix does not match the fitted model.")
-}
 
 raw_level2_predictions <- as.vector(prediction_X %*% beta_hat)
 province_names <- sort(unique(prediction_data$level_1))

@@ -1,0 +1,5 @@
+"split","model","R_squared","RMSE"
+"training","Constrained ridge",0.45507551107104,27.5728695577704
+"training","Ordinary least squares reference",0.457940246644364,27.5002970551732
+"holdout","Constrained ridge",0.384991429820535,35.6106813203751
+"holdout","Ordinary least squares reference",0.373151897003679,35.9518180357549

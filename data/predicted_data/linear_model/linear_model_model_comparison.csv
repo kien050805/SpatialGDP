@@ -1,0 +1,5 @@
+"split","model","R_squared","RMSE"
+"training","Constrained linear model",0.456502776285532,27.5367364778353
+"training","Ordinary least squares reference",0.457940246644364,27.5002970551732
+"holdout","Constrained linear model",0.383529283647231,35.65298732514
+"holdout","Ordinary least squares reference",0.373151897003679,35.9518180357549

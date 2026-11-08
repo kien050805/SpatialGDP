@@ -21,56 +21,100 @@ library(here)
 ```
 
 ```{r setup, include=FALSE}
+#Directory setup
 project_dir <- here()
-data_dir <- file.path(project_dir, "data")
-figure_output_dir <- file.path(project_dir, "figures", "nn_model_perc")
-data_output_dir <- file.path(data_dir, "predicted_data", "nn_model_perc")
-model_output_dir <- file.path(project_dir, "code", "R", "model", "nn_model_perc")
+source_dir <- file.path(project_dir, "code/R")
 
+#Figure output path
+figure_dir <- file.path(project_dir, "figures")
+figure_output_dir <- file.path(figure_dir, "nn_model_perc")
 dir.create(figure_output_dir, showWarnings = FALSE, recursive = TRUE)
+
+#Data output path
+data_dir <- file.path(project_dir, "data")
+data_output_dir <- file.path(data_dir,"predicted_data/nn_model_perc")
 dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
+
+#Model output path
+model_dir <-file.path(project_dir, "code/R/model")
+model_output_dir <-file.path(project_dir, "code/R/model/nn_model_perc")
 dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
+source(file.path(source_dir, "model_comparison_setup.R"))
 ```
 
-### Load data
+### Load dataset
 
-The regression data are used to train and evaluate the network. The level-2 prediction dataset contains the 2025 covariates to predict. Regression population is converted from thousands to persons for consistency with prediction data; the conversion does not change within-province shares.
+For this model, we will use the following training and testing datasets:
+
+* `prediction_dataset.csv`: For prediction purposes
+
+* `regression_dataset.csv`: For training and regression purposes
+
+* `vnm_.csv`: For constraints purposes
+
+All data sets have been cleaned and contain no missing values.
 
 ```{r}
-regression_data <- read.csv(
-  file.path(data_dir, "training_data/regression_dataset.csv")
-)
-prediction_data <- read.csv(
-  file.path(data_dir, "training_data/prediction_dataset.csv")
-)
-provincial_grdp_data <- read.csv(
-  file.path(data_dir, "_vnm_indicators/vnm_GRDPpc.csv"),
+# Regression Dataset
+regression_data <- read.csv(file.path(data_dir, "training_data/regression_dataset.csv"))
+
+# Prediction Dataset
+prediction_data <- read.csv(file.path(data_dir, "training_data/prediction_dataset.csv"))
+
+# National GDP totals used to constrain the regression fit
+constrained_data <- read.csv(file.path(data_dir, "_vnm_indicators/vnm_level0_gdp.csv"))
+
+# Provincial GRDP per-capita targets used to calibrate 2025 level-2 predictions
+provincial_grdp_data <- read.csv(file.path(data_dir,
+  "_vnm_indicators/vnm_GRDPpc.csv"),
   check.names = FALSE
 )
-provincial_population_data <- read.csv(
-  file.path(data_dir, "_vnm_indicators/vnm_population.csv"),
+
+# Provincial population totals (thousands) used as the aggregation constraint
+provincial_population_data <- read.csv(file.path(data_dir,
+  "_vnm_indicators/vnm_population.csv"),
   check.names = FALSE
 )
-regression_data$population <- regression_data$population * 1000
+
+# Provincial population data are in thousands; convert to persons.
 provincial_population_data[, as.character(2020:2025)] <-
   provincial_population_data[, as.character(2020:2025)] * 1000
+```
 
-training_years <- 2020:2024
-holdout_year <- 2025
-training_data <- regression_data[
-  regression_data$year %in% training_years,
-  ,
-  drop = FALSE
-]
-holdout_data <- regression_data[
-  regression_data$year == holdout_year,
-  ,
-  drop = FALSE
-]
-if (!identical(sort(unique(training_data$year)), training_years) ||
-    nrow(holdout_data) == 0) {
-  stop("The regression data must contain 2020–2024 training and 2025 holdout rows.")
-}
+
+### Shared training and holdout setup
+
+The common comparison setup uses 2020–2024 for training and 2025 for the
+holdout, standardizes the raw common features and outcome using training-only
+statistics, and computes temporal extrapolation weights. Its native OLS
+reference is saved for comparison across all five models. The percentage
+neural network then applies its separate within-parent share transformations
+to its own model inputs.
+
+```{r}
+model_setup <- prepare_model_comparison_setup(regression_data)
+regression_data <- model_setup$regression_data
+training_data <- model_setup$training_data
+holdout_data <- model_setup$holdout_data
+training_years <- model_setup$training_years
+holdout_year <- model_setup$holdout_year
+feature_columns <- model_setup$feature_columns
+feature_means <- model_setup$feature_means
+feature_sds <- model_setup$feature_sds
+temporal_extrapolation_weights <-
+  model_setup$temporal_extrapolation_weights
+ols_comparison <- fit_ols_comparison(model_setup)
+ols_reference_predictions <- ols_comparison$holdout
+ols_reference_predictions$residual <-
+  ols_reference_predictions$actual - ols_reference_predictions$predicted
+ols_reference_predictions$residual_scaled <-
+  ols_reference_predictions$actual_scaled -
+  ols_reference_predictions$predicted_scaled
+write.csv(
+  ols_reference_predictions,
+  file.path(data_output_dir, "ols_reference_holdout_predictions.csv"),
+  row.names = FALSE
+)
 ```
 
 ### Preliminaries
@@ -174,12 +218,7 @@ prepare_radiance <- function(data) {
   data
 }
 
-training_year_weights <-
-  rep(1 / length(training_years), length(training_years)) +
-  (holdout_year - mean(training_years)) *
-    (training_years - mean(training_years)) /
-    sum((training_years - mean(training_years))^2)
-names(training_year_weights) <- as.character(training_years)
+training_year_weights <- temporal_extrapolation_weights
 
 add_year_indicators <- function(data, years, extrapolation_weights = NULL) {
   for (year in years) {
@@ -215,8 +254,8 @@ X_train <- model.matrix(design_formula, data = training_data)
 X_holdout <- model.matrix(design_formula, data = holdout_data)
 y_train <- training_data$grdp_per_capita
 y_holdout <- holdout_data$grdp_per_capita
-response_mean <- mean(y_train)
-response_sd <- sd(y_train)
+response_mean <- model_setup$response_mean
+response_sd <- model_setup$response_sd
 if (!is.finite(response_sd) || response_sd <= 0) {
   stop("Training outcomes must have a positive, finite standard deviation.")
 }
@@ -268,7 +307,7 @@ write.csv(
 
 ### 2025 holdout tuning
 
-Tune hidden-layer size and weight decay on the 2025 holdout. Each candidate is fit only to 2020–2024, using within-province population and pixel-count percentages and training-only radiance scaling.
+Tune hidden-layer size and weight decay on the 2025 holdout. Each candidate is fit only to `X_train`, `y_train`, using within-parent population and pixel-count percentages and training-only radiance scaling. The final split comparison uses the same OLS reference as the other models.
 
 ```{r}
 hidden_units_grid <- c(1, 2, 3, 5)
@@ -302,30 +341,48 @@ selected_hidden_units <- nn_grid$hidden_units[selected_nn_index]
 selected_weight_decay <- nn_grid$weight_decay[selected_nn_index]
 best_holdout_predictions <- nn_holdout_predictions[[selected_nn_index]]
 holdout_residuals <- y_holdout - best_holdout_predictions
+selected_nn_model <- fit_neural_network(
+  x = X_train,
+  y = y_train_scaled,
+  size = selected_hidden_units,
+  decay = selected_weight_decay,
+  seed = 1401 + selected_nn_index
+)
+training_fitted_predictions <- predict_grdp(selected_nn_model, X_train)
 write.csv(
   nn_grid,
   file.path(data_output_dir, "nn_model_perc_hyperparameter_metrics.csv"),
   row.names = FALSE
 )
 
-ols_fit <- lm.fit(x = X_train, y = y_train_scaled)
-ols_coefficients <- ols_fit$coefficients
-ols_coefficients[is.na(ols_coefficients)] <- 0
-ols_holdout_predictions <- as.vector(X_holdout %*% ols_coefficients) *
-  response_sd + response_mean
+ols_holdout_predictions <- ols_comparison$holdout$predicted
 ols_holdout_residuals <- y_holdout - ols_holdout_predictions
 holdout_total_sum_squares <- sum((y_holdout - mean(y_holdout))^2)
-holdout_model_stats <- data.frame(
-  model = c("Percentage-feature neural network", "OLS reference"),
-  R_squared = c(
-    1 - sum(holdout_residuals^2) / holdout_total_sum_squares,
-    1 - sum(ols_holdout_residuals^2) / holdout_total_sum_squares
-  ),
-  RMSE = c(
-    sqrt(mean(holdout_residuals^2)),
-    sqrt(mean(ols_holdout_residuals^2))
+comparison_metrics <- write_model_comparison_diagnostics(
+  model_name = "Percentage-feature neural network",
+  training_data = training_data,
+  holdout_data = holdout_data,
+  training_fitted = training_fitted_predictions,
+  holdout_fitted = best_holdout_predictions,
+  ols_training = ols_comparison$training$predicted,
+  ols_holdout = ols_comparison$holdout$predicted,
+  data_output_dir = data_output_dir,
+  figure_output_dir = figure_output_dir,
+  file_prefix = "nn_model_perc",
+  feature_columns = c(
+    "mean_radiance",
+    "population_pct",
+    "pixel_count_pct"
   )
 )
+holdout_model_stats <- comparison_metrics[
+  comparison_metrics$split == "holdout",
+  c("model", "R_squared", "RMSE")
+]
+training_model_stats <- comparison_metrics[
+  comparison_metrics$split == "training",
+  c("model", "R_squared", "RMSE")
+]
 print(holdout_model_stats, row.names = FALSE)
 cat(sprintf(
   "Selected hidden units: %d; weight decay: %g; holdout RMSE: %.6f\n",
@@ -464,12 +521,12 @@ training_diagnostics <- training_diagnostics %>%
   )
 write.csv(
   training_diagnostics,
-  file.path(data_output_dir, "nn_model_perc_training_diagnostics.csv"),
+  file.path(data_output_dir, "nn_model_perc_all_year_refit_diagnostics.csv"),
   row.names = FALSE
 )
 
 training_total_sum_squares <- sum((final_y - mean(final_y))^2)
-training_model_stats <- data.frame(
+final_refit_model_stats <- data.frame(
   model = c("Percentage-feature neural network", "OLS reference"),
   R_squared = c(
     1 - sum(training_diagnostics$nn_residual^2) /
@@ -482,7 +539,7 @@ training_model_stats <- data.frame(
     sqrt(mean(training_diagnostics$ols_residual^2))
   )
 )
-print(training_model_stats, row.names = FALSE)
+print(final_refit_model_stats, row.names = FALSE)
 ```
 
 ```{r}
@@ -513,7 +570,7 @@ training_actual_fitted <- ggplot(training_diagnostics) +
   ) +
   theme_minimal()
 ggsave(
-  file.path(figure_output_dir, "nn_model_perc_training_actual_vs_fitted.png"),
+  file.path(figure_output_dir, "nn_model_perc_all_year_refit_actual_vs_fitted.png"),
   training_actual_fitted,
   width = 11.25,
   height = 6.875,
@@ -551,7 +608,7 @@ residual_diagnostics_plot <-
   (residual_year_plot | residual_share_plot) +
   plot_annotation(title = "Neural-network percentage-feature diagnostics")
 ggsave(
-  file.path(figure_output_dir, "nn_model_perc_training_residual_diagnostics.png"),
+  file.path(figure_output_dir, "nn_model_perc_all_year_refit_residual_diagnostics.png"),
   residual_diagnostics_plot,
   width = 12,
   height = 8,
