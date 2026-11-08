@@ -542,7 +542,7 @@ ggsave(
 
 ### 2025 level-2 predictions
 
-Predict each level-2 unit using the final model, then apply an additive province adjustment so the level-2 population-weighted prediction total equals 2025 provincial GRDP per capita multiplied by the official provincial population. The adjustment uses the level-2 population sum as its denominator, so differing level-2 population coverage does not change the official target. The unadjusted neural-network prediction and province adjustment are both retained in the output.
+Predict each level-2 unit using the final model, then apply an additive province adjustment so the level-2 population-weighted prediction total equals 2025 provincial GRDP per capita multiplied by the official provincial population. The adjustment uses the level-2 population sum as its denominator, so differing level-2 population coverage does not change the official target. Since GRDP per capita cannot be negative, the model predictions are floored at zero and the provincial adjustment is solved with that floor active. The non-negative unadjusted prediction and province adjustment are retained in the output.
 
 ```{r}
 if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {
@@ -573,6 +573,59 @@ if (any(!is.finite(raw_predictions))) {
   stop("Neural-network level-2 predictions must be finite.")
 }
 
+calibrate_nonnegative_additive <- function(
+  raw_predictions,
+  population,
+  target_total
+) {
+  if (length(raw_predictions) == 0 ||
+      length(raw_predictions) != length(population) ||
+      any(!is.finite(raw_predictions)) ||
+      any(!is.finite(population)) ||
+      any(population < 0) ||
+      !is.finite(target_total) ||
+      target_total <= 0) {
+    stop("Non-negative calibration requires finite predictions, non-negative population, and a positive target total.")
+  }
+  population_total <- sum(population)
+  if (!is.finite(population_total) || population_total <= 0) {
+    stop("Non-negative calibration requires positive total population.")
+  }
+
+  nonnegative_raw_predictions <- pmax(raw_predictions, 0)
+  weighted_total <- function(adjustment) {
+    sum(population * pmax(nonnegative_raw_predictions + adjustment, 0))
+  }
+  lower <- -max(nonnegative_raw_predictions) - 1
+  upper <- target_total / population_total -
+    min(nonnegative_raw_predictions) + 1
+  for (iteration in seq_len(100)) {
+    adjustment <- lower + (upper - lower) / 2
+    if (weighted_total(adjustment) < target_total) {
+      lower <- adjustment
+    } else {
+      upper <- adjustment
+    }
+  }
+
+  adjustment <- lower + (upper - lower) / 2
+  calibrated_predictions <-
+    pmax(nonnegative_raw_predictions + adjustment, 0)
+  calibration_error <- sum(population * calibrated_predictions) - target_total
+  if (any(!is.finite(calibrated_predictions)) ||
+      any(calibrated_predictions < 0) ||
+      abs(calibration_error) >
+        1e-8 * max(abs(target_total), 1)) {
+    stop("Non-negative provincial calibration failed to meet its target.")
+  }
+
+  list(
+    raw_predictions = nonnegative_raw_predictions,
+    adjustment = adjustment,
+    calibrated_predictions = calibrated_predictions
+  )
+}
+
 prediction_data$grdp_pc_2025 <- provincial_grdp_data[["2025"]][
   match(prediction_data$level_1, provincial_grdp_data$province)
 ]
@@ -589,27 +642,26 @@ if (anyNA(prediction_data$grdp_pc_2025) ||
 
 province_names <- sort(unique(prediction_data$level_1))
 province_adjustments <- setNames(numeric(length(province_names)), province_names)
+nonnegative_raw_predictions <- pmax(raw_predictions, 0)
+calibrated_predictions <- numeric(length(raw_predictions))
 for (province in province_names) {
   index <- which(prediction_data$level_1 == province)
-  level2_population <- sum(prediction_data$population[index])
-  if (!is.finite(level2_population) || level2_population <= 0) {
-    stop(sprintf("Province %s has no positive level-2 population.", province))
-  }
   target_total <- prediction_data$grdp_pc_2025[index[1]] *
     prediction_data$province_population_2025[index[1]]
-  raw_total <- sum(
-    prediction_data$population[index] * raw_predictions[index]
+  calibration <- calibrate_nonnegative_additive(
+    raw_predictions = raw_predictions[index],
+    population = prediction_data$population[index],
+    target_total = target_total
   )
-  province_adjustments[[province]] <-
-    (target_total - raw_total) / level2_population
+  nonnegative_raw_predictions[index] <- calibration$raw_predictions
+  province_adjustments[[province]] <- calibration$adjustment
+  calibrated_predictions[index] <- calibration$calibrated_predictions
 }
 
-prediction_data$raw_grdp_per_capita <- raw_predictions
+prediction_data$raw_grdp_per_capita <- nonnegative_raw_predictions
 prediction_data$province_adjustment <-
   unname(province_adjustments[prediction_data$level_1])
-prediction_data$predicted_grdp_per_capita <-
-  prediction_data$raw_grdp_per_capita +
-  prediction_data$province_adjustment
+prediction_data$predicted_grdp_per_capita <- calibrated_predictions
 
 province_check <- do.call(rbind, lapply(province_names, function(province) {
   index <- which(prediction_data$level_1 == province)
@@ -667,6 +719,8 @@ saveRDS(
     feature_means = feature_means,
     feature_sds = feature_sds,
     calibration_population = "official provincial 2025 population",
+    prediction_floor = 0,
+    level2_calibration = "additive province adjustment with non-negative prediction floor",
     response_mean = final_response_mean,
     response_sd = final_response_sd,
     year_effects = all_years,

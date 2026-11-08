@@ -985,7 +985,7 @@ ggsave(
 
 ### 2025 level-2 predictions
 
-Use the refitted model's 2025 year effect and the training-set feature standardization to predict each level-2 centroid. As in the linear model, a province-specific additive adjustment calibrates level-2 predictions to the reported 2025 provincial GRDP-per-capita target.
+Use the refitted model's 2025 year effect and the training-set feature standardization to predict each level-2 centroid. A province-specific additive adjustment calibrates level-2 predictions to the reported 2025 provincial GRDP-per-capita target. Because GRDP per capita cannot be negative, the model predictions are floored at zero and the adjustment is solved with that floor active, preserving provincial totals while keeping estimates non-negative.
 
 ```{r}
 prediction_data$year <- 2025
@@ -1084,6 +1084,8 @@ calibrate_province_predictions <- function(raw_predictions, data) {
 
   provinces <- unique(data$level_1)
   adjustments <- setNames(numeric(length(provinces)), provinces)
+  nonnegative_raw_predictions <- pmax(raw_predictions, 0)
+  calibrated_predictions <- numeric(length(raw_predictions))
   for (province in provinces) {
     index <- which(data$level_1 == province)
     level2_population <- sum(data$population[index])
@@ -1093,11 +1095,34 @@ calibrate_province_predictions <- function(raw_predictions, data) {
     province_index <- match(province, data$level_1)
     target_total <- target_grdp[province_index] *
       province_population[province_index]
-    predicted_total <- sum(data$population[index] * raw_predictions[index])
-    adjustments[[province]] <- (target_total - predicted_total) / level2_population
+    if (!is.finite(target_total) || target_total <= 0) {
+      stop(sprintf("Province %s has an invalid non-positive GRDP target.", province))
+    }
+
+    province_raw <- nonnegative_raw_predictions[index]
+    weighted_total <- function(adjustment) {
+      sum(data$population[index] * pmax(province_raw + adjustment, 0))
+    }
+    lower <- -max(province_raw) - 1
+    upper <- target_total / level2_population - min(province_raw) + 1
+    for (iteration in seq_len(100)) {
+      adjustment <- lower + (upper - lower) / 2
+      if (weighted_total(adjustment) < target_total) {
+        lower <- adjustment
+      } else {
+        upper <- adjustment
+      }
+    }
+
+    adjustments[[province]] <- lower + (upper - lower) / 2
+    calibrated_predictions[index] <-
+      pmax(province_raw + adjustments[[province]], 0)
   }
 
-  calibrated_predictions <- raw_predictions + adjustments[data$level_1]
+  if (any(!is.finite(calibrated_predictions)) ||
+      any(calibrated_predictions < 0)) {
+    stop("Calibrated level-2 predictions must be finite and non-negative.")
+  }
   province_check <- do.call(rbind, lapply(provinces, function(province) {
     index <- which(data$level_1 == province)
     province_index <- match(province, data$level_1)
@@ -1122,7 +1147,7 @@ calibrate_province_predictions <- function(raw_predictions, data) {
   }
 
   list(
-    raw = raw_predictions,
+    raw = nonnegative_raw_predictions,
     calibrated = calibrated_predictions,
     adjustment = unname(adjustments[data$level_1]),
     target_grdp_per_capita = target_grdp,
@@ -1195,6 +1220,8 @@ saveRDS(
     feature_columns = feature_columns,
     feature_means = feature_means,
     feature_sds = feature_sds,
+    prediction_floor = 0,
+    level2_calibration = "additive province adjustment with non-negative prediction floor",
     bandwidth_neighbors = final_bandwidth_gwmodel,
     bandwidth_fraction = selected_gwmodel_bandwidth / nrow(training_data),
     kernel = kernel_name,
@@ -1219,6 +1246,8 @@ saveRDS(
     feature_columns = feature_columns,
     feature_means = feature_means,
     feature_sds = feature_sds,
+    prediction_floor = 0,
+    level2_calibration = "additive province adjustment with non-negative prediction floor",
     bandwidth_neighbors = final_bandwidth_cvxr,
     bandwidth_fraction = selected_cvxr_bandwidth / nrow(training_data),
     lambda = selected_cvxr_lambda,
