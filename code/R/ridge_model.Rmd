@@ -22,23 +22,21 @@ library(here)
 ```
 
 ```{r setup, include=FALSE}
-#Directory setup
+# Directory setup
 project_dir <- here()
-source_dir <- file.path(project_dir, "code/R")
+source_dir <- file.path(project_dir, "code", "R")
 
-#Figure output path
-figure_dir <- file.path(project_dir, "figures")
-figure_output_dir <- file.path(figure_dir, "ridge_model")
+# Figure output path
+figure_output_dir <- file.path(project_dir, "figures", "ridge_model")
 dir.create(figure_output_dir, showWarnings = FALSE, recursive = TRUE)
 
-#Data output path
+# Data output path
 data_dir <- file.path(project_dir, "data")
-data_output_dir <- file.path(data_dir,"predicted_data/ridge_model")
+data_output_dir <- file.path(data_dir, "predicted_data", "ridge_model")
 dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
 
-#Model output path
-model_dir <-file.path(project_dir, "code/R/model")
-model_output_dir <-file.path(project_dir, "code/R/model/ridge_model")
+# Model output path
+model_output_dir <- file.path(project_dir, "code", "R", "model", "ridge_model")
 dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```
 
@@ -448,7 +446,10 @@ abline(
 invisible(grDevices::dev.off())
 
 # Include the saved figure in the rendered R Markdown document.
-knitr::include_graphics(lambda_plot_path)
+knitr::include_graphics(
+  normalizePath(lambda_plot_path),
+  rel_path = FALSE
+)
 ```
 
 ### Refit selected model on all years
@@ -644,11 +645,15 @@ holdout_predictions_table <- data.frame(
   ols_prediction = training_diagnostics$ols_fitted,
   ols_residual = training_diagnostics$ols_residual
 )
-#write.csv(
-#  holdout_predictions_table,
-#  "data/predicted_data/ridge_2025_holdout_predictions.csv",
-#  row.names = FALSE
-#)
+holdout_predictions_path <- file.path(
+  data_output_dir,
+  "ridge_model_2025_holdout_predictions.csv"
+)
+write.csv(
+  holdout_predictions_table,
+  holdout_predictions_path,
+  row.names = FALSE
+)
 print(
   holdout_predictions_table[
     order(abs(holdout_predictions_table$ridge_residual), decreasing = TRUE),
@@ -656,9 +661,10 @@ print(
   row.names = FALSE
 )
 
-dir.create("figures", showWarnings = FALSE, recursive = TRUE)
-
-actual_fitted_path <- "figures/ridge_model_2025_holdout_actual_vs_fitted.png"
+actual_fitted_path <- file.path(
+  figure_output_dir,
+  "ridge_model_2025_holdout_actual_vs_fitted.png"
+)
 grDevices::png(actual_fitted_path, width = 1800, height = 1100, res = 160)
 par(mfrow = c(1, 1), mar = c(4.5, 4.5, 3, 1))
 plot(
@@ -697,7 +703,10 @@ grDevices::dev.off()
 ```{r residual-assumption-diagnostics, echo=FALSE}
 standardized_residual <- training_diagnostics$constrained_residual /
   sd(training_diagnostics$constrained_residual)
-residual_diagnostics_path <- "figures/ridge_model_2025_holdout_residual_diagnostics.png"
+residual_diagnostics_path <- file.path(
+  figure_output_dir,
+  "ridge_model_2025_holdout_residual_diagnostics.png"
+)
 grDevices::png(residual_diagnostics_path, width = 2800, height = 1600, res = 200)
 par(mfrow = c(2, 4), mar = c(4, 4, 3, 1), oma = c(0, 0, 2, 0))
 
@@ -947,6 +956,11 @@ if (any(abs(province_check$difference) >
         1e-8 * pmax(abs(province_check$target_total_grdp), 1))) {
   stop("Calibrated level-2 predictions do not match all provincial GDP targets.")
 }
+write.csv(
+  province_check,
+  file.path(data_output_dir, "ridge_model_province_constraint_check.csv"),
+  row.names = FALSE
+)
 
 level2_predictions <- data.frame(
   level_2 = prediction_data$name,
@@ -961,10 +975,31 @@ level2_predictions <- data.frame(
   province_grdp_per_capita_target_2025 =
     prediction_data$grdp_per_capita_target_2025
 )
-prediction_output <- "data/predicted_data/level2_grdp_pc_ridge_predictions.csv"
-#write.csv(level2_predictions, prediction_output, row.names = FALSE)
+prediction_output <- file.path(
+  data_output_dir,
+  "ridge_model_level2_predictions.csv"
+)
+write.csv(level2_predictions, prediction_output, row.names = FALSE)
+
+ridge_model <- list(
+  coefficients = beta_hat,
+  variable_names = colnames(X),
+  years = years,
+  feature_columns = feature_columns,
+  feature_means = feature_means,
+  feature_sds = feature_sds,
+  selected_lambda = selected_lambda,
+  solver = "CLARABEL",
+  solver_status = final_result$status,
+  objective_value = final_result$value,
+  holdout_metrics = holdout_model_stats,
+  holdout_lambda_grid = lambda_results
+)
+model_output <- file.path(model_output_dir, "constrained_ridge_model.rds")
+saveRDS(ridge_model, model_output)
 
 print(province_check, row.names = FALSE)
+cat("Saved ridge model to", model_output, "\n")
 cat("Wrote level-2 predictions to", prediction_output, "\n")
 head(level2_predictions)
 ```

@@ -21,14 +21,23 @@ library(here)
 ```
 
 ```{r setup, include=FALSE}
+#Directory setup
 project_dir <- here()
-data_dir <- file.path(project_dir, "data")
-figure_output_dir <- file.path(project_dir, "figures", "nn_model")
-data_output_dir <- file.path(data_dir, "predicted_data", "nn_model")
-model_output_dir <- file.path(project_dir, "code", "R", "model", "nn_model")
+source_dir <- file.path(project_dir, "code/R")
 
+#Figure output path
+figure_dir <- file.path(project_dir, "figures")
+figure_output_dir <- file.path(figure_dir, "nn_model")
 dir.create(figure_output_dir, showWarnings = FALSE, recursive = TRUE)
+
+#Data output path
+data_dir <- file.path(project_dir, "data")
+data_output_dir <- file.path(data_dir,"predicted_data/nn_model")
 dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
+
+#Model output path
+model_dir <-file.path(project_dir, "code/R/model")
+model_output_dir <-file.path(project_dir, "code/R/model/nn_model")
 dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```
 
@@ -61,10 +70,6 @@ holdout_data <- regression_data[
   ,
   drop = FALSE
 ]
-if (!identical(sort(unique(training_data$year)), training_years) ||
-    nrow(holdout_data) == 0) {
-  stop("The regression data must contain 2020–2024 training and 2025 holdout rows.")
-}
 ```
 
 ### Preliminaries

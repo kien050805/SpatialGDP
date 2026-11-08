@@ -70,21 +70,37 @@ if (any(!is.finite(regression_data$latitude)) ||
 
 ### Preliminaries
 
-Let \(y_{it}\) be GRDP per capita for observation \(i\) in year \(t\), and let \(x_{it}\) contain the standardized radiance, population, and pixel-count predictors. Let \(s_i\) denote the observation's longitude/latitude centroid. The year-specific intercepts \(\alpha_t\) play the same role as the year effects in the ridge model. In geographically weighted regression, the intercepts and slopes are estimated locally at each location \(s\):
+Supposed:
 
-\[
-y_{it} = \alpha_t(s) + x_{it}^{\mathsf T}\beta(s) + \epsilon_{it}.
-\]
+- \(y \in \mathbb{R}^n\): observed outcome vector. That is, `grdp_per_capita`.
+- \(x_i \in \mathbb{R}^3\): standardized explanatory variables for observation \(i\): `mean_radiance`, `population`, and `pixel_count`.
+- \(s_i \in \mathbb{R}^2\): geographic coordinates (longitude and latitude) representing the centroid of observation \(i\).
+- \(\alpha_t(s) \in \mathbb{R}\): locally estimated year-specific intercept for year \(t\) at geographic location \(s\).
+- \(\beta(s) \in \mathbb{R}^3\): locally estimated slopes for the three explanatory variables at geographic location \(s\).
+- \(w_i(s) \in [0,1]\): spatial weight assigned to observation \(i\) when estimating the model at location \(s\), determined by great-circle distance and an adaptive bisquare kernel.
+- \(h\): adaptive bandwidth, representing the number of nearest training observations used to determine spatial weights.
+- \(\lambda \geq 0\): optional ridge penalty parameter applied exclusively to the predictor slopes.
+- \(v_t \in \mathbb{R}\): temporal extrapolation weight assigned to training year \(t\) when estimating the 2025 year effect.
 
-At each location, observations receive bisquare weights determined by great-circle distance to that location and an adaptive bandwidth. The CVXR implementation solves the same local weighted least-squares problem. Its optional ridge penalty applies only to the predictor slopes, not to the intercept or year effects:
+The model estimates geographically varying year-specific intercepts and explanatory-variable coefficients using locally weighted least squares. The 2020–2024 observations are used for model fitting, while 2025 observations are reserved for holdout evaluation.
 
-\[
-\min_{\alpha(s),\,\beta(s)}
-\sum_i w_i(s)\left(y_i-\alpha_{t_i}(s)-x_i^{\mathsf T}\beta(s)\right)^2
-+\lambda\|\beta(s)\|_2^2.
-\]
+Since the 2025 year effect cannot be estimated from holdout outcomes, it is linearly extrapolated from the 2020–2024 year effects using the following temporal extrapolation weights:
 
-The models are fitted on 2020–2024 and the 2025 observations are kept out of fitting. As in the ridge model, 2025's year effect is not estimated from its holdout outcomes. Instead, the 2020–2024 year effects are linearly extrapolated to 2025 using the training-year trend weights. Those same weights are used to choose the adaptive bandwidth (and CVXR penalty) by 2025 holdout RMSE. After tuning, the models are refitted on all years and use the 2025 year effect for level-2 prediction.
+\[ v_t = \frac{1}{T} + \frac{(2025-\bar{t})(t-\bar{t})} {\sum\_{j=1}^{T}(t_j-\bar{t})^2} \]
+
+where \(T\) is the number of training years, \(t\) represents an individual training year, and \(\bar{t}\) is the mean training year.
+
+These weights satisfy:
+
+\[ \sum\_{t=2020}^{2024}v_t=1 \]
+
+\[ \sum\_{t=2020}^{2024}t v_t=2025 \]
+
+Consequently, the extrapolated 2025 year effect is:
+
+\[ \alpha\_{2025}(s) = \sum\_{t=2020}^{2024}v_t\alpha_t(s) \]
+
+The extrapolation weights are also used when selecting the adaptive bandwidth and ridge penalty based on 2025 holdout RMSE. After parameter selection, the models are refitted using all available years for level-2 prediction.
 
 ```{r}
 training_years <- 2020:2024
