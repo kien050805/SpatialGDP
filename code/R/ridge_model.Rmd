@@ -883,7 +883,7 @@ grdp_pc_2025 <- provincial_grdp_data[["2025"]][
 ]
 province_population_2025 <- provincial_population_data[["2025"]][
   match(prediction_data$level_1, provincial_population_data$province)
-] * 1000
+]
 if (anyNA(province_population_2025) ||
     any(!is.finite(province_population_2025)) ||
     any(province_population_2025 <= 0)) {
