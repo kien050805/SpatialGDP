@@ -1557,6 +1557,15 @@ border-radius: 0px;
 </div>
 
 
+<p>This chunk loads GWmodel and <code>sf</code> for geographic weighting
+and centroid handling, CVXR for the independently implemented local
+regression, and the plotting/data packages used for evaluation. Both
+spatial implementations share the same training split and feature
+design.</p>
+<p>The hidden setup chunk resolves the project and creates dedicated
+locations for GW figures, prediction/diagnostic data, and saved model
+objects. It also loads the shared preprocessing and OLS-comparison
+functions.</p>
 <div id="load-dataset" class="section level3">
 <h3>Load dataset</h3>
 <p>For this model, we will use the following training and testing
@@ -1569,6 +1578,11 @@ purposes</p></li>
 <li><p><code>vnm_.csv</code>: For constraints purposes</p></li>
 </ul>
 <p>All data sets have been cleaned and contain no missing values.</p>
+<p>This chunk reads the provincial panel and level-2 centroid data,
+national GDP and provincial GRDP-per-capita targets, and official
+population totals. Population totals reported in thousands are converted
+once to persons to match the unit-level population weights used for
+provincial calibration.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Regression Dataset</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>regression_data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">file.path</span>(data_dir, <span class="st">&quot;training_data/regression_dataset.csv&quot;</span>))</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
@@ -1603,6 +1617,12 @@ extrapolation weights. Its native OLS holdout reference is written to
 the same-schema CSV in each model’s output directory. Model-specific
 constraints and spatial weighting are applied after this common
 comparison setup.</p>
+<p>The common setup fixes the 2020–2024 training and 2025 holdout
+partitions, scales shared features and response from training
+statistics, and computes linear temporal extrapolation weights. It also
+constructs the native OLS reference on the common design so
+geographic-model performance is compared against the same baseline as
+the other notebooks.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>model_setup <span class="ot">&lt;-</span> <span class="fu">prepare_model_comparison_setup</span>(regression_data)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>regression_data <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>regression_data</span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>training_data <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>training_data</span>
@@ -1685,6 +1705,16 @@ individual training year, and <span class="math inline">\(\bar{t}\)</span> is th
 bandwidth and ridge penalty based on 2025 holdout RMSE. After parameter
 selection, the models are refitted using all available years for level-2
 prediction.</p>
+<p>The design-preparation chunk applies the training means and standard
+deviations to the features and response, forms year-effect columns
+(using linear extrapolation for the 2025 holdout), and verifies that the
+resulting matrices match the shared OLS design. It then builds
+longitude/latitude centroid coordinates and great-circle distance
+matrices. Adaptive bisquare weights use candidate nearest-neighbor
+counts derived from fractions <span class="math inline">\(0.35,0.50,0.65,0.80,0.95\)</span>, with at least
+<span class="math inline">\(p+2\)</span> neighbors and no more than the
+training sample; this allows neighborhood size to adapt to spatial
+sampling density.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>all_years <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(regression_data<span class="sc">$</span>year))</span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(feature_sds)) <span class="sc">||</span> <span class="fu">any</span>(feature_sds <span class="sc">&lt;=</span> <span class="dv">0</span>)) {</span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;All model features must have positive, finite training standard deviations.&quot;</span>)</span>
@@ -1818,6 +1848,11 @@ prediction.</p>
 predictor slopes from the 2020–2024 observations, then predicts each
 2025 centroid. The 2025 year indicators are set to the linear
 extrapolation weights above.</p>
+<p>This chunk fits <code>gwr.predict()</code> at every candidate
+adaptive bandwidth, converts predictions back to GRDP-per-capita units,
+and scores them against the 2025 outcomes. The chosen neighborhood is
+the one with the smallest holdout RMSE; <span class="math inline">\(R^2\)</span> is retained as a secondary metric.
+The GDP aggregate target is not a bandwidth-selection input.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>gwmodel_holdout_predictions <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="cn">NA_real_</span>,</span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="fu">nrow</span>(holdout_data),</span>
@@ -1873,6 +1908,15 @@ extrapolation weights above.</p>
 <p>CVXR solves the weighted regression for multiple prediction locations
 per problem. The intercept and year effects are unpenalized, matching
 the ridge model’s treatment of <span class="math inline">\(\alpha_t\)</span>.</p>
+<p>For each target location <span class="math inline">\(s\)</span>, this
+chunk solves <span class="math display">\[
+\min_{\theta_s}\ \sum_i w_i(s)(y_i-x_i^\top\theta_s)^2
++\lambda\|\beta_s\|_2^2,
+\]</span> where <span class="math inline">\(w_i(s)\)</span> are adaptive
+bisquare geographic weights and only feature slopes <span class="math inline">\(\beta_s\)</span> are penalized. Target locations
+are solved in batches of 20 to limit optimization memory. The Cartesian
+grid of candidate bandwidth and <span class="math inline">\(\lambda\in\{0,0.01,0.1,1,10\}\)</span> is
+evaluated on 2025; minimum holdout RMSE selects the CVXR settings.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>cvxr_local_predict <span class="ot">&lt;-</span> <span class="cf">function</span>(</span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  X,</span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  y,</span>
@@ -2004,6 +2048,13 @@ cross-province median are flagged. For each flagged province, a linear
 trend in its training residuals is extrapolated to 2025 and added to
 spatial predictions. The correction is estimated using training years
 only and does not remove any observations.</p>
+<p>This chunk obtains in-sample spatial fits for each selected method,
+aggregates residuals by province, and flags outliers using the median
+and MAD (scaled by 1.4826) with an absolute robust-score threshold of 3.
+Only flagged provinces receive a correction: an ordinary linear trend of
+their annual training residuals is extrapolated to 2025. The correction
+table is saved separately for auditability and does not delete or
+reweight observations.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>training_coordinates <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(</span>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  training_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)]</span>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>)</span>
@@ -2142,6 +2193,12 @@ only and does not remove any observations.</p>
 <p>The table reports each raw spatial prediction and the prediction
 after applying its training-only outlier correction. Provincial GDP
 targets are not used in model selection or this correction.</p>
+<p>This comparison chunk applies those corrections to holdout
+predictions and writes method-specific training/holdout metric and
+diagnostic files. It reports uncorrected and corrected RMSE/<span class="math inline">\(R^2\)</span> alongside the shared OLS reference,
+and plots observed versus fitted holdout values against the identity
+line. These results assess spatial model selection before the separate
+level-2 provincial calibration step.</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>gwmodel_holdout_correction <span class="ot">&lt;-</span> gwmodel_outlier_corrections<span class="sc">$</span>residual_correction[</span>
 <span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="fu">match</span>(holdout_data<span class="sc">$</span>province, gwmodel_outlier_corrections<span class="sc">$</span>province)</span>
 <span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>]</span>
@@ -2311,6 +2368,13 @@ targets are not used in model selection or this correction.</p>
 <p>Refit each method using all available regression years. The final
 year effects include separate 2020–2025 intercept terms; 2025 level-2
 predictions use the 2025 term directly.</p>
+<p>This chunk refits both methods on all years using their
+holdout-selected bandwidths (rescaled to the larger all-years sample)
+and selected CVXR <span class="math inline">\(\lambda\)</span>. It
+computes training fitted values/residuals, writes observation
+diagnostics, and reports training <span class="math inline">\(R^2\)</span> and RMSE. The final refit is for
+level-2 prediction; holdout metrics continue to come from models trained
+without 2025 outcomes.</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>final_training_data <span class="ot">&lt;-</span> <span class="fu">add_year_effects</span>(</span>
 <span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="fu">prepare_features</span>(regression_data),</span>
 <span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  all_years</span>
@@ -2440,6 +2504,11 @@ predictions use the 2025 term directly.</p>
 diagnostic outputs. Training diagnostics are descriptive; local fits and
 spatially overlapping neighborhoods do not have independent
 residuals.</p>
+<p>The next chunk draws actual-versus-fitted plots for both spatial
+methods and residual-versus-fitted, Q-Q, residual-versus-radiance, and
+residual-by-year panels. Using parallel panels makes method differences
+visible, but spatial overlap and local fitting mean these are visual
+diagnostics rather than independent-error inference.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>actual_fitted_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(training_diagnostics) <span class="sc">+</span></span>
 <span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
 <span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> actual, <span class="at">y =</span> gwmodel_fitted, <span class="at">color =</span> <span class="st">&quot;GWmodel GWR&quot;</span>),</span>
@@ -2547,9 +2616,20 @@ residuals.</p>
 <div id="level-2-predictions" class="section level3">
 <h3>2025 level-2 predictions</h3>
 <p>Use the refitted model’s 2025 year effect and the training-set
-feature standardization to predict each level-2 centroid. As in the
-linear model, a province-specific additive adjustment calibrates level-2
-predictions to the reported 2025 provincial GRDP-per-capita target.</p>
+feature standardization to predict each level-2 centroid. A
+province-specific additive adjustment calibrates level-2 predictions to
+the reported 2025 provincial GRDP-per-capita target. Because GRDP per
+capita cannot be negative, the model predictions are floored at zero and
+the adjustment is solved with that floor active, preserving provincial
+totals while keeping estimates non-negative.</p>
+<p>The final chunk predicts each centroid with both the
+<code>GWmodel</code> and CVXR refits, applies the corresponding
+training-only outlier correction, and calibrates each method separately.
+Within province <span class="math inline">\(j\)</span>, it finds <span class="math inline">\(\delta_j\)</span> such that <span class="math inline">\(\sum_iP_{ij}\max(0,\hat
+y_{ij}+\delta_j)=g_jN_j\)</span>, using bisection; this preserves the
+official target while preventing negative estimates. It checks the
+aggregate totals and writes both unit prediction tables, constraint
+checks, and fitted model objects.</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>prediction_data<span class="sc">$</span>year <span class="ot">&lt;-</span> <span class="dv">2025</span></span>
 <span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>prediction_data <span class="ot">&lt;-</span> <span class="fu">add_year_effects</span>(prediction_data, all_years)</span>
 <span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>final_prediction_X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(</span>
@@ -2646,159 +2726,188 @@ predictions to the reported 2025 provincial GRDP-per-capita target.</p>
 <span id="cb18-94"><a href="#cb18-94" tabindex="-1"></a></span>
 <span id="cb18-95"><a href="#cb18-95" tabindex="-1"></a>  provinces <span class="ot">&lt;-</span> <span class="fu">unique</span>(data<span class="sc">$</span>level_1)</span>
 <span id="cb18-96"><a href="#cb18-96" tabindex="-1"></a>  adjustments <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(provinces)), provinces)</span>
-<span id="cb18-97"><a href="#cb18-97" tabindex="-1"></a>  <span class="cf">for</span> (province <span class="cf">in</span> provinces) {</span>
-<span id="cb18-98"><a href="#cb18-98" tabindex="-1"></a>    index <span class="ot">&lt;-</span> <span class="fu">which</span>(data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
-<span id="cb18-99"><a href="#cb18-99" tabindex="-1"></a>    level2_population <span class="ot">&lt;-</span> <span class="fu">sum</span>(data<span class="sc">$</span>population[index])</span>
-<span id="cb18-100"><a href="#cb18-100" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(level2_population) <span class="sc">||</span> level2_population <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
-<span id="cb18-101"><a href="#cb18-101" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has no positive level-2 population.&quot;</span>, province))</span>
-<span id="cb18-102"><a href="#cb18-102" tabindex="-1"></a>    }</span>
-<span id="cb18-103"><a href="#cb18-103" tabindex="-1"></a>    province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, data<span class="sc">$</span>level_1)</span>
-<span id="cb18-104"><a href="#cb18-104" tabindex="-1"></a>    target_total <span class="ot">&lt;-</span> target_grdp[province_index] <span class="sc">*</span></span>
-<span id="cb18-105"><a href="#cb18-105" tabindex="-1"></a>      province_population[province_index]</span>
-<span id="cb18-106"><a href="#cb18-106" tabindex="-1"></a>    predicted_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(data<span class="sc">$</span>population[index] <span class="sc">*</span> raw_predictions[index])</span>
-<span id="cb18-107"><a href="#cb18-107" tabindex="-1"></a>    adjustments[[province]] <span class="ot">&lt;-</span> (target_total <span class="sc">-</span> predicted_total) <span class="sc">/</span> level2_population</span>
-<span id="cb18-108"><a href="#cb18-108" tabindex="-1"></a>  }</span>
-<span id="cb18-109"><a href="#cb18-109" tabindex="-1"></a></span>
-<span id="cb18-110"><a href="#cb18-110" tabindex="-1"></a>  calibrated_predictions <span class="ot">&lt;-</span> raw_predictions <span class="sc">+</span> adjustments[data<span class="sc">$</span>level_1]</span>
-<span id="cb18-111"><a href="#cb18-111" tabindex="-1"></a>  province_check <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(provinces, <span class="cf">function</span>(province) {</span>
-<span id="cb18-112"><a href="#cb18-112" tabindex="-1"></a>    index <span class="ot">&lt;-</span> <span class="fu">which</span>(data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
-<span id="cb18-113"><a href="#cb18-113" tabindex="-1"></a>    province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, data<span class="sc">$</span>level_1)</span>
-<span id="cb18-114"><a href="#cb18-114" tabindex="-1"></a>    target_total <span class="ot">&lt;-</span> target_grdp[province_index] <span class="sc">*</span></span>
-<span id="cb18-115"><a href="#cb18-115" tabindex="-1"></a>      province_population[province_index]</span>
-<span id="cb18-116"><a href="#cb18-116" tabindex="-1"></a>    predicted_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
-<span id="cb18-117"><a href="#cb18-117" tabindex="-1"></a>      data<span class="sc">$</span>population[index] <span class="sc">*</span> calibrated_predictions[index]</span>
-<span id="cb18-118"><a href="#cb18-118" tabindex="-1"></a>    )</span>
-<span id="cb18-119"><a href="#cb18-119" tabindex="-1"></a>    <span class="fu">data.frame</span>(</span>
-<span id="cb18-120"><a href="#cb18-120" tabindex="-1"></a>      <span class="at">province =</span> province,</span>
-<span id="cb18-121"><a href="#cb18-121" tabindex="-1"></a>      <span class="at">population =</span> province_population[province_index],</span>
-<span id="cb18-122"><a href="#cb18-122" tabindex="-1"></a>      <span class="at">level2_population =</span> <span class="fu">sum</span>(data<span class="sc">$</span>population[index]),</span>
-<span id="cb18-123"><a href="#cb18-123" tabindex="-1"></a>      <span class="at">target_grdp_per_capita =</span> target_grdp[province_index],</span>
-<span id="cb18-124"><a href="#cb18-124" tabindex="-1"></a>      <span class="at">target_total_grdp =</span> target_total,</span>
-<span id="cb18-125"><a href="#cb18-125" tabindex="-1"></a>      <span class="at">predicted_total_grdp =</span> predicted_total,</span>
-<span id="cb18-126"><a href="#cb18-126" tabindex="-1"></a>      <span class="at">difference =</span> predicted_total <span class="sc">-</span> target_total</span>
-<span id="cb18-127"><a href="#cb18-127" tabindex="-1"></a>    )</span>
-<span id="cb18-128"><a href="#cb18-128" tabindex="-1"></a>  }))</span>
-<span id="cb18-129"><a href="#cb18-129" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>difference) <span class="sc">&gt;</span></span>
-<span id="cb18-130"><a href="#cb18-130" tabindex="-1"></a>          <span class="fl">1e-8</span> <span class="sc">*</span> <span class="fu">pmax</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>target_total_grdp), <span class="dv">1</span>))) {</span>
-<span id="cb18-131"><a href="#cb18-131" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions do not match provincial GDP targets.&quot;</span>)</span>
-<span id="cb18-132"><a href="#cb18-132" tabindex="-1"></a>  }</span>
-<span id="cb18-133"><a href="#cb18-133" tabindex="-1"></a></span>
-<span id="cb18-134"><a href="#cb18-134" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb18-135"><a href="#cb18-135" tabindex="-1"></a>    <span class="at">raw =</span> raw_predictions,</span>
-<span id="cb18-136"><a href="#cb18-136" tabindex="-1"></a>    <span class="at">calibrated =</span> calibrated_predictions,</span>
-<span id="cb18-137"><a href="#cb18-137" tabindex="-1"></a>    <span class="at">adjustment =</span> <span class="fu">unname</span>(adjustments[data<span class="sc">$</span>level_1]),</span>
-<span id="cb18-138"><a href="#cb18-138" tabindex="-1"></a>    <span class="at">target_grdp_per_capita =</span> target_grdp,</span>
-<span id="cb18-139"><a href="#cb18-139" tabindex="-1"></a>    <span class="at">province_check =</span> province_check</span>
-<span id="cb18-140"><a href="#cb18-140" tabindex="-1"></a>  )</span>
-<span id="cb18-141"><a href="#cb18-141" tabindex="-1"></a>}</span>
-<span id="cb18-142"><a href="#cb18-142" tabindex="-1"></a></span>
-<span id="cb18-143"><a href="#cb18-143" tabindex="-1"></a>gwmodel_calibration <span class="ot">&lt;-</span> <span class="fu">calibrate_province_predictions</span>(</span>
-<span id="cb18-144"><a href="#cb18-144" tabindex="-1"></a>  adjusted_gwmodel_predictions,</span>
-<span id="cb18-145"><a href="#cb18-145" tabindex="-1"></a>  prediction_data</span>
-<span id="cb18-146"><a href="#cb18-146" tabindex="-1"></a>)</span>
-<span id="cb18-147"><a href="#cb18-147" tabindex="-1"></a>cvxr_calibration <span class="ot">&lt;-</span> <span class="fu">calibrate_province_predictions</span>(</span>
-<span id="cb18-148"><a href="#cb18-148" tabindex="-1"></a>  adjusted_cvxr_predictions,</span>
-<span id="cb18-149"><a href="#cb18-149" tabindex="-1"></a>  prediction_data</span>
-<span id="cb18-150"><a href="#cb18-150" tabindex="-1"></a>)</span>
-<span id="cb18-151"><a href="#cb18-151" tabindex="-1"></a></span>
-<span id="cb18-152"><a href="#cb18-152" tabindex="-1"></a>gwmodel_level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb18-153"><a href="#cb18-153" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
-<span id="cb18-154"><a href="#cb18-154" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
-<span id="cb18-155"><a href="#cb18-155" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
-<span id="cb18-156"><a href="#cb18-156" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
-<span id="cb18-157"><a href="#cb18-157" tabindex="-1"></a>  <span class="at">spatial_grdp_per_capita =</span> raw_gwmodel_predictions,</span>
-<span id="cb18-158"><a href="#cb18-158" tabindex="-1"></a>  <span class="at">outlier_correction =</span> gwmodel_prediction_correction,</span>
-<span id="cb18-159"><a href="#cb18-159" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> gwmodel_calibration<span class="sc">$</span>raw,</span>
-<span id="cb18-160"><a href="#cb18-160" tabindex="-1"></a>  <span class="at">province_adjustment =</span> gwmodel_calibration<span class="sc">$</span>adjustment,</span>
-<span id="cb18-161"><a href="#cb18-161" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> gwmodel_calibration<span class="sc">$</span>calibrated,</span>
-<span id="cb18-162"><a href="#cb18-162" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
-<span id="cb18-163"><a href="#cb18-163" tabindex="-1"></a>    gwmodel_calibration<span class="sc">$</span>target_grdp_per_capita</span>
-<span id="cb18-164"><a href="#cb18-164" tabindex="-1"></a>)</span>
-<span id="cb18-165"><a href="#cb18-165" tabindex="-1"></a>cvxr_level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb18-166"><a href="#cb18-166" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
-<span id="cb18-167"><a href="#cb18-167" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
-<span id="cb18-168"><a href="#cb18-168" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
-<span id="cb18-169"><a href="#cb18-169" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
-<span id="cb18-170"><a href="#cb18-170" tabindex="-1"></a>  <span class="at">spatial_grdp_per_capita =</span> raw_cvxr_predictions,</span>
-<span id="cb18-171"><a href="#cb18-171" tabindex="-1"></a>  <span class="at">outlier_correction =</span> cvxr_prediction_correction,</span>
-<span id="cb18-172"><a href="#cb18-172" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> cvxr_calibration<span class="sc">$</span>raw,</span>
-<span id="cb18-173"><a href="#cb18-173" tabindex="-1"></a>  <span class="at">province_adjustment =</span> cvxr_calibration<span class="sc">$</span>adjustment,</span>
-<span id="cb18-174"><a href="#cb18-174" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> cvxr_calibration<span class="sc">$</span>calibrated,</span>
-<span id="cb18-175"><a href="#cb18-175" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
-<span id="cb18-176"><a href="#cb18-176" tabindex="-1"></a>    cvxr_calibration<span class="sc">$</span>target_grdp_per_capita</span>
-<span id="cb18-177"><a href="#cb18-177" tabindex="-1"></a>)</span>
-<span id="cb18-178"><a href="#cb18-178" tabindex="-1"></a></span>
-<span id="cb18-179"><a href="#cb18-179" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb18-180"><a href="#cb18-180" tabindex="-1"></a>  gwmodel_level2_predictions,</span>
-<span id="cb18-181"><a href="#cb18-181" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gwmodel_level2_predictions.csv&quot;</span>),</span>
-<span id="cb18-182"><a href="#cb18-182" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-183"><a href="#cb18-183" tabindex="-1"></a>)</span>
-<span id="cb18-184"><a href="#cb18-184" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb18-185"><a href="#cb18-185" tabindex="-1"></a>  cvxr_level2_predictions,</span>
-<span id="cb18-186"><a href="#cb18-186" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;cvxr_gw_level2_predictions.csv&quot;</span>),</span>
-<span id="cb18-187"><a href="#cb18-187" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-188"><a href="#cb18-188" tabindex="-1"></a>)</span>
-<span id="cb18-189"><a href="#cb18-189" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb18-190"><a href="#cb18-190" tabindex="-1"></a>  gwmodel_calibration<span class="sc">$</span>province_check,</span>
-<span id="cb18-191"><a href="#cb18-191" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gwmodel_province_constraint_check.csv&quot;</span>),</span>
-<span id="cb18-192"><a href="#cb18-192" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-193"><a href="#cb18-193" tabindex="-1"></a>)</span>
-<span id="cb18-194"><a href="#cb18-194" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb18-195"><a href="#cb18-195" tabindex="-1"></a>  cvxr_calibration<span class="sc">$</span>province_check,</span>
-<span id="cb18-196"><a href="#cb18-196" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;cvxr_gw_province_constraint_check.csv&quot;</span>),</span>
-<span id="cb18-197"><a href="#cb18-197" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-198"><a href="#cb18-198" tabindex="-1"></a>)</span>
-<span id="cb18-199"><a href="#cb18-199" tabindex="-1"></a></span>
-<span id="cb18-200"><a href="#cb18-200" tabindex="-1"></a><span class="fu">saveRDS</span>(</span>
-<span id="cb18-201"><a href="#cb18-201" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb18-202"><a href="#cb18-202" tabindex="-1"></a>    <span class="at">model =</span> final_gwr,</span>
-<span id="cb18-203"><a href="#cb18-203" tabindex="-1"></a>    <span class="at">formula =</span> final_model_formula,</span>
-<span id="cb18-204"><a href="#cb18-204" tabindex="-1"></a>    <span class="at">year_effects =</span> all_years,</span>
-<span id="cb18-205"><a href="#cb18-205" tabindex="-1"></a>    <span class="at">feature_columns =</span> feature_columns,</span>
-<span id="cb18-206"><a href="#cb18-206" tabindex="-1"></a>    <span class="at">feature_means =</span> feature_means,</span>
-<span id="cb18-207"><a href="#cb18-207" tabindex="-1"></a>    <span class="at">feature_sds =</span> feature_sds,</span>
-<span id="cb18-208"><a href="#cb18-208" tabindex="-1"></a>    <span class="at">bandwidth_neighbors =</span> final_bandwidth_gwmodel,</span>
-<span id="cb18-209"><a href="#cb18-209" tabindex="-1"></a>    <span class="at">bandwidth_fraction =</span> selected_gwmodel_bandwidth <span class="sc">/</span> <span class="fu">nrow</span>(training_data),</span>
-<span id="cb18-210"><a href="#cb18-210" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb18-211"><a href="#cb18-211" tabindex="-1"></a>    <span class="at">outlier_corrections =</span> gwmodel_outlier_corrections,</span>
-<span id="cb18-212"><a href="#cb18-212" tabindex="-1"></a>    <span class="at">holdout_metrics =</span> gwmodel_bandwidth_results[selected_gwmodel_index, ],</span>
-<span id="cb18-213"><a href="#cb18-213" tabindex="-1"></a>    <span class="at">training_metrics =</span> gwmodel_split_metrics[</span>
-<span id="cb18-214"><a href="#cb18-214" tabindex="-1"></a>      gwmodel_split_metrics<span class="sc">$</span>split <span class="sc">==</span> <span class="st">&quot;training&quot;</span> <span class="sc">&amp;</span></span>
-<span id="cb18-215"><a href="#cb18-215" tabindex="-1"></a>        gwmodel_split_metrics<span class="sc">$</span>model <span class="sc">==</span> <span class="st">&quot;GWmodel GWR with outlier correction&quot;</span>,</span>
-<span id="cb18-216"><a href="#cb18-216" tabindex="-1"></a>      ,</span>
-<span id="cb18-217"><a href="#cb18-217" tabindex="-1"></a>      <span class="at">drop =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-218"><a href="#cb18-218" tabindex="-1"></a>    ]</span>
-<span id="cb18-219"><a href="#cb18-219" tabindex="-1"></a>  ),</span>
-<span id="cb18-220"><a href="#cb18-220" tabindex="-1"></a>  <span class="fu">file.path</span>(model_output_dir, <span class="st">&quot;gwmodel_gwr.rds&quot;</span>)</span>
-<span id="cb18-221"><a href="#cb18-221" tabindex="-1"></a>)</span>
-<span id="cb18-222"><a href="#cb18-222" tabindex="-1"></a><span class="fu">saveRDS</span>(</span>
-<span id="cb18-223"><a href="#cb18-223" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb18-224"><a href="#cb18-224" tabindex="-1"></a>    <span class="at">coefficients =</span> final_cvxr_prediction_fit<span class="sc">$</span>coefficients,</span>
-<span id="cb18-225"><a href="#cb18-225" tabindex="-1"></a>    <span class="at">training_coefficients =</span> final_cvxr_training_fit<span class="sc">$</span>coefficients,</span>
-<span id="cb18-226"><a href="#cb18-226" tabindex="-1"></a>    <span class="at">feature_names =</span> <span class="fu">colnames</span>(final_X),</span>
-<span id="cb18-227"><a href="#cb18-227" tabindex="-1"></a>    <span class="at">formula =</span> final_model_formula,</span>
-<span id="cb18-228"><a href="#cb18-228" tabindex="-1"></a>    <span class="at">year_effects =</span> all_years,</span>
-<span id="cb18-229"><a href="#cb18-229" tabindex="-1"></a>    <span class="at">feature_columns =</span> feature_columns,</span>
-<span id="cb18-230"><a href="#cb18-230" tabindex="-1"></a>    <span class="at">feature_means =</span> feature_means,</span>
-<span id="cb18-231"><a href="#cb18-231" tabindex="-1"></a>    <span class="at">feature_sds =</span> feature_sds,</span>
-<span id="cb18-232"><a href="#cb18-232" tabindex="-1"></a>    <span class="at">bandwidth_neighbors =</span> final_bandwidth_cvxr,</span>
-<span id="cb18-233"><a href="#cb18-233" tabindex="-1"></a>    <span class="at">bandwidth_fraction =</span> selected_cvxr_bandwidth <span class="sc">/</span> <span class="fu">nrow</span>(training_data),</span>
-<span id="cb18-234"><a href="#cb18-234" tabindex="-1"></a>    <span class="at">lambda =</span> selected_cvxr_lambda,</span>
-<span id="cb18-235"><a href="#cb18-235" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb18-236"><a href="#cb18-236" tabindex="-1"></a>    <span class="at">outlier_corrections =</span> cvxr_outlier_corrections,</span>
-<span id="cb18-237"><a href="#cb18-237" tabindex="-1"></a>    <span class="at">holdout_metrics =</span> cvxr_grid[selected_cvxr_index, ],</span>
-<span id="cb18-238"><a href="#cb18-238" tabindex="-1"></a>    <span class="at">training_metrics =</span> cvxr_split_metrics[</span>
-<span id="cb18-239"><a href="#cb18-239" tabindex="-1"></a>      cvxr_split_metrics<span class="sc">$</span>split <span class="sc">==</span> <span class="st">&quot;training&quot;</span> <span class="sc">&amp;</span></span>
-<span id="cb18-240"><a href="#cb18-240" tabindex="-1"></a>        cvxr_split_metrics<span class="sc">$</span>model <span class="sc">==</span></span>
-<span id="cb18-241"><a href="#cb18-241" tabindex="-1"></a>          <span class="st">&quot;CVXR local regression with outlier correction&quot;</span>,</span>
-<span id="cb18-242"><a href="#cb18-242" tabindex="-1"></a>      ,</span>
-<span id="cb18-243"><a href="#cb18-243" tabindex="-1"></a>      <span class="at">drop =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-244"><a href="#cb18-244" tabindex="-1"></a>    ]</span>
-<span id="cb18-245"><a href="#cb18-245" tabindex="-1"></a>  ),</span>
-<span id="cb18-246"><a href="#cb18-246" tabindex="-1"></a>  <span class="fu">file.path</span>(model_output_dir, <span class="st">&quot;cvxr_gw_model.rds&quot;</span>)</span>
-<span id="cb18-247"><a href="#cb18-247" tabindex="-1"></a>)</span>
-<span id="cb18-248"><a href="#cb18-248" tabindex="-1"></a></span>
-<span id="cb18-249"><a href="#cb18-249" tabindex="-1"></a><span class="fu">print</span>(gwmodel_calibration<span class="sc">$</span>province_check, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<span id="cb18-97"><a href="#cb18-97" tabindex="-1"></a>  nonnegative_raw_predictions <span class="ot">&lt;-</span> <span class="fu">pmax</span>(raw_predictions, <span class="dv">0</span>)</span>
+<span id="cb18-98"><a href="#cb18-98" tabindex="-1"></a>  calibrated_predictions <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">length</span>(raw_predictions))</span>
+<span id="cb18-99"><a href="#cb18-99" tabindex="-1"></a>  <span class="cf">for</span> (province <span class="cf">in</span> provinces) {</span>
+<span id="cb18-100"><a href="#cb18-100" tabindex="-1"></a>    index <span class="ot">&lt;-</span> <span class="fu">which</span>(data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
+<span id="cb18-101"><a href="#cb18-101" tabindex="-1"></a>    level2_population <span class="ot">&lt;-</span> <span class="fu">sum</span>(data<span class="sc">$</span>population[index])</span>
+<span id="cb18-102"><a href="#cb18-102" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(level2_population) <span class="sc">||</span> level2_population <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
+<span id="cb18-103"><a href="#cb18-103" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has no positive level-2 population.&quot;</span>, province))</span>
+<span id="cb18-104"><a href="#cb18-104" tabindex="-1"></a>    }</span>
+<span id="cb18-105"><a href="#cb18-105" tabindex="-1"></a>    province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, data<span class="sc">$</span>level_1)</span>
+<span id="cb18-106"><a href="#cb18-106" tabindex="-1"></a>    target_total <span class="ot">&lt;-</span> target_grdp[province_index] <span class="sc">*</span></span>
+<span id="cb18-107"><a href="#cb18-107" tabindex="-1"></a>      province_population[province_index]</span>
+<span id="cb18-108"><a href="#cb18-108" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(target_total) <span class="sc">||</span> target_total <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
+<span id="cb18-109"><a href="#cb18-109" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has an invalid non-positive GRDP target.&quot;</span>, province))</span>
+<span id="cb18-110"><a href="#cb18-110" tabindex="-1"></a>    }</span>
+<span id="cb18-111"><a href="#cb18-111" tabindex="-1"></a></span>
+<span id="cb18-112"><a href="#cb18-112" tabindex="-1"></a>    province_raw <span class="ot">&lt;-</span> nonnegative_raw_predictions[index]</span>
+<span id="cb18-113"><a href="#cb18-113" tabindex="-1"></a>    weighted_total <span class="ot">&lt;-</span> <span class="cf">function</span>(adjustment) {</span>
+<span id="cb18-114"><a href="#cb18-114" tabindex="-1"></a>      <span class="fu">sum</span>(data<span class="sc">$</span>population[index] <span class="sc">*</span> <span class="fu">pmax</span>(province_raw <span class="sc">+</span> adjustment, <span class="dv">0</span>))</span>
+<span id="cb18-115"><a href="#cb18-115" tabindex="-1"></a>    }</span>
+<span id="cb18-116"><a href="#cb18-116" tabindex="-1"></a>    lower <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">max</span>(province_raw) <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb18-117"><a href="#cb18-117" tabindex="-1"></a>    upper <span class="ot">&lt;-</span> target_total <span class="sc">/</span> level2_population <span class="sc">-</span> <span class="fu">min</span>(province_raw) <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb18-118"><a href="#cb18-118" tabindex="-1"></a>    <span class="cf">for</span> (iteration <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="dv">100</span>)) {</span>
+<span id="cb18-119"><a href="#cb18-119" tabindex="-1"></a>      adjustment <span class="ot">&lt;-</span> lower <span class="sc">+</span> (upper <span class="sc">-</span> lower) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb18-120"><a href="#cb18-120" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">weighted_total</span>(adjustment) <span class="sc">&lt;</span> target_total) {</span>
+<span id="cb18-121"><a href="#cb18-121" tabindex="-1"></a>        lower <span class="ot">&lt;-</span> adjustment</span>
+<span id="cb18-122"><a href="#cb18-122" tabindex="-1"></a>      } <span class="cf">else</span> {</span>
+<span id="cb18-123"><a href="#cb18-123" tabindex="-1"></a>        upper <span class="ot">&lt;-</span> adjustment</span>
+<span id="cb18-124"><a href="#cb18-124" tabindex="-1"></a>      }</span>
+<span id="cb18-125"><a href="#cb18-125" tabindex="-1"></a>    }</span>
+<span id="cb18-126"><a href="#cb18-126" tabindex="-1"></a></span>
+<span id="cb18-127"><a href="#cb18-127" tabindex="-1"></a>    adjustments[[province]] <span class="ot">&lt;-</span> lower <span class="sc">+</span> (upper <span class="sc">-</span> lower) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb18-128"><a href="#cb18-128" tabindex="-1"></a>    calibrated_predictions[index] <span class="ot">&lt;-</span></span>
+<span id="cb18-129"><a href="#cb18-129" tabindex="-1"></a>      <span class="fu">pmax</span>(province_raw <span class="sc">+</span> adjustments[[province]], <span class="dv">0</span>)</span>
+<span id="cb18-130"><a href="#cb18-130" tabindex="-1"></a>  }</span>
+<span id="cb18-131"><a href="#cb18-131" tabindex="-1"></a></span>
+<span id="cb18-132"><a href="#cb18-132" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(calibrated_predictions)) <span class="sc">||</span></span>
+<span id="cb18-133"><a href="#cb18-133" tabindex="-1"></a>      <span class="fu">any</span>(calibrated_predictions <span class="sc">&lt;</span> <span class="dv">0</span>)) {</span>
+<span id="cb18-134"><a href="#cb18-134" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions must be finite and non-negative.&quot;</span>)</span>
+<span id="cb18-135"><a href="#cb18-135" tabindex="-1"></a>  }</span>
+<span id="cb18-136"><a href="#cb18-136" tabindex="-1"></a>  province_check <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(provinces, <span class="cf">function</span>(province) {</span>
+<span id="cb18-137"><a href="#cb18-137" tabindex="-1"></a>    index <span class="ot">&lt;-</span> <span class="fu">which</span>(data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
+<span id="cb18-138"><a href="#cb18-138" tabindex="-1"></a>    province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, data<span class="sc">$</span>level_1)</span>
+<span id="cb18-139"><a href="#cb18-139" tabindex="-1"></a>    target_total <span class="ot">&lt;-</span> target_grdp[province_index] <span class="sc">*</span></span>
+<span id="cb18-140"><a href="#cb18-140" tabindex="-1"></a>      province_population[province_index]</span>
+<span id="cb18-141"><a href="#cb18-141" tabindex="-1"></a>    predicted_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
+<span id="cb18-142"><a href="#cb18-142" tabindex="-1"></a>      data<span class="sc">$</span>population[index] <span class="sc">*</span> calibrated_predictions[index]</span>
+<span id="cb18-143"><a href="#cb18-143" tabindex="-1"></a>    )</span>
+<span id="cb18-144"><a href="#cb18-144" tabindex="-1"></a>    <span class="fu">data.frame</span>(</span>
+<span id="cb18-145"><a href="#cb18-145" tabindex="-1"></a>      <span class="at">province =</span> province,</span>
+<span id="cb18-146"><a href="#cb18-146" tabindex="-1"></a>      <span class="at">population =</span> province_population[province_index],</span>
+<span id="cb18-147"><a href="#cb18-147" tabindex="-1"></a>      <span class="at">level2_population =</span> <span class="fu">sum</span>(data<span class="sc">$</span>population[index]),</span>
+<span id="cb18-148"><a href="#cb18-148" tabindex="-1"></a>      <span class="at">target_grdp_per_capita =</span> target_grdp[province_index],</span>
+<span id="cb18-149"><a href="#cb18-149" tabindex="-1"></a>      <span class="at">target_total_grdp =</span> target_total,</span>
+<span id="cb18-150"><a href="#cb18-150" tabindex="-1"></a>      <span class="at">predicted_total_grdp =</span> predicted_total,</span>
+<span id="cb18-151"><a href="#cb18-151" tabindex="-1"></a>      <span class="at">difference =</span> predicted_total <span class="sc">-</span> target_total</span>
+<span id="cb18-152"><a href="#cb18-152" tabindex="-1"></a>    )</span>
+<span id="cb18-153"><a href="#cb18-153" tabindex="-1"></a>  }))</span>
+<span id="cb18-154"><a href="#cb18-154" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>difference) <span class="sc">&gt;</span></span>
+<span id="cb18-155"><a href="#cb18-155" tabindex="-1"></a>          <span class="fl">1e-8</span> <span class="sc">*</span> <span class="fu">pmax</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>target_total_grdp), <span class="dv">1</span>))) {</span>
+<span id="cb18-156"><a href="#cb18-156" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions do not match provincial GDP targets.&quot;</span>)</span>
+<span id="cb18-157"><a href="#cb18-157" tabindex="-1"></a>  }</span>
+<span id="cb18-158"><a href="#cb18-158" tabindex="-1"></a></span>
+<span id="cb18-159"><a href="#cb18-159" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb18-160"><a href="#cb18-160" tabindex="-1"></a>    <span class="at">raw =</span> nonnegative_raw_predictions,</span>
+<span id="cb18-161"><a href="#cb18-161" tabindex="-1"></a>    <span class="at">calibrated =</span> calibrated_predictions,</span>
+<span id="cb18-162"><a href="#cb18-162" tabindex="-1"></a>    <span class="at">adjustment =</span> <span class="fu">unname</span>(adjustments[data<span class="sc">$</span>level_1]),</span>
+<span id="cb18-163"><a href="#cb18-163" tabindex="-1"></a>    <span class="at">target_grdp_per_capita =</span> target_grdp,</span>
+<span id="cb18-164"><a href="#cb18-164" tabindex="-1"></a>    <span class="at">province_check =</span> province_check</span>
+<span id="cb18-165"><a href="#cb18-165" tabindex="-1"></a>  )</span>
+<span id="cb18-166"><a href="#cb18-166" tabindex="-1"></a>}</span>
+<span id="cb18-167"><a href="#cb18-167" tabindex="-1"></a></span>
+<span id="cb18-168"><a href="#cb18-168" tabindex="-1"></a>gwmodel_calibration <span class="ot">&lt;-</span> <span class="fu">calibrate_province_predictions</span>(</span>
+<span id="cb18-169"><a href="#cb18-169" tabindex="-1"></a>  adjusted_gwmodel_predictions,</span>
+<span id="cb18-170"><a href="#cb18-170" tabindex="-1"></a>  prediction_data</span>
+<span id="cb18-171"><a href="#cb18-171" tabindex="-1"></a>)</span>
+<span id="cb18-172"><a href="#cb18-172" tabindex="-1"></a>cvxr_calibration <span class="ot">&lt;-</span> <span class="fu">calibrate_province_predictions</span>(</span>
+<span id="cb18-173"><a href="#cb18-173" tabindex="-1"></a>  adjusted_cvxr_predictions,</span>
+<span id="cb18-174"><a href="#cb18-174" tabindex="-1"></a>  prediction_data</span>
+<span id="cb18-175"><a href="#cb18-175" tabindex="-1"></a>)</span>
+<span id="cb18-176"><a href="#cb18-176" tabindex="-1"></a></span>
+<span id="cb18-177"><a href="#cb18-177" tabindex="-1"></a>gwmodel_level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb18-178"><a href="#cb18-178" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
+<span id="cb18-179"><a href="#cb18-179" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
+<span id="cb18-180"><a href="#cb18-180" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
+<span id="cb18-181"><a href="#cb18-181" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
+<span id="cb18-182"><a href="#cb18-182" tabindex="-1"></a>  <span class="at">spatial_grdp_per_capita =</span> raw_gwmodel_predictions,</span>
+<span id="cb18-183"><a href="#cb18-183" tabindex="-1"></a>  <span class="at">outlier_correction =</span> gwmodel_prediction_correction,</span>
+<span id="cb18-184"><a href="#cb18-184" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> gwmodel_calibration<span class="sc">$</span>raw,</span>
+<span id="cb18-185"><a href="#cb18-185" tabindex="-1"></a>  <span class="at">province_adjustment =</span> gwmodel_calibration<span class="sc">$</span>adjustment,</span>
+<span id="cb18-186"><a href="#cb18-186" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> gwmodel_calibration<span class="sc">$</span>calibrated,</span>
+<span id="cb18-187"><a href="#cb18-187" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
+<span id="cb18-188"><a href="#cb18-188" tabindex="-1"></a>    gwmodel_calibration<span class="sc">$</span>target_grdp_per_capita</span>
+<span id="cb18-189"><a href="#cb18-189" tabindex="-1"></a>)</span>
+<span id="cb18-190"><a href="#cb18-190" tabindex="-1"></a>cvxr_level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb18-191"><a href="#cb18-191" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
+<span id="cb18-192"><a href="#cb18-192" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
+<span id="cb18-193"><a href="#cb18-193" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
+<span id="cb18-194"><a href="#cb18-194" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
+<span id="cb18-195"><a href="#cb18-195" tabindex="-1"></a>  <span class="at">spatial_grdp_per_capita =</span> raw_cvxr_predictions,</span>
+<span id="cb18-196"><a href="#cb18-196" tabindex="-1"></a>  <span class="at">outlier_correction =</span> cvxr_prediction_correction,</span>
+<span id="cb18-197"><a href="#cb18-197" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> cvxr_calibration<span class="sc">$</span>raw,</span>
+<span id="cb18-198"><a href="#cb18-198" tabindex="-1"></a>  <span class="at">province_adjustment =</span> cvxr_calibration<span class="sc">$</span>adjustment,</span>
+<span id="cb18-199"><a href="#cb18-199" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> cvxr_calibration<span class="sc">$</span>calibrated,</span>
+<span id="cb18-200"><a href="#cb18-200" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
+<span id="cb18-201"><a href="#cb18-201" tabindex="-1"></a>    cvxr_calibration<span class="sc">$</span>target_grdp_per_capita</span>
+<span id="cb18-202"><a href="#cb18-202" tabindex="-1"></a>)</span>
+<span id="cb18-203"><a href="#cb18-203" tabindex="-1"></a></span>
+<span id="cb18-204"><a href="#cb18-204" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
+<span id="cb18-205"><a href="#cb18-205" tabindex="-1"></a>  gwmodel_level2_predictions,</span>
+<span id="cb18-206"><a href="#cb18-206" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gwmodel_level2_predictions.csv&quot;</span>),</span>
+<span id="cb18-207"><a href="#cb18-207" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
+<span id="cb18-208"><a href="#cb18-208" tabindex="-1"></a>)</span>
+<span id="cb18-209"><a href="#cb18-209" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
+<span id="cb18-210"><a href="#cb18-210" tabindex="-1"></a>  cvxr_level2_predictions,</span>
+<span id="cb18-211"><a href="#cb18-211" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;cvxr_gw_level2_predictions.csv&quot;</span>),</span>
+<span id="cb18-212"><a href="#cb18-212" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
+<span id="cb18-213"><a href="#cb18-213" tabindex="-1"></a>)</span>
+<span id="cb18-214"><a href="#cb18-214" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
+<span id="cb18-215"><a href="#cb18-215" tabindex="-1"></a>  gwmodel_calibration<span class="sc">$</span>province_check,</span>
+<span id="cb18-216"><a href="#cb18-216" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gwmodel_province_constraint_check.csv&quot;</span>),</span>
+<span id="cb18-217"><a href="#cb18-217" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
+<span id="cb18-218"><a href="#cb18-218" tabindex="-1"></a>)</span>
+<span id="cb18-219"><a href="#cb18-219" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
+<span id="cb18-220"><a href="#cb18-220" tabindex="-1"></a>  cvxr_calibration<span class="sc">$</span>province_check,</span>
+<span id="cb18-221"><a href="#cb18-221" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;cvxr_gw_province_constraint_check.csv&quot;</span>),</span>
+<span id="cb18-222"><a href="#cb18-222" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
+<span id="cb18-223"><a href="#cb18-223" tabindex="-1"></a>)</span>
+<span id="cb18-224"><a href="#cb18-224" tabindex="-1"></a></span>
+<span id="cb18-225"><a href="#cb18-225" tabindex="-1"></a><span class="fu">saveRDS</span>(</span>
+<span id="cb18-226"><a href="#cb18-226" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb18-227"><a href="#cb18-227" tabindex="-1"></a>    <span class="at">model =</span> final_gwr,</span>
+<span id="cb18-228"><a href="#cb18-228" tabindex="-1"></a>    <span class="at">formula =</span> final_model_formula,</span>
+<span id="cb18-229"><a href="#cb18-229" tabindex="-1"></a>    <span class="at">year_effects =</span> all_years,</span>
+<span id="cb18-230"><a href="#cb18-230" tabindex="-1"></a>    <span class="at">feature_columns =</span> feature_columns,</span>
+<span id="cb18-231"><a href="#cb18-231" tabindex="-1"></a>    <span class="at">feature_means =</span> feature_means,</span>
+<span id="cb18-232"><a href="#cb18-232" tabindex="-1"></a>    <span class="at">feature_sds =</span> feature_sds,</span>
+<span id="cb18-233"><a href="#cb18-233" tabindex="-1"></a>    <span class="at">prediction_floor =</span> <span class="dv">0</span>,</span>
+<span id="cb18-234"><a href="#cb18-234" tabindex="-1"></a>    <span class="at">level2_calibration =</span> <span class="st">&quot;additive province adjustment with non-negative prediction floor&quot;</span>,</span>
+<span id="cb18-235"><a href="#cb18-235" tabindex="-1"></a>    <span class="at">bandwidth_neighbors =</span> final_bandwidth_gwmodel,</span>
+<span id="cb18-236"><a href="#cb18-236" tabindex="-1"></a>    <span class="at">bandwidth_fraction =</span> selected_gwmodel_bandwidth <span class="sc">/</span> <span class="fu">nrow</span>(training_data),</span>
+<span id="cb18-237"><a href="#cb18-237" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
+<span id="cb18-238"><a href="#cb18-238" tabindex="-1"></a>    <span class="at">outlier_corrections =</span> gwmodel_outlier_corrections,</span>
+<span id="cb18-239"><a href="#cb18-239" tabindex="-1"></a>    <span class="at">holdout_metrics =</span> gwmodel_bandwidth_results[selected_gwmodel_index, ],</span>
+<span id="cb18-240"><a href="#cb18-240" tabindex="-1"></a>    <span class="at">training_metrics =</span> gwmodel_split_metrics[</span>
+<span id="cb18-241"><a href="#cb18-241" tabindex="-1"></a>      gwmodel_split_metrics<span class="sc">$</span>split <span class="sc">==</span> <span class="st">&quot;training&quot;</span> <span class="sc">&amp;</span></span>
+<span id="cb18-242"><a href="#cb18-242" tabindex="-1"></a>        gwmodel_split_metrics<span class="sc">$</span>model <span class="sc">==</span> <span class="st">&quot;GWmodel GWR with outlier correction&quot;</span>,</span>
+<span id="cb18-243"><a href="#cb18-243" tabindex="-1"></a>      ,</span>
+<span id="cb18-244"><a href="#cb18-244" tabindex="-1"></a>      <span class="at">drop =</span> <span class="cn">FALSE</span></span>
+<span id="cb18-245"><a href="#cb18-245" tabindex="-1"></a>    ]</span>
+<span id="cb18-246"><a href="#cb18-246" tabindex="-1"></a>  ),</span>
+<span id="cb18-247"><a href="#cb18-247" tabindex="-1"></a>  <span class="fu">file.path</span>(model_output_dir, <span class="st">&quot;gwmodel_gwr.rds&quot;</span>)</span>
+<span id="cb18-248"><a href="#cb18-248" tabindex="-1"></a>)</span>
+<span id="cb18-249"><a href="#cb18-249" tabindex="-1"></a><span class="fu">saveRDS</span>(</span>
+<span id="cb18-250"><a href="#cb18-250" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb18-251"><a href="#cb18-251" tabindex="-1"></a>    <span class="at">coefficients =</span> final_cvxr_prediction_fit<span class="sc">$</span>coefficients,</span>
+<span id="cb18-252"><a href="#cb18-252" tabindex="-1"></a>    <span class="at">training_coefficients =</span> final_cvxr_training_fit<span class="sc">$</span>coefficients,</span>
+<span id="cb18-253"><a href="#cb18-253" tabindex="-1"></a>    <span class="at">feature_names =</span> <span class="fu">colnames</span>(final_X),</span>
+<span id="cb18-254"><a href="#cb18-254" tabindex="-1"></a>    <span class="at">formula =</span> final_model_formula,</span>
+<span id="cb18-255"><a href="#cb18-255" tabindex="-1"></a>    <span class="at">year_effects =</span> all_years,</span>
+<span id="cb18-256"><a href="#cb18-256" tabindex="-1"></a>    <span class="at">feature_columns =</span> feature_columns,</span>
+<span id="cb18-257"><a href="#cb18-257" tabindex="-1"></a>    <span class="at">feature_means =</span> feature_means,</span>
+<span id="cb18-258"><a href="#cb18-258" tabindex="-1"></a>    <span class="at">feature_sds =</span> feature_sds,</span>
+<span id="cb18-259"><a href="#cb18-259" tabindex="-1"></a>    <span class="at">prediction_floor =</span> <span class="dv">0</span>,</span>
+<span id="cb18-260"><a href="#cb18-260" tabindex="-1"></a>    <span class="at">level2_calibration =</span> <span class="st">&quot;additive province adjustment with non-negative prediction floor&quot;</span>,</span>
+<span id="cb18-261"><a href="#cb18-261" tabindex="-1"></a>    <span class="at">bandwidth_neighbors =</span> final_bandwidth_cvxr,</span>
+<span id="cb18-262"><a href="#cb18-262" tabindex="-1"></a>    <span class="at">bandwidth_fraction =</span> selected_cvxr_bandwidth <span class="sc">/</span> <span class="fu">nrow</span>(training_data),</span>
+<span id="cb18-263"><a href="#cb18-263" tabindex="-1"></a>    <span class="at">lambda =</span> selected_cvxr_lambda,</span>
+<span id="cb18-264"><a href="#cb18-264" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
+<span id="cb18-265"><a href="#cb18-265" tabindex="-1"></a>    <span class="at">outlier_corrections =</span> cvxr_outlier_corrections,</span>
+<span id="cb18-266"><a href="#cb18-266" tabindex="-1"></a>    <span class="at">holdout_metrics =</span> cvxr_grid[selected_cvxr_index, ],</span>
+<span id="cb18-267"><a href="#cb18-267" tabindex="-1"></a>    <span class="at">training_metrics =</span> cvxr_split_metrics[</span>
+<span id="cb18-268"><a href="#cb18-268" tabindex="-1"></a>      cvxr_split_metrics<span class="sc">$</span>split <span class="sc">==</span> <span class="st">&quot;training&quot;</span> <span class="sc">&amp;</span></span>
+<span id="cb18-269"><a href="#cb18-269" tabindex="-1"></a>        cvxr_split_metrics<span class="sc">$</span>model <span class="sc">==</span></span>
+<span id="cb18-270"><a href="#cb18-270" tabindex="-1"></a>          <span class="st">&quot;CVXR local regression with outlier correction&quot;</span>,</span>
+<span id="cb18-271"><a href="#cb18-271" tabindex="-1"></a>      ,</span>
+<span id="cb18-272"><a href="#cb18-272" tabindex="-1"></a>      <span class="at">drop =</span> <span class="cn">FALSE</span></span>
+<span id="cb18-273"><a href="#cb18-273" tabindex="-1"></a>    ]</span>
+<span id="cb18-274"><a href="#cb18-274" tabindex="-1"></a>  ),</span>
+<span id="cb18-275"><a href="#cb18-275" tabindex="-1"></a>  <span class="fu">file.path</span>(model_output_dir, <span class="st">&quot;cvxr_gw_model.rds&quot;</span>)</span>
+<span id="cb18-276"><a href="#cb18-276" tabindex="-1"></a>)</span>
+<span id="cb18-277"><a href="#cb18-277" tabindex="-1"></a></span>
+<span id="cb18-278"><a href="#cb18-278" tabindex="-1"></a><span class="fu">print</span>(gwmodel_calibration<span class="sc">$</span>province_check, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
 <pre><code>##          province population level2_population target_grdp_per_capita
 ##          An Giang    3694600           4995214                   80.2
 ##          Bac Ninh    3572350           2059480                  146.2
@@ -2838,36 +2947,36 @@ predictions to the reported 2025 provincial GRDP-per-capita target.</p>
 ##          296306920            296306920  0.000000e+00
 ##          522277570            522277570  0.000000e+00
 ##          169024584            169024584 -2.980232e-08
-##          306046806            306046806 -1.788139e-07
-##           27921328             27921328 -1.490116e-08
-##          315915628            315915628 -1.192093e-07
-##          229645520            229645520  1.192093e-07
-##           35640228             35640228 -7.450581e-09
-##          677649960            677649960 -2.384186e-07
-##          285917520            285917520 -1.192093e-07
-##          270525250            270525250 -1.788139e-07
-##         1588155129           1588155129  2.384186e-07
-##          120830170            120830170  2.980232e-08
-##          734526990            734526990 -8.344650e-07
-##         2971958140           2971958140 -9.536743e-07
+##          306046806            306046806  0.000000e+00
+##           27921328             27921328  0.000000e+00
+##          315915628            315915628  0.000000e+00
+##          229645520            229645520  0.000000e+00
+##           35640228             35640228  0.000000e+00
+##          677649960            677649960  0.000000e+00
+##          285917520            285917520  0.000000e+00
+##          270525250            270525250 -1.192093e-07
+##         1588155129           1588155129  0.000000e+00
+##          120830170            120830170  0.000000e+00
+##          734526990            734526990 -1.192093e-07
+##         2971958140           2971958140 -4.768372e-07
 ##           89632602             89632602 -1.490116e-08
-##          319958313            319958313  1.192093e-07
+##          319958313            319958313  0.000000e+00
 ##          209410065            209410065 -2.980232e-08
-##           39792104             39792104  7.450581e-09
-##          353091176            353091176 -1.192093e-07
-##           58182667             58182667 -2.235174e-08
-##          141929249            141929249  1.490116e-07
-##          236447900            236447900 -1.490116e-07
-##          342864284            342864284 -1.788139e-07
-##          411980289            411980289 -1.192093e-07
-##          191698356            191698356 -1.788139e-07
-##          368704696            368704696 -2.980232e-07
+##           39792104             39792104  0.000000e+00
+##          353091176            353091176  0.000000e+00
+##           58182667             58182667  7.450581e-09
+##          141929249            141929249 -2.980232e-08
+##          236447900            236447900  0.000000e+00
+##          342864284            342864284  5.960464e-08
+##          411980289            411980289  5.960464e-08
+##          191698356            191698356 -2.980232e-08
+##          368704696            368704696 -5.960464e-08
 ##          123385662            123385662 -1.490116e-08
-##           95763108             95763108  5.960464e-08
-##          344520368            344520368 -1.192093e-07
+##           95763108             95763108  0.000000e+00
+##          344520368            344520368  0.000000e+00
 ##          192381592            192381592 -5.960464e-08
-##          333801645            333801645 -3.576279e-07
-##           95454450             95454450  4.470348e-08
+##          333801645            333801645  5.960464e-08
+##           95454450             95454450  2.980232e-08
 ##          278479864            278479864  0.000000e+00</code></pre>
 <div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">head</span>(gwmodel_level2_predictions)</span></code></pre></div>
 <pre><code>##      level_2  level_1 year population spatial_grdp_per_capita

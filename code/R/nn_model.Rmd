@@ -12,6 +12,11 @@ editor_options:
     wrap: sentence
 ---
 
+This chunk loads `nnet` for the feed-forward neural network, `ggplot2` and
+`patchwork` for diagnostics, `dplyr` for data summaries, and `here` for
+project-relative paths. It only initializes packages; model fitting occurs
+in later chunks.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(nnet)
 library(ggplot2)
@@ -19,6 +24,10 @@ library(dplyr)
 library(patchwork)
 library(here)
 ```
+
+The hidden setup chunk resolves the repository root and creates the neural
+network's output directories for figures, prediction/diagnostic data, and
+saved model objects. It also sources the common comparison utilities.
 
 ```{r setup, include=FALSE}
 #Directory setup
@@ -53,6 +62,11 @@ For this model, we will use the following training and testing datasets:
 * `vnm_.csv`: For constraints purposes
 
 All data sets have been cleaned and contain no missing values.
+
+This chunk loads the panel used to fit the model, level-2 prediction inputs,
+national GDP totals, and official provincial GRDP-per-capita and population
+targets. The official population series is converted from thousands to
+persons once, matching the units needed for aggregate calibration.
 
 ```{r}
 # Regression Dataset
@@ -121,6 +135,13 @@ f_{\mathrm{NN}}\left(x_{it},\,\alpha_{2021,t},\ldots,\alpha_{2024,t}\right).
 \]
 
 The year indicators represent the same year-specific effects \(\alpha_t\) used by the linear and ridge models. Since 2025 outcomes are held out during tuning, the 2025 year-effect inputs are formed by linearly extrapolating the 2020–2024 indicators using training-year trend weights. Hidden-unit count and weight decay are selected by 2025 holdout RMSE. The final model is refit on all available years and uses the 2025 year effect to predict level-2 observations.
+
+This design chunk standardizes radiance, population, and pixel count with
+training means and standard deviations; attaches one year-effect column per
+training year; and uses the extrapolation weights for the 2025 row. It builds
+the feature matrices and standardized response consumed by `nnet`, then checks
+the matrix rows/columns against the shared setup. The holdout variance is
+validated because it is the denominator in \(R^2=1-\mathrm{SSE}/\mathrm{SST}\).
 
 ```{r}
 feature_columns <- c("mean_radiance", "population", "pixel_count")
@@ -193,6 +214,13 @@ if (!is.finite(holdout_total_sum_squares) || holdout_total_sum_squares <= 0) {
 }
 ```
 
+The fitting helper below creates a one-hidden-layer network with a linear
+output (`linout=TRUE`), allowing predictions on the continuous GRDP-per-capita
+scale. The fixed seed makes each candidate reproducible; weight decay is
+`nnet`'s regularization choice, and a non-converged optimization is treated as
+an error. `predict_grdp()` reverses training-response standardization so
+selection metrics are reported in original units.
+
 ```{r}
 fit_neural_network <- function(
   x,
@@ -234,6 +262,12 @@ predict_grdp <- function(model, newdata) {
 ### 2025 holdout tuning
 
 For each candidate hidden-layer size and weight-decay value, fit only 2020–2024 and predict the 2025 holdout using the extrapolated year-effect inputs. Each candidate uses a fixed seed so hyperparameter comparisons are reproducible.
+
+The grid evaluates hidden-layer sizes \(1,2,3,5\) crossed with weight-decay
+values \(0,0.01,0.1,1\). Each fit sees only training rows; it is scored on the
+same 2025 holdout by RMSE and \(R^2\), and minimum RMSE determines the
+architecture. The selected architecture is refit on the training partition to
+produce the fitted values used in the split diagnostics.
 
 ```{r}
 hidden_units_grid <- c(1, 2, 3, 5)
@@ -293,6 +327,12 @@ cat(sprintf(
 ### Holdout metrics and diagnostics
 
 The selected network is trained only on `X_train`, `y_train`; its training and 2025 holdout metrics are compared with the OLS reference fit on the same training inputs. Both sets of diagnostics are saved separately.
+
+This chunk writes the shared model-versus-OLS metric and diagnostic tables,
+then records province-level holdout actuals, predictions, residuals, and
+features. Its scatterplot compares NN and OLS predictions to the 45-degree
+perfect-fit line. Because the holdout is one year, it measures geographic
+generalization to 2025 rather than temporal residual behavior within 2025.
 
 ```{r}
 ols_holdout_predictions <- ols_comparison$holdout$predicted
@@ -375,6 +415,14 @@ ggsave(
 
 Refit the selected neural-network architecture on all available years. As in the linear model, the final model includes separate year effects from 2020 through 2025.
 
+The final fit uses the previously selected hidden-unit count and decay but
+trains on all years, with each year's indicator represented directly. The
+outcome is standardized using the all-years mean and standard deviation for
+optimization, then transformed back for fitted values. The chunk also creates
+an OLS fit on the same all-years design and saves residual diagnostics and
+training \(R^2\)/RMSE; these refit statistics are descriptive and are not the
+2025 holdout selection scores.
+
 ```{r}
 all_years <- sort(unique(regression_data$year))
 final_training_data <- add_year_effects(
@@ -456,6 +504,12 @@ final_refit_model_stats <- data.frame(
 )
 print(final_refit_model_stats, row.names = FALSE)
 ```
+
+This chunk visualizes all-years refit diagnostics: NN and OLS actual-versus-
+fitted values, NN residuals against fitted values and radiance, a Q-Q plot,
+and residual distributions by year. The identity line denotes perfect
+prediction; residual panels are used to spot curvature, outliers, changing
+spread, and year-specific patterns rather than to claim formal inference.
 
 ```{r}
 training_actual_fitted <- ggplot(training_diagnostics) +
@@ -543,6 +597,14 @@ ggsave(
 ### 2025 level-2 predictions
 
 Predict each level-2 unit using the final model, then apply an additive province adjustment so the level-2 population-weighted prediction total equals 2025 provincial GRDP per capita multiplied by the official provincial population. The adjustment uses the level-2 population sum as its denominator, so differing level-2 population coverage does not change the official target. Since GRDP per capita cannot be negative, the model predictions are floored at zero and the provincial adjustment is solved with that floor active. The non-negative unadjusted prediction and province adjustment are retained in the output.
+
+The final chunk validates 2025 rows, unique unit keys, and finite
+non-negative populations, then builds a prediction design identical to the
+all-years fit. For each province it solves
+\(\sum_iP_{ij}\max(0,\hat y_{ij}+\delta_j)=g_jN_j\) by bisection; this
+preserves the official provincial target while respecting the non-negativity
+boundary. It verifies all 34 aggregate totals and writes unit predictions,
+constraint checks, and the reusable model.
 
 ```{r}
 if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {

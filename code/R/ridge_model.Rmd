@@ -12,6 +12,11 @@ editor_options:
     wrap: sentence
 ---
 
+This chunk loads CVXR for convex constrained optimization, plotting and
+diagnostic packages, and `here` for project-relative paths. The selected ridge
+models are estimated with explicit quadratic objectives rather than a black
+box fitting function so annual GDP constraints can be imposed directly.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load Libraries
 library(CVXR)
@@ -20,6 +25,10 @@ library(dplyr)
 library(patchwork)
 library(here)
 ```
+
+The hidden setup chunk resolves the repository root and creates the ridge
+model's figure, data-output, and serialized-model directories. These paths
+keep generated artifacts together and do not change the statistical inputs.
 
 ```{r setup, include=FALSE}
 # Directory setup
@@ -40,6 +49,10 @@ model_output_dir <- file.path(project_dir, "code", "R", "model", "ridge_model")
 dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```
 
+This chunk loads shared plotting and comparison helpers. The latter supplies
+the common 2020–2024/2025 OLS reference and diagnostic output functions used
+to compare ridge with the other model families.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load source code
 source(file.path(source_dir, "graph_utils.R"))
@@ -57,6 +70,11 @@ For this model, we will use the following training and testing datasets:
 * `vnm_.csv`: For constraints purposes
 
 All data sets have been cleaned and contain no missing values.
+
+This chunk reads the regression panel, level-2 prediction features, national
+GDP targets, and provincial 2025 GRDP-per-capita and population totals.
+Official population values are converted from thousands to persons once so
+their units agree with the level-2 population data used for calibration.
 
 ```{r}
 # Regression Dataset
@@ -92,6 +110,8 @@ The shared setup converts regression population to persons, splits 2020–2024
 from the 2025 holdout, standardizes the common features and outcome using
 training-only statistics, and computes linear temporal extrapolation weights.
 Its native OLS holdout reference is saved alongside the ridge outputs.
+The chunk also extracts the scaled feature matrices for the ridge design.
+
 ```{r}
 model_setup <- prepare_model_comparison_setup(regression_data)
 regression_data <- model_setup$regression_data
@@ -159,6 +179,13 @@ National GDP constraints are applied only to the training years (2020–2024). C
 
 After selecting the best \(\lambda\), the model is refitted using all available years (2020–2025) and used to generate Level-2 predictions.
 
+This chunk builds the ridge design with one column per training-year
+intercept and the three training-standardized features. For 2025, year-effect
+columns use the shared linear-trend extrapolation weights instead of a
+holdout-derived coefficient. It checks both matrices against the common setup,
+then aligns population and annual national-GDP targets for the training
+constraints.
+
 ```{r}
 # Construct the training design matrix with year-specific intercepts.
 training_data$year_factor <- factor(training_data$year, levels = training_years)
@@ -223,6 +250,14 @@ For each candidate \(\lambda\), fit the shared standardized response on `X_train
 \]
 Only the standardized feature slopes \(\beta\) are penalized. The yearly intercepts remain unpenalized. The 2025 intercept is predicted by linearly extrapolating the fitted 2020–2024 intercepts. This extrapolation uses training years only.
 
+
+The following search evaluates 61 logarithmically spaced penalties from
+\(10^{-3}\) through \(10^3\). For each \(\lambda\), CVXR minimizes
+\(\|y-X\theta\|_2^2+\lambda\|\beta\|_2^2\), subject to the 2020–2024
+population-weighted GDP equalities. Only feature slopes are penalized;
+year-specific intercepts are not. Each fitted candidate predicts the 2025
+holdout, where minimum RMSE selects \(\lambda\); holdout outcomes are used
+only for selection and evaluation, never in fitting the candidate.
 
 ```{r}
 # Define a logarithmically spaced ridge penalty grid from 10^-3 to 10^3.
@@ -359,6 +394,11 @@ cat(sprintf(
 ))
 ```
 
+This chunk visualizes holdout RMSE and \(R^2\) across the log-spaced penalty
+grid. The vertical line and highlighted point mark the RMSE-selected
+\(\lambda\); plotting both metrics shows the accuracy tradeoff without
+changing the selection rule.
+
 ```{r}
 # Define the output path for the lambda evaluation figure.
 lambda_plot_path <- file.path(
@@ -475,6 +515,12 @@ knitr::include_graphics(
 After selecting \(\lambda\) using only 2025 holdout RMSE, refit the constrained ridge model on all available years.
 This final fit is used only to generate the 2025 level-2 predictions.
 The reported holdout metrics above remain predictions from models trained on 2020–2024.
+
+The final model refit uses the selected \(\lambda\) on all available years
+(2020–2025) so it can estimate a direct 2025 year effect for level-2
+prediction. It reapplies the same feature scaling, penalizes only feature
+slopes, and imposes one population-weighted national GDP equality for each
+year in the refit. This refit does not replace the earlier holdout scores.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # All years
@@ -593,16 +639,40 @@ print(final_constraint_check, row.names = FALSE)
 
 Lambda selection uses 2025 holdout predictions from models fitted on
 2020–2024. The split comparison tables and diagnostics report training and
-holdout performance against the shared OLS reference fit on `X_train`, `y_train`.
+holdout performance against the shared OLS reference fit on `X_train`,
+`y_train`.
+
+This chunk compiles split-specific ridge and OLS residuals, writes common
+training/holdout diagnostics and comparison metrics, and reports \(R^2\) and
+RMSE for both methods. It converts the selected standardized ridge fit back
+to original outcome units before comparing the two models.
 
 ```{r}
+# Calculate OLS holdout residuals as the difference between
+# observed and predicted GRDP per capita values.
 ols_holdout_predictions <- ols_reference_predictions$predicted
 ols_holdout_residuals <- y_holdout_raw - ols_holdout_predictions
-ridge_residuals <- holdout_residuals
-selected_ridge_coefficients <- holdout_coefficients[, selected_index]
-ridge_training_predictions <- as.vector(X_train %*% selected_ridge_coefficients) *
-  model_setup$response_sd + model_setup$response_mean
 
+# Retrieve the previously calculated constrained ridge
+# holdout residuals.
+ridge_residuals <- holdout_residuals
+
+# Extract the ridge coefficients corresponding to the
+# selected regularization parameter (lambda).
+selected_ridge_coefficients <- holdout_coefficients[, selected_index]
+
+# Generate fitted values for the training observations using
+# the selected ridge coefficients.
+# Transform predictions back to the original GRDP-per-capita
+# scale using the response standard deviation and mean.
+ridge_training_predictions <- as.vector(
+  X_train %*% selected_ridge_coefficients
+) * model_setup$response_sd + model_setup$response_mean
+
+# Generate model comparison diagnostics for the constrained
+# ridge model and the OLS reference model.
+# Evaluate both models on the training and holdout datasets.
+# Save diagnostic data and figures to their respective directories.
 comparison_metrics <- write_model_comparison_diagnostics(
   model_name = "Constrained ridge",
   training_data = training_data,
@@ -616,16 +686,24 @@ comparison_metrics <- write_model_comparison_diagnostics(
   file_prefix = "ridge_model",
   feature_columns = feature_columns
 )
+
+# Extract R-squared and RMSE for the holdout observations.
 holdout_model_stats <- comparison_metrics[
   comparison_metrics$split == "holdout",
   c("model", "R_squared", "RMSE")
 ]
+
+# Extract R-squared and RMSE for the training observations.
 training_model_stats <- comparison_metrics[
   comparison_metrics$split == "training",
   c("model", "R_squared", "RMSE")
 ]
 
+# Display holdout performance metrics for both models.
 print(holdout_model_stats, row.names = FALSE)
+
+# Report the selected regularization parameter and the
+# corresponding 2025 holdout RMSE and R-squared.
 cat(sprintf(
   "Selected lambda: %.8g; 2025 holdout RMSE: %.6f; holdout R-squared: %.6f\n",
   selected_lambda,
@@ -633,8 +711,15 @@ cat(sprintf(
   holdout_model_stats$R_squared[1]
 ))
 
+# Extract holdout RMSE values for the constrained ridge
+# and OLS reference models, respectively.
 ridge_rmse <- holdout_model_stats$RMSE[1]
 ols_rmse <- holdout_model_stats$RMSE[2]
+
+# Calculate and report the absolute and percentage differences
+# between the ridge and OLS holdout RMSE values.
+# Determine whether the ridge model has higher or lower RMSE
+# than the OLS reference model.
 cat(sprintf(
   "2025 holdout ridge RMSE (lambda=%.8g) is %.6f GRDP-per-capita units (%.2f%%) %s than OLS reference RMSE.\n",
   selected_lambda,
@@ -651,6 +736,11 @@ selected constrained ridge model and an unconstrained OLS reference. Residual
 panels show holdout errors against predictions and predictors. With only one
 holdout year, year-to-year diagnostics are not applicable; these plots are
 descriptive checks rather than formal inference.
+
+The first diagnostics chunk writes a province-level actual/prediction table
+and plots ridge and OLS holdout fits against the 45-degree reference. It
+orders the printed table by absolute ridge residual so the largest holdout
+errors are easy to inspect.
 
 ```{r holdout-diagnostics, echo=FALSE}
 training_diagnostics <- data.frame(
@@ -728,6 +818,12 @@ legend(
 grDevices::dev.off()
 knitr::include_graphics(actual_fitted_path)
 ```
+
+The second diagnostics chunk examines residual shape and patterns for both
+ridge and OLS: residual-versus-fitted, Q-Q, scale-location, residual against
+features, and province-sorted residuals. The 2025 sample is one cross-section,
+so these displays are descriptive and cannot establish time-series behavior or
+independent-error assumptions.
 
 ```{r residual-assumption-diagnostics, echo=FALSE}
 standardized_residual <- training_diagnostics$constrained_residual /
@@ -875,6 +971,12 @@ The adjustment is calculated as:
 \[ \delta_j = \frac{g_jN_j-\sum_{i\in j}P_{ij}\hat y_{ij}} {\sum_{i\in j}P_{ij}} \]
 
 where \(g_j\) is the province's reported GRDP per capita, \(N_j\) is its total population, and \(P_{ij}\) is the population of level-2 unit \(i\).
+
+The code uses the all-years design and training-derived feature scales, checks
+the aggregation equality for every province, then writes prediction and
+constraint-check tables and the final model RDS. Official provincial
+populations have already been converted to persons; level-2 population values
+are already persons and must not be multiplied by 1,000 again.
 
 ```{r}
 prediction_features <- as.matrix(prediction_data[feature_columns])

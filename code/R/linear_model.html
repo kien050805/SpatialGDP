@@ -1557,6 +1557,18 @@ border-radius: 0px;
 </div>
 
 
+<p>The first chunk loads the optimization, plotting, data-manipulation,
+layout, and project-path packages used below. In particular, CVXR
+expresses the constrained least-squares problem, while <code>here</code>
+makes file paths independent of the current working directory.</p>
+<p>The hidden setup chunk resolves the project root and creates separate
+output directories for figures, predictions/diagnostics, and saved model
+objects. These paths are shared by later chunks; this setup does not
+alter model data.</p>
+<p>This chunk sources the shared plotting helpers and
+preprocessing/comparison functions so the notebook uses the same
+diagnostic conventions and baseline OLS implementation as the other
+models.</p>
 <div id="load-dataset" class="section level3">
 <h3>Load dataset</h3>
 <p>For this model, we will use the following training and testing
@@ -1569,6 +1581,11 @@ purposes</p></li>
 <li><p><code>vnm_.csv</code>: For constraints purposes</p></li>
 </ul>
 <p>All data sets have been cleaned and contain no missing values.</p>
+<p>This chunk reads provincial regression observations, level-2
+prediction features, national GDP constraint totals, and provincial 2025
+GRDP-per-capita and population targets. Official population is recorded
+in thousands, so it is converted once to persons here to match the
+prediction data’s units.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Regression Dataset</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>regression_data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">file.path</span>(data_dir, <span class="st">&quot;training_data/regression_dataset.csv&quot;</span>))</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
@@ -1642,6 +1659,11 @@ slopes for the explanatory variables. It is fit on standardized
 2020–2024 data only; the population-weighted national GDP constraints
 apply to those training years. The 2025 holdout is scored against the
 shared OLS baseline without refitting.</p>
+<p>This chunk binds the common training and holdout design matrices and
+outcomes to the constrained model’s symbols. It also matches national
+GDP targets to training years; the subsequent equality constraints use
+population-weighted predicted per-capita values to reproduce each
+matched annual total.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Constrained fitting uses exactly the shared training partition and design.</span></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>X <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>X_train</span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>X_test <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>X_test</span>
@@ -1673,7 +1695,12 @@ y_{\mathrm{train}}\|_2^2\\
 &amp;\hat y_i=\alpha_{\mathrm{year}_i}+x_i^\top\beta
 \end{aligned}
 }
-\]</span></p>
+\]</span> In this implementation, the optimization variable spans the
+year-effect and standardized-feature columns in the common design
+matrix. The equality constraints convert standardized fitted values back
+to original units before applying population weights. CLARABEL solves
+this convex quadratic problem; an unsuccessful solver status stops
+execution rather than producing a partial fit.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Define optimization variable</span></span>
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fu">Variable</span>(p)</span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a></span>
@@ -1795,6 +1822,11 @@ R_{OLS}^2
 \mathrm{RMSE}_{OLS}
 =\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}.
 \]</span></p>
+<p>This chunk calculates residuals and delegates the training/holdout
+metric tables and diagnostic CSVs/figures to the shared helper. <span class="math inline">\(R^2\)</span> uses the observed outcome variation
+within each split, while RMSE is reported in original GRDP-per-capita
+units; OLS and constrained predictions are compared on identical
+rows.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>constrained_residuals <span class="ot">&lt;-</span> y <span class="sc">-</span> predictions</span>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>ols_residuals <span class="ot">&lt;-</span> y <span class="sc">-</span> ols_predictions</span>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>comparison_metrics <span class="ot">&lt;-</span> <span class="fu">write_model_comparison_diagnostics</span>(</span>
@@ -1825,7 +1857,11 @@ R_{OLS}^2
 </div>
 <div id="training-fit-and-residual-diagnostics" class="section level3">
 <h3>Training fit and residual diagnostics</h3>
-<p>Save the training diagnostics</p>
+<p>The next chunk records one row per training observation, including
+actual, constrained and OLS fitted values, residuals, year, and
+predictors. It derives standardized residuals and <span class="math inline">\(\sqrt{|r_{\mathrm{std}}|}\)</span> for
+scale-location diagnostics, then saves the table for
+reproducibility.</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Training diagnostics data frame</span></span>
 <span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>training_diagnostics <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
 <span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">province =</span> training_data<span class="sc">$</span>province,</span>
@@ -1855,8 +1891,9 @@ R_{OLS}^2
 <span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;linear_model_training_fit_diagnostics.csv&quot;</span>),</span>
 <span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
 <span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a>)</span></code></pre></div>
-<p>This figure compares fitted values with observed training values for
-both the constrained model and the ordinary least-squares reference.</p>
+<p>This chunk plots observed training outcomes against constrained-model
+and OLS fitted values. The 45-degree line is the perfect-prediction
+reference; the figure is saved and embedded in the report.</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Fitted plot</span></span>
 <span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>actual_fitted_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(training_diagnostics) <span class="sc">+</span></span>
 <span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
@@ -1917,6 +1954,12 @@ across years. These are visual checks rather than formal hypothesis
 tests. Because the constrained model imposes annual weighted-sum
 equalities, its residuals are not independent, identically distributed
 residuals assumed by standard OLS inference.</p>
+<p>The following chunk builds those eight complementary plots:
+constrained and OLS residual-versus-fitted, a Q-Q plot, scale-location,
+residuals against each feature, and residual distributions by year. The
+population axis is shown on a log scale to make its wide range readable;
+these plots diagnose patterns but do not establish inferential
+assumptions.</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># 1. Constrained: residual vs fitted</span></span>
 <span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">residual_plot</span>(</span>
 <span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  training_diagnostics,</span>
@@ -2033,6 +2076,11 @@ residuals assumed by standard OLS inference.</p>
 </div>
 <div id="level-2-predictions" class="section level3">
 <h3>2025 Level-2 Predictions</h3>
+<p>The first prediction chunk joins each level-2 unit to its provincial
+2025 target and population, then standardizes predictors using the
+training means and standard deviations. This keeps inference-time
+feature units consistent with fitting; it does not recompute scales from
+prediction observations.</p>
 <p>The model first predicts GRDP per capita for each level-2 unit using
 the 2025 intercept and the same means and standard deviations used to
 standardize the training data. Next, we adjust these predictions so that
@@ -2069,6 +2117,12 @@ the population of level-2 unit <span class="math inline">\(i\)</span>.</p>
 <span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a>prediction_features <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(</span>
 <span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a>  prediction_data[<span class="fu">paste0</span>(feature_columns, <span class="st">&quot;_scaled&quot;</span>)]</span>
 <span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a>)</span></code></pre></div>
+<p>The final prediction chunk extrapolates year effects to 2025, applies
+the fitted coefficients, and adds a common provincial offset <span class="math inline">\(\delta_j\)</span> so <span class="math inline">\(\sum_{i\in j}P_{ij}(\hat
+y_{ij}+\delta_j)=g_jN_j\)</span>. It verifies the aggregation equality,
+then writes unit-level predictions and constraint checks. The offset is
+population-weighted because every unit in a province receives the same
+adjustment.</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Extrapolate the fitted year effects to 2025, matching the shared holdout setup.</span></span>
 <span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>prediction_X <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
 <span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  <span class="fu">matrix</span>(</span>

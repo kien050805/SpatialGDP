@@ -12,6 +12,9 @@ editor_options:
     wrap: sentence
 ---
 
+This chunk loads `nnet` for neural-network fitting, `ggplot2`/`patchwork` for
+plots, `dplyr` for data handling, and `here` for stable project-relative paths.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(nnet)
 library(ggplot2)
@@ -19,6 +22,10 @@ library(dplyr)
 library(patchwork)
 library(here)
 ```
+
+The hidden setup chunk finds the project root, creates this model's figure,
+data, and model-output directories, and sources the shared preprocessing and
+comparison helpers.
 
 ```{r setup, include=FALSE}
 #Directory setup
@@ -53,6 +60,11 @@ For this model, we will use the following training and testing datasets:
 * `vnm_.csv`: For constraints purposes
 
 All data sets have been cleaned and contain no missing values.
+
+This chunk reads the provincial regression panel and level-2 prediction
+features, national GDP totals, and official provincial 2025 GRDP-per-capita
+and population targets. It converts the official population series from
+thousands to persons once so later calibration combines compatible units.
 
 ```{r}
 # Regression Dataset
@@ -90,6 +102,11 @@ statistics, and computes temporal extrapolation weights. Its native OLS
 reference is saved for comparison across all five models. The percentage
 neural network then applies its separate within-parent share transformations
 to its own model inputs.
+
+The following chunk materializes that common split and writes the OLS
+reference predictions, including original- and standardized-scale residuals.
+This keeps the benchmark independent of the percentage transformations that
+are introduced below.
 
 ```{r}
 model_setup <- prepare_model_comparison_setup(regression_data)
@@ -134,6 +151,15 @@ f_{\mathrm{NN}}\left(
 Population and pixel count are represented as percentages of the immediate parent total. For 2020–2025 provincial regression observations, the parent is the country, so shares are computed across provinces within each year. For the 2025 level-2 predictions, the parent is the province, so the level-2 population shares and pixel-count shares sum to 100 separately in each province. The pixel-count denominator is the sum of the level-2 pixel counts in that province; overlaps are not deduplicated. Radiance continues to use training-set standardization. Year effects \(\alpha_t\) follow the linear/ridge setup: 2025 is held out, and its year-indicator inputs are linearly extrapolated from 2020–2024 when selecting the hidden-unit count and weight decay by 2025 RMSE.
 
 After level-2 prediction, an additive province adjustment makes the level-2 population-weighted prediction total equal 2025 provincial GRDP per capita multiplied by the official provincial population, accommodating differences between official and level-2 population totals. Since GRDP per capita cannot be negative, model predictions are floored at zero. The provincial adjustment is solved with the same zero floor active, so final level-2 predictions remain non-negative while preserving provincial totals.
+
+The feature-preparation chunk computes parent-group denominators and verifies
+that each population-share and pixel-share group sums to 100%. The provincial
+training rows group by year (national parent); level-2 prediction rows group
+by province and year. Pixel totals use the sum of pixel counts, including
+overlaps. It also defines the non-negative calibration helper: after flooring
+raw estimates at zero, bisection finds the additive offset \(\delta_j\)
+satisfying \(\sum_iP_{ij}\max(0,\hat y_{ij}+\delta_j)=g_jN_j\). Invalid,
+zero-total, or non-finite inputs stop rather than yielding unchecked outputs.
 
 ```{r}
 make_parent_percentage_features <- function(
@@ -362,6 +388,13 @@ write.csv(
 
 Tune hidden-layer size and weight decay on the 2025 holdout. Each candidate is fit only to `X_train`, `y_train`, using within-parent population and pixel-count percentages and training-only radiance scaling. The final split comparison uses the same OLS reference as the other models.
 
+The candidate grid crosses hidden-layer sizes \(1,2,3,5\) with weight-decay
+values \(0,0.01,0.1,1\). Fixed seeds make the candidate fits reproducible.
+Each network is fit to 2020–2024 and ranked by 2025 RMSE; the holdout is used
+for hyperparameter choice, not coefficient estimation. The selected candidate
+is refit on the training partition to create split diagnostics, then compared
+with OLS using the common metric utility.
+
 ```{r}
 hidden_units_grid <- c(1, 2, 3, 5)
 decay_grid <- c(0, 0.01, 0.1, 1)
@@ -501,6 +534,13 @@ ggsave(
 
 Refit the selected network on all available years. Year indicators include a separate effect for each year, including 2025.
 
+The all-years refit recomputes percentage features within each year's national
+provincial group, standardizes radiance and response, and trains the selected
+network with direct year indicators for 2020–2025. It also constructs an OLS
+fit on that same final design, saves observation-level residual diagnostics,
+and reports training \(R^2\)/RMSE. These are in-sample refit summaries, not
+the holdout metrics used to select the network.
+
 ```{r}
 all_years <- sort(unique(regression_data$year))
 final_training_data <- make_parent_percentage_features(
@@ -595,6 +635,11 @@ final_refit_model_stats <- data.frame(
 print(final_refit_model_stats, row.names = FALSE)
 ```
 
+This chunk plots actual versus fitted values for the all-years NN and OLS fits,
+then shows NN residuals against fitted values, by year, against population
+share, and on a Q-Q plot. The identity and zero lines are visual references;
+the panels help identify systematic patterns but are not formal tests.
+
 ```{r}
 training_actual_fitted <- ggplot(training_diagnostics) +
   geom_point(
@@ -672,6 +717,13 @@ ggsave(
 ### 2025 level-2 predictions
 
 Predict each level-2 unit using its province's within-2025 population and pixel-count shares. Then, as in the linear model, add a province-specific adjustment so population-weighted predictions match the reported 2025 provincial GRDP-per-capita target.
+
+The final chunk validates the prediction rows and groups level-2 population
+and pixel counts within province-year, where each set of percentages sums to
+100. It applies the final network and solves the non-negative provincial
+calibration independently for each province. The resulting CSVs preserve raw
+and calibrated estimates, share totals, and official-target checks; the RDS
+stores the fitted network and the transformations needed to reproduce it.
 
 ```{r}
 if (anyNA(prediction_data$year) || any(prediction_data$year != 2025)) {

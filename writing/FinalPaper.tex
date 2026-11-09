@@ -108,6 +108,8 @@ For Vietnam, several studies have also used NTL data to analyze and predict econ
 
 Therefore, this study aims to address this gap by adapting and extending the methods used in previous research to spatialize regional GDP in Vietnam using NPP-VIIRS NTL data. In addition, this research will develop an automated and reproducible analytical workflow that takes NPP-VIIRS imagery and regional GDP data as inputs and produces spatial GDP estimates.
 
+This paper is organized as follows. Section 2 describes the data sources and general methodology used across all implemented models, including the data preprocessing procedures and the overall structure of all models. The results section provides a more detailed examination of the implementation specifications and findings for each model, along with the corresponding statistical analyses. The discussion section evaluates the strengths and limitations of each method and explains the observed outcomes. Finally, the conclusion summarizes the main findings of the study.
+
 \section{Materials and Methods}
 
 \subsection{Study Area}
@@ -119,11 +121,11 @@ An important consideration for this study is the recent change in Vietnam's prov
 
 \subsection{Data}
 
-This study utilizes data from three sources. First, the primary indicator, \emph{Gross Regional Domestic Product} (GRDP), is obtained from the Statistical Yearbook of Viet Nam 2025, covering the period from 2020 to 2025. The NSO also provides data on national GDP, GRDP by capita, population, and population density across regions of Vietnam. Second, NTL data are obtained from the \emph{Earth Observation Group} (EOG) and are derived from VIIRS observations collected aboard the Suomi NPP satellite, part of the \emph{Joint Polar Satellite System} (JPSS), covering the period from 2012 to 2025. Third, administrative boundary shapefiles are obtained through the Humanitarian Data Exchange portal, provided by the \emph{United Nations Office for the Coordination of Humanitarian Affairs} (OCHA). According to the boundary dataset documentation, the boundary alignments incorporate the latest updates from official Vietnamese government decrees. For the commune-level boundary shapefile, I collect from \href{https://gis.vn/}{gis.vn}, a Vietnamese geospatial platform and community tool.
+This study utilizes data from three sources. First, the primary indicator, \emph{Gross Regional Domestic Product} (GRDP) per capita, is obtained from the Statistical Yearbook of Viet Nam 2025, covering the period from 2020 to 2025. The NSO also provides data on national GDP, GRDP by capita, population, and population density across regions of Vietnam. Second, NTL data are obtained from the \emph{Earth Observation Group} (EOG) and are derived from VIIRS observations collected aboard the Suomi NPP satellite, part of the \emph{Joint Polar Satellite System} (JPSS), covering the period from 2012 to 2025. Third, administrative boundary shapefiles are obtained through the Humanitarian Data Exchange portal, provided by the \emph{United Nations Office for the Coordination of Humanitarian Affairs} (OCHA). According to the boundary dataset documentation, the boundary alignments incorporate the latest updates from official Vietnamese government decrees. For the commune-level boundary shapefile, I collect from \href{https://gis.vn/}{gis.vn}, a Vietnamese geospatial platform and community tool.
 
 \subsubsection{National Statistics Office of Vietnam}
 
-GRDP data for the 34 provinces and centrally governed municipalities in Vietnam covering the period from 2020 to 2025 were obtained from the 2025 Statistical Yearbook. The yearbook is an annual publication issued by the National Statistics Office of Vietnam (NSO) and is available through the official NSO website. The GRDP figures reported in the 2025 edition are the first to be calculated according to Vietnam's new provincial administrative classification. These figures are reported at constant prices, with 2010 as the base year, and therefore adjusted for inflation. In previous editions, GDP was reported according to the former provincial administrative classification. The GDP figures are expressed in constant local currency values.
+GRDP per capita data for the 34 provinces and centrally governed municipalities in Vietnam covering the period from 2020 to 2025 were obtained from the 2025 Statistical Yearbook. The yearbook is an annual publication issued by the National Statistics Office of Vietnam (NSO) and is available through the official NSO website. The GRDP figures reported in the 2025 edition are the first to be calculated according to Vietnam's new provincial administrative classification. These figures are reported at constant prices, with 2010 as the base year, and therefore adjusted for inflation. In previous editions, GDP was reported according to the former provincial administrative classification. The GDP figures are expressed in constant local currency values.
 
 For population data, the annual national statistical yearbooks provide population and population density estimates at the provincial level. In addition, the statistical yearbooks published by individual provinces provide population data at a finer geographic level, including the commune level. However, GRDP data are not available at the provincial and commune level. Therefore, population data can be incorporated into the analysis at both the provincial and commune levels.
 
@@ -131,46 +133,15 @@ For population data, the annual national statistical yearbooks provide populatio
 
 The data is obtained in GeoTIFF format. Here, I will use the Annual VNL V2 dataset for 2020--2025 because it has already undergone processing to reduce the effects of outliers and temporary light sources~\parencite{elv-zhi-gho:VIIRS-2012-2019}. The NTL data is clipped to Vietnam's administrative boundary using the administrative boundary data. Then, I extracted the radiance value of each pixel. The radiance value, measured in $\text{nW}/\text{cm}^2/\text{sr}$, represents the intensity of nighttime illumination at each location and will serve as the primary predictor in the models. The pixel level NTL data will then be spatially aggregated to the corresponding administrative units at both the provincial and commune levels. These measures will then be joined with the corresponding province GDP for model training and evaluation. The pixel level NTL will also be used for spatialization of the GDP throughout Vietnam.
 
-\subsection{Methods}
+\section{Methods}
 
 The procedure for spatializing GDP consists of two steps. First, I will develop and evaluate predictive models at the provincial level using NTL and population data. The model predictions will then be validated against observed provincial GRDP figures to compare alternative modeling approaches and identify the model that provides the most accurate estimates of provincial GDP. Second, after selecting the optimal model based on its provincial level predictive performance, I will apply the same model specification to NTL and population data at the commune level within each province. This allows the estimated provincial GDP to be further disaggregated among individual communes based on their observed NTL and population. In this way, the provincial level model serves as the basis for generating commune level GRDP estimates, providing a much finer spatial representation of economic activity than is available in standard statistical reports.
 
-\subsubsection{Predictive models}
+In order to evaluate the predictive power of these models, I will use the temporal holdout approach. Data from 2020 to 2024 will be used as the training set, while data from 2025 will be reserved as the testing set. The model will be trained using the training dataset, and then be applied to the previously unseen 2025 data. Its predictive performance will be evaluated using R-squared and MSE by comparing the predicted provincial GDP values with the reported 2025 GRDP values. Because the 2025 data are not used during model training or hyperparameter selection, this temporal holdout approach provides an independent assessment of how well the models generalize to a new year and helps reduce the risk of overfitting.
 
-In order to develop the predictive model, this study will employ several regression and machine learning algorithms to predict provincial GDP. One promising model is the Geographically Weighted Regression (GWR).~\textcite{xu-zha-jia:CN-GDP-NTL-LC} showed that the GWR model explained up to 93\% of the variation in economic development in China. Building on this approach, this study will apply GWR to Vietnam data and evaluate its ability to predict provincial GDP. To provide additional alternatives and comparisons, this study will also employ \emph{Ordinary Least Squares} as a baseline model, along with \emph{Ridge Regression} and \emph{Neural Network}. These algorithms are chosen because they are either conventional econometric methods or they can recognize complex patterns and relationships.
+The predictive models use three explanatory variables: the mean nighttime light radiance within each region, the population of the corresponding region, and the number of pixels representing its geographic area. The number of pixels is used as a proxy for regional area rather than relying on officially reported area figures, which may contain measurement inaccuracies or inconsistencies. Although pixel counts may also introduce some degree of measurement error, they provide a more consistent and spatially representative approximation of regional area in the context of this study.
 
-GWR assumes the hypothesis that the closer two observations are geographically, the more similar the influence of the explanatory variables on the dependent variable, i.e. the closer the coefficients of the explanatory parameters of the regression. The model can be written as
-
-\begin{equation}
-y_i = \beta_0(u_i,v_i) +\sum_{k}^{p}\beta_k (u_i,v_i)x_{i,k} + \varepsilon_i
-\end{equation}
-
-where the coefficients at the point of geographic coordinates are
-\begin{equation}
-\hat\beta (u_i,v_i) = (\mathbf{X}^\top \mathbf{W}_{(\mathbf{u}_i,\mathbf{v}_i)} \mathbf{X})^{-1} \mathbf{X}^\top \mathbf{W}_{(\mathbf{u}_i,\mathbf{v}_i)} \mathbf{Y} 
-\end{equation}
-
-The importance of remote observations is weighted according to the matrix W, determined by the choice of the kernel function with the fixed bandwidth. The GWR models will be implemented using the \texttt{GWmodel} package in R~\parencite{gol-lu-char:GWmodel}.
-
-In order to evaluate the predictive power of these models, I will use the temporal holdout approach. Data from 2020 to 2024 will be used as the training set, while data from 2025 will be reserved as the testing set. Within the training set, k-fold cross-validation will be used for model selection and hyperparameter tuning. In each fold, the model will use NTL, area, and population as predictors to estimate provincial GDP, while the reported provincial GRDP will serve as the observed outcome. Model performance within the cross-validation procedure will be evaluated using prediction error metrics such as mean squared error (MSE). After the optimal model and hyperparameters have been identified through cross-validation, the selected model will be retrained using the complete 2020-2024 training dataset. The final model will then be applied to the previously unseen 2025 data. Its predictive performance will be evaluated using R-squared and MSE by comparing the predicted provincial GDP values with the reported 2025 GRDP values. Because the 2025 data are not used during model training, cross-validation, or hyperparameter selection, this temporal holdout approach provides an independent assessment of how well the models generalize to a new year and helps reduce the risk of overfitting.
-
-Prior to applying these models, to account for other factors that may be associated with subnational GDP, potential control variables will include population and national GDP, as these factors may influence both economic activity and nighttime light intensity. The models will first be estimated using the control variables and then with NTL variables included to examine whether the addition of NTL information improves predictive performance. The contribution of NTL will be assessed by comparing model performance across these specifications using R-squared and MSE.
-
-\subsubsection{GDP spatialization}
-
-After selecting the optimal models and their corresponding parameters, the final models will be retrained using the complete available training dataset. These models will then be used to estimate GDP at the commune level. This disaggregation treats each province as the higher-level geographic unit and its constituent communes as the lower-level units. Commune-level NTL, population, and other model inputs will be used to estimate the relative economic activity of each commune within its province.
-
-An important assumption is that the disaggregation from national level down to provincial level is similar to the disaggregation from provincial level to commune level. To ensure consistency between geographic levels, the commune-level estimates will be subject to an aggregation constraint such that the sum of the estimated GDP across all communes within a province equals the corresponding provincial GDP. This constraint ensures that the resulting GDP estimates are spatially disaggregated estimates of provincial GDP rather than unconstrained independent predictions, while maintaining consistency with the higher-level provincial estimates.
-
-With respect to the GWR models, bandwidth selection must be adjusted to reflect the different spatial scales of the provincial and commune. The geographic distances between communes are much smaller than between provinces, resulting in different spatial relationships and therefore different optimal bandwidths. Also need to note that there is a substantial regional disparities across Vietnam, which can strongly influence the optimal bandwidth at the provincial level. 
-
-\subsubsection{Outliers}
-
-A potential source of bias in the relationship between NTL and GDP is the presence of dragon fruit production, since lighting is used extensively to support dragon fruit cultivation. Lam Dong is a major dragon fruit production region in Vietnam, making this province a potential outlier in the model. Therefore, Lam Dong will be carefully examined during model development. I will conduct sensitivity analyses with and without Lam Dong in the training data to assess its influence on model coefficients and predictive performance. If its influence is substantial, the final model specification will account for this outlier rather than allowing its unusually high NTL values to disproportionately affect GDP estimates.
-
-\section{Results}
-
-\subsection{Preliminaries}
+\subsection{Predictive models}
 
 For convenience, we refer to the national, provincial, and commune levels as Level 0, Level 1, and Level 2, respectively. For each model, define the following notation:
 \begin{itemize}
@@ -180,9 +151,7 @@ For convenience, we refer to the national, provincial, and commune levels as Lev
     \item \(a \in \mathbb{R}\): the specified aggregate GDP or GRDP at the corresponding administrative level.
 \end{itemize}
 
-\subsection{Linear Regression Model}
-\label{sec:linear_regression_model}
-
+\subsubsection{Ordinary Least Squares}
 The linear model is formulated as the following constrained optimization problem:
 \[
 \begin{aligned}
@@ -216,8 +185,72 @@ Consequently, the adjusted predictions satisfy the following aggregation constra
 \sum_{i\in j}P_{ij}\tilde{y}_{ij}=g_jN_j.
 \]
 
-\subsubsection{Statistical analysis}
-A natural way to evaluate the impact of the constraints is to compare the RMSE and \(R^2\) of the constrained and unconstrained linear models, as summarized in Table \ref{tab:model_comparison}.
+
+\subsubsection{Ridge Regression}
+
+The Ridge Regression model is formulated as the following constrained optimization problem:
+
+\[
+\begin{aligned}
+\min_{\alpha,\beta}\quad
+& \|y-\hat y\|_2^2+\lambda\|\beta\|_2^2\\
+\text{s.t.}\quad
+& \sum_{i:\,\mathrm{year}_i=t} P_i\hat y_i=a_t,
+\quad t\in\{2020,\ldots,2024\},\\
+& \hat y_{it}=\alpha_t+x_i^\top\beta,
+\quad t\in\{2020,\ldots,2024\},\\
+& \lambda\ge 0.
+\end{aligned}
+\]
+
+The objective function follows the standard Ridge Regression formulation, combining the ordinary least squares loss with an \(L_2\) regularization penalty. The tuning parameter \(\lambda\) controls the strength of this penalty, helping reduce the impact of multicollinearity among the explanatory variables, particularly the correlation between population and mean nighttime light radiance. The optimal \(\lambda\) is selected through a grid search over candidate values, with the value yielding the lowest RMSE on the 2025 holdout dataset chosen for the final model.
+
+Since the 2025 year-specific intercept cannot be estimated directly from the training observations, it is extrapolated from the estimated 2020-2024 local intercepts using linear temporal extrapolation weights:
+
+\[
+v_t = \frac{1}{T}
++ \frac{(2025-\bar{t})(t-\bar{t})}
+{\sum_{j=1}^{T}(t_j-\bar{t})^2}.
+\]
+
+where \(T\) is the number of training years, \(t\) represents an individual training year, and \(\bar t\) is the mean training year. The extrapolated intercept is then:
+
+For Level 2 predictions, the model applies the same adjustment term, \(\delta_j\), as in the Ordinary Least Squares approach. This adjustment serves the same purpose of ensuring that the population-weighted aggregate of the predicted GRDP per capita values is consistent with the corresponding province-level GRDP.
+
+\subsubsection{Geographically Weighted Regression. (GWR)}
+
+The GWR model assumes that observations closer to each other geographically tend to have more similar relationships between the explanatory variables and the dependent variable. Therefore, unlike previous models, GWR allows regression coefficients to vary across geographic locations to account for spatial heterogeneity.
+
+The model is expressed as:
+
+\[
+y_i=\alpha_{t_i}(u_i,v_i)+
+\sum_{k=1}^{p}\beta_k(u_i,v_i)x_{i,k}
++\varepsilon_i,
+\]
+where \((u_i,v_i)\) represents the geographic coordinates of observation \(i\), and the intercept and regression coefficients vary across locations. In this study, the model includes three explanatory variables: mean nighttime light radiance, population, and pixel count, along with year-specific intercepts. The geographic coordinates used in this implementation correspond to the centroids of the respective regions, which serve as the locations at which the spatially varying coefficients are estimated.
+
+The models are implemented using the \texttt{GWmodel} package in R~\parencite{gol-lu-char:GWmodel}. Additionally, I also implement the CVXR-based local regression model is implemented with an \(L_2\) regularization penalty on the explanatory-variable coefficients:
+
+\[
+\min_{\boldsymbol{\alpha}(s),\boldsymbol{\beta}(s)}
+\sum_{i=1}^{n}w_i(s)
+\left[y_i-\alpha_{t_i}(s)-\mathbf{x}_i^\top\boldsymbol{\beta}(s)\right]^2
++\lambda\|\boldsymbol{\beta}(s)\|_2^2.
+\]
+The parameter \(\lambda\) controls the strength of regularization, while the year-specific intercepts remain unpenalized. Since the 2025 year effect cannot be estimated directly from the training data, it is extrapolated using the same approach as in the Ridge Regression model. The adaptive bandwidth and, for the CVXR model, the regularization parameter are selected based on the RMSE on the 2025 holdout dataset. The selected models are then refitted using all available years to generate Level 2 predictions.
+
+\subsubsection{Neural Network}
+
+\subsection{GDP spatialization}
+
+After selecting the optimal models and their corresponding parameters, the final models will be retrained using the complete available training dataset. These models will then be used to estimate GDP at the commune level. This disaggregation treats each province as the higher-level geographic unit and its constituent communes as the lower-level units. Commune-level NTL, population, and other model inputs will be used to estimate the relative economic activity of each commune within its province.
+
+An important assumption is that the disaggregation from national level down to provincial level is similar to the disaggregation from provincial level to commune level. To ensure consistency between geographic levels, the commune-level estimates will be subject to an aggregation constraint such that the sum of the estimated GDP across all communes within a province equals the corresponding provincial GDP. This constraint ensures that the resulting GDP estimates are spatially disaggregated estimates of provincial GDP rather than unconstrained independent predictions, while maintaining consistency with the higher-level provincial estimates.
+
+\section{Results}
+\subsection{Statistical analysis}
+During the training processes, we use the 2025 holdout to compute the $R^2$ and the $RMSE$. Table \ref{tab:model_comparison} shows the $R^2$ and the $RMSE$ of each of the implemented model on the 2025 
 
 \begin{table}[htbp]
     \centering
@@ -227,8 +260,12 @@ A natural way to evaluate the impact of the constraints is to compare the RMSE a
         \hline
         Model & $R^2$ & RMSE \\
         \hline
-        Constrained Regression & 0.4712128 & 29.03304 \\
-        Ordinary Least Squares & 0.4730061 & 28.98377 \\
+        Ordinary Least Squares & 0.37315 & 35.95181 \\
+        Constrained Linear Regression & 0.38352 & 35.65298 \\
+        Constrained Ridge Regression & 0.38499 & 35.61068 \\
+        CVXR local regression & 0.85426 & 17.33498 \\
+        GWR & 0.43612 & 34.09816 \\
+        Neural Network & 0.83270 & 18.57318 \\
         \hline
     \end{tabular}
 \end{table}
@@ -246,25 +283,9 @@ We can see that imposing the aggregation constraints has a negligible impact on 
 
 Figure \ref{fig:ha_noi_level2_predicted_grdp_per_capita} shows the estimated GRDP per capita at level 2 in Ha Noi. The spatialization results reveal a plausible geographic pattern, with higher predicted GRDP per capita concentrated in the city center. This pattern is consistent with the concentration of economic activities in urban areas.
 
+However, this is the only good predictions. When looking at the general 
+
 \subsection{Ridge Regression Model}
-
-Similar to the linear regression model, the ridge regression model can be formulated as the following constrained optimization problem:
-
-\[
-\begin{aligned}
-\min_{\alpha,\beta}\quad
-& \|y-\hat{y}\|_2^2+\lambda\|\beta\|_2^2\\
-\text{subject to}\quad
-& \sum_{i:\,\mathrm{year}_i=t}P_i\hat{y}_i=a_t,
-\quad t\in\{2020,\ldots,2025\},\\
-& \hat{y}_i=\alpha_{\mathrm{year}_i}+x_i^\top\beta,\\
-& \lambda\geq 0.
-\end{aligned}
-\]
-
-The parameter \(\lambda\) controls the strength of regularization. When \(\lambda=0\), the objective function reduces to that of the constrained linear regression model.
-
-The adjustment procedure for Level 2 predictions is identical to that described in Section \ref{sec:linear_regression_model}.
 
 To select the regularization parameter \(\lambda\), I evaluate model performance across a grid of values, using the temporal holdout approach. As shown in Figure \ref{fig:ridge_lambda_grid_metrics}, the best predictive performance occurs when \(\lambda = 15.85\). This suggests that penalizing the regression coefficients does improve predictive accuracy in this application, but minimally.
 
@@ -277,20 +298,18 @@ To select the regularization parameter \(\lambda\), I evaluate model performance
 
 \section{Discussion}
 
-Using ridge regression with a tuned $\lambda$, I estimate GRDP per capita for each commune. Figure~\ref{fig:level_1_ridge_predictions_2025} and~\ref{fig:level_2_ridge_predictions_2025}  presents the holdout predictions at two administrative levels. At Level 1, the predicted values are reasonable, with Ho Chi Minh City and Ha Noi having the highest estimated GRDP per capita. However, the Level 2 predictions reveal a potential outlier problem. Lam Dong exhibits an exceptionally high estimated GRDP per capita, with nighttime lights from dragon fruit farms potentially contributing to this result. The predicted value is disproportionately high, even compared with those of the country's two largest cities.
+A general observation is that more complex models tend to overfit the Level 1 data and may not generalize well when applied to Level 2 predictions. Therefore, even when these models achieve relatively high $R^2$ and low RMSE on Level 1, their performance does not necessarily translate into reliable Level 2 estimates. This suggests that evaluating models solely based on their Level 1 predictive performance is insufficient for determining their suitability for spatial disaggregation.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.5\linewidth]{level1_ridge_2025_holdout_predictions.png}
-    \caption{Level 1 predictions: Ho Chi Minh City and Ha Noi have the highest estimated GRDP per capita.}
-    \label{fig:level_1_ridge_predictions_2025}
-\end{figure}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.5\linewidth]{level2_ridge_2025_holdout_predictions.png}
-    \caption{Ridge regression holdout predictions for 2025 at two administrative levels. While Level 1 predictions appear reasonable, Level 2 predictions reveal a potential outlier associated with intensive agricultural lighting in Lam Dong.}
-    \label{fig:level_2_ridge_predictions_2025}
-\end{figure}
+Another important consideration is the difference in the number and characteristics of observations across geographic levels. The models are trained and evaluated using provincial observations, but their final application is at the commune level. Relationships learned from provincial data may not remain consistent at a finer geographic scale. This limitation is particularly important for more complex models, which may capture patterns specific to the provincial training data rather than relationships that generalize across smaller regions.
+
+\section{Conclusion}
+
+This study compared several predictive approaches, including Ordinary Least Squares, Ridge Regression, Geographically Weighted Regression, and Neural Networks, to investigate the relationship between nighttime light radiance and GRDP per capita across provinces in Vietnam. Using mean nighttime light radiance, population, and pixel count as explanatory variables, the study examined the ability of these models to estimate regional GRDP per capita and extend the predictions to the commune level.
+
+The findings is that strong predictive performance at the provincial level does not necessarily imply reliable commune-level estimates. More complex models may capture patterns in the provincial data that do not generalize to smaller geographic units, even when aggregate constraints are imposed. Therefore, the suitability of a model for spatial GRDP estimation should be assessed not only through conventional statistical metrics but also through the plausibility and consistency of its predictions across geographic scales.
+
+Despite these limitations, this study provides a framework for using nighttime light imagery and statistical learning methods to investigate the spatial distribution of economic activity in Vietnam. Future work could improve the reliability of commune-level estimates by incorporating additional regional information, exploring methods that explicitly account for differences across geographic scales, and evaluating the resulting estimates against more detailed local economic data.
+
 
 
 \newpage

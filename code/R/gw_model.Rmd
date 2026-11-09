@@ -12,6 +12,11 @@ editor_options:
     wrap: sentence
 ---
 
+This chunk loads GWmodel and `sf` for geographic weighting and centroid
+handling, CVXR for the independently implemented local regression, and the
+plotting/data packages used for evaluation. Both spatial implementations share
+the same training split and feature design.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(CVXR)
 library(GWmodel)
@@ -21,6 +26,10 @@ library(patchwork)
 library(here)
 library(sf)
 ```
+
+The hidden setup chunk resolves the project and creates dedicated locations
+for GW figures, prediction/diagnostic data, and saved model objects. It also
+loads the shared preprocessing and OLS-comparison functions.
 
 ```{r setup, include=FALSE}
 project_dir <- here()
@@ -48,6 +57,11 @@ For this model, we will use the following training and testing datasets:
 * `vnm_.csv`: For constraints purposes
 
 All data sets have been cleaned and contain no missing values.
+
+This chunk reads the provincial panel and level-2 centroid data, national GDP
+and provincial GRDP-per-capita targets, and official population totals.
+Population totals reported in thousands are converted once to persons to match
+the unit-level population weights used for provincial calibration.
 
 ```{r}
 # Regression Dataset
@@ -84,6 +98,12 @@ training-only statistics, and computes linear temporal extrapolation weights.
 Its native OLS holdout reference is written to the same-schema CSV in each
 model's output directory. Model-specific constraints and spatial weighting
 are applied after this common comparison setup.
+
+The common setup fixes the 2020–2024 training and 2025 holdout partitions,
+scales shared features and response from training statistics, and computes
+linear temporal extrapolation weights. It also constructs the native OLS
+reference on the common design so geographic-model performance is compared
+against the same baseline as the other notebooks.
 
 ```{r}
 model_setup <- prepare_model_comparison_setup(regression_data)
@@ -143,6 +163,16 @@ Consequently, the extrapolated 2025 year effect is:
 \[ \alpha\_{2025}(s) = \sum\_{t=2020}^{2024}v_t\alpha_t(s) \]
 
 The extrapolation weights are also used when selecting the adaptive bandwidth and ridge penalty based on 2025 holdout RMSE. After parameter selection, the models are refitted using all available years for level-2 prediction.
+
+The design-preparation chunk applies the training means and standard
+deviations to the features and response, forms year-effect columns (using
+linear extrapolation for the 2025 holdout), and verifies that the resulting
+matrices match the shared OLS design. It then builds longitude/latitude
+centroid coordinates and great-circle distance matrices. Adaptive bisquare
+weights use candidate nearest-neighbor counts derived from fractions
+\(0.35,0.50,0.65,0.80,0.95\), with at least \(p+2\) neighbors and no more
+than the training sample; this allows neighborhood size to adapt to spatial
+sampling density.
 
 ```{r}
 all_years <- sort(unique(regression_data$year))
@@ -277,6 +307,12 @@ holdout_weights <- lapply(bandwidth_grid, function(bandwidth) {
 
 `GWmodel::gwr.predict()` estimates local year effects and predictor slopes from the 2020–2024 observations, then predicts each 2025 centroid. The 2025 year indicators are set to the linear extrapolation weights above.
 
+This chunk fits `gwr.predict()` at every candidate adaptive bandwidth, converts
+predictions back to GRDP-per-capita units, and scores them against the 2025
+outcomes. The chosen neighborhood is the one with the smallest holdout RMSE;
+\(R^2\) is retained as a secondary metric. The GDP aggregate target is not a
+bandwidth-selection input.
+
 ```{r}
 gwmodel_holdout_predictions <- matrix(
   NA_real_,
@@ -331,6 +367,17 @@ cat(sprintf(
 ### CVXR locally weighted regression
 
 CVXR solves the weighted regression for multiple prediction locations per problem. The intercept and year effects are unpenalized, matching the ridge model's treatment of \(\alpha_t\).
+
+For each target location \(s\), this chunk solves
+\[
+\min_{\theta_s}\ \sum_i w_i(s)(y_i-x_i^\top\theta_s)^2
++\lambda\|\beta_s\|_2^2,
+\]
+where \(w_i(s)\) are adaptive bisquare geographic weights and only feature
+slopes \(\beta_s\) are penalized. Target locations are solved in batches of
+20 to limit optimization memory. The Cartesian grid of candidate bandwidth
+and \(\lambda\in\{0,0.01,0.1,1,10\}\) is evaluated on 2025; minimum holdout
+RMSE selects the CVXR settings.
 
 ```{r}
 cvxr_local_predict <- function(
@@ -453,6 +500,13 @@ cat(sprintf(
 ### Persistent provincial outlier correction
 
 The selected spatial models are fitted to the 2020–2024 observations at their own centroids to obtain training residuals. Provinces with a median residual more than three robust standard deviations from the cross-province median are flagged. For each flagged province, a linear trend in its training residuals is extrapolated to 2025 and added to spatial predictions. The correction is estimated using training years only and does not remove any observations.
+
+This chunk obtains in-sample spatial fits for each selected method, aggregates
+residuals by province, and flags outliers using the median and MAD
+(scaled by 1.4826) with an absolute robust-score threshold of 3. Only flagged
+provinces receive a correction: an ordinary linear trend of their annual
+training residuals is extrapolated to 2025. The correction table is saved
+separately for auditability and does not delete or reweight observations.
 
 ```{r}
 training_coordinates <- as.matrix(
@@ -590,6 +644,13 @@ print(gwmodel_outlier_corrections[
 ### 2025 holdout comparison
 
 The table reports each raw spatial prediction and the prediction after applying its training-only outlier correction. Provincial GDP targets are not used in model selection or this correction.
+
+This comparison chunk applies those corrections to holdout predictions and
+writes method-specific training/holdout metric and diagnostic files. It reports
+uncorrected and corrected RMSE/\(R^2\) alongside the shared OLS reference, and
+plots observed versus fitted holdout values against the identity line. These
+results assess spatial model selection before the separate level-2 provincial
+calibration step.
 
 ```{r}
 gwmodel_holdout_correction <- gwmodel_outlier_corrections$residual_correction[
@@ -750,6 +811,13 @@ ggsave(
 
 Refit each method using all available regression years. The final year effects include separate 2020–2025 intercept terms; 2025 level-2 predictions use the 2025 term directly.
 
+This chunk refits both methods on all years using their holdout-selected
+bandwidths (rescaled to the larger all-years sample) and selected CVXR
+\(\lambda\). It computes training fitted values/residuals, writes observation
+diagnostics, and reports training \(R^2\) and RMSE. The final refit is for
+level-2 prediction; holdout metrics continue to come from models trained
+without 2025 outcomes.
+
 ```{r}
 final_training_data <- add_year_effects(
   prepare_features(regression_data),
@@ -877,6 +945,12 @@ print(final_refit_model_stats, row.names = FALSE)
 
 The fitted-value and residual figures follow the linear model's diagnostic outputs. Training diagnostics are descriptive; local fits and spatially overlapping neighborhoods do not have independent residuals.
 
+The next chunk draws actual-versus-fitted plots for both spatial methods and
+residual-versus-fitted, Q-Q, residual-versus-radiance, and residual-by-year
+panels. Using parallel panels makes method differences visible, but spatial
+overlap and local fitting mean these are visual diagnostics rather than
+independent-error inference.
+
 ```{r}
 actual_fitted_plot <- ggplot(training_diagnostics) +
   geom_point(
@@ -986,6 +1060,15 @@ ggsave(
 ### 2025 level-2 predictions
 
 Use the refitted model's 2025 year effect and the training-set feature standardization to predict each level-2 centroid. A province-specific additive adjustment calibrates level-2 predictions to the reported 2025 provincial GRDP-per-capita target. Because GRDP per capita cannot be negative, the model predictions are floored at zero and the adjustment is solved with that floor active, preserving provincial totals while keeping estimates non-negative.
+
+The final chunk predicts each centroid with both the `GWmodel` and CVXR
+refits, applies the corresponding training-only outlier correction, and
+calibrates each method separately. Within province \(j\), it finds
+\(\delta_j\) such that
+\(\sum_iP_{ij}\max(0,\hat y_{ij}+\delta_j)=g_jN_j\), using bisection; this
+preserves the official target while preventing negative estimates. It checks
+the aggregate totals and writes both unit prediction tables, constraint
+checks, and fitted model objects.
 
 ```{r}
 prediction_data$year <- 2025
