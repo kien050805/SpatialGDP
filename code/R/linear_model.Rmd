@@ -6,19 +6,16 @@ output:
     highlight: pygments
     theme: cerulean
     toc: true
-    toc_float: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
 editor_options:
   markdown:
     wrap: sentence
 ---
-
-The first chunk loads the optimization, plotting, data-manipulation, layout, and
-project-path packages used below. In particular, CVXR expresses the constrained
-least-squares problem, while `here` makes file paths independent of the current
-working directory.
-
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-#Load Libraries
+# Load Libraries
 library(CVXR)
 library(ggplot2)
 library(dplyr)
@@ -26,39 +23,32 @@ library(patchwork)
 library(here)
 ```
 
-The hidden setup chunk resolves the project root and creates separate output
-directories for figures, predictions/diagnostics, and saved model objects.
-These paths are shared by later chunks; this setup does not alter model data.
-
 ```{r setup, include=FALSE}
-#Directory setup
+# Directory setup
 project_dir <- here()
 source_dir <- file.path(project_dir, "code/R")
 
-#Figure output path
+# Figure output path
 figure_dir <- file.path(project_dir, "figures")
 figure_output_dir <- file.path(figure_dir, "linear_model")
 dir.create(figure_output_dir, showWarnings = FALSE, recursive = TRUE)
 
-#Data output path
+# Data output path
 data_dir <- file.path(project_dir, "data")
 data_output_dir <- file.path(data_dir,"predicted_data/linear_model")
 dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
 
-#Model output path
+# Model output path
 model_dir <-file.path(project_dir, "code/R/model")
 model_output_dir <-file.path(project_dir, "code/R/model/linear_model")
 dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```
 
-This chunk sources the shared plotting helpers and preprocessing/comparison
-functions so the notebook uses the same diagnostic conventions and baseline
-OLS implementation as the other models.
-
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load source code
-source(file.path(source_dir, "graph_utils.R"))
-source(file.path(source_dir, "model_comparison_setup.R"))
+source(file.path(source_dir, "model_setup.R"))
+source(file.path(source_dir, "fit_ols_comparison.R"))
+source(file.path(source_dir, "model_diagnostics.R"))
 ```
 
 ### Load dataset
@@ -72,11 +62,6 @@ For this model, we will use the following training and testing datasets:
 * `vnm_.csv`: For constraints purposes
 
 All data sets have been cleaned and contain no missing values.
-
-This chunk reads provincial regression observations, level-2 prediction
-features, national GDP constraint totals, and provincial 2025 GRDP-per-capita
-and population targets. Official population is recorded in thousands, so it is
-converted once to persons here to match the prediction data's units.
 
 ```{r}
 # Regression Dataset
@@ -101,40 +86,69 @@ provincial_population_data <- read.csv(file.path(data_dir,
 )
 
 # Provincial population data are in thousands; convert to persons.
+regression_data$population <- regression_data$population * 1000
 provincial_population_data[, as.character(2020:2025)] <-
   provincial_population_data[, as.character(2020:2025)] * 1000
 ```
 
-### Shared training and holdout setup
+### Splitting the Training and Testing Sets
 
-The shared setup converts regression population to persons, splits 2020–2024
-from the 2025 holdout, standardizes the common features and outcome using
-training-only statistics, applies those transformations to both partitions,
-and computes linear temporal extrapolation weights. The native OLS reference
-predictions are saved for comparison; the constrained linear fit remains
-model-specific.
+This setup performs the following tasks:
+
+- Splits the data into a training set (2020–2024) and a holdout test set (2025).
+- Selects `mean_radiance`, `population`, and `pixel_count` as the predictor variables.
+- Standardizes the features in both the training and testing sets using the means and standard deviations calculated from the training data.
+- Calculates the temporal extrapolation weights based on the training years
+
+The temporal extrapolation weights is calculated as
+\[
+w_t = \frac{1}{T}
++ \frac{(2025-\bar{t})(t-\bar{t})}
+{\sum_{j=1}^{T}(t_j-\bar{t})^2}.
+\]
+
+where
+
+* \(T = 5\): number of training years
+* \(t\): individual training years
+* \(\bar{t}\): mean training years
+
 
 ```{r}
-model_setup <- prepare_model_comparison_setup(regression_data)
-regression_data <- model_setup$regression_data
-training_data <- model_setup$training_data
-holdout_data <- model_setup$holdout_data
-training_years <- model_setup$training_years
-holdout_year <- model_setup$holdout_year
-feature_columns <- model_setup$feature_columns
-scaled_feature_columns <- model_setup$scaled_feature_columns
-feature_means <- model_setup$feature_means
-feature_sds <- model_setup$feature_sds
-temporal_extrapolation_weights <- model_setup$temporal_extrapolation_weights
-ols_comparison <- fit_ols_comparison(model_setup)
-ols_reference_predictions <- ols_comparison$holdout
-ols_reference_predictions$residual <-
-  ols_reference_predictions$actual - ols_reference_predictions$predicted
-ols_reference_predictions$residual_scaled <-
-  ols_reference_predictions$actual_scaled -
-  ols_reference_predictions$predicted_scaled
+model_data <- prepare_model_setup(regression_data)
+
+X_train <- model_data$X_train
+y_train <- model_data$y_train
+X_test  <- model_data$X_test
+y_test  <- model_data$y_test
+temporal_weights = model_data$temporal_weights
+training_data = model_data$training_data
+holdout_data = model_data$holdout_data
+training_years = model_data$training_years
+holdout_year = model_data$holdout_year
+y_train_raw = model_data$y_train_raw
+y_test_raw = model_data$y_test_raw
+feature_columns = model_data$feature_columns
+feature_means = model_data$feature_means
+feature_sds = model_data$feature_sds
+response_mean = model_data$response_mean
+response_sd = model_data$response_sd
 ```
 
+### Prepare OLS references
+
+Ordinary Least Squares (OLS) is used as a baseline reference model to evaluate predictions on both the training and holdout sets (2025). It also provides baseline performance metrics, including \(R^2\) and RMSE, for comparison with more advanced models.
+
+```{r}
+ols_comparison <- fit_ols_comparison(model_data)
+
+ols_coefficients <- ols_comparison$coefficients
+ols_training_predictions <- ols_comparison$training
+ols_holdout_predictions <- ols_comparison$holdout
+ols_metrics <- ols_comparison$metrics
+ols_training_predictions <- ols_comparison$training$predicted
+ols_holdout_predictions <- ols_comparison$holdout$predicted
+```
 
 ### Preliminaries
 Supposed:
@@ -142,98 +156,89 @@ Supposed:
 * \(y \in \mathbb{R}^n\): observed outcome vector. That is, `grdp_per_capita`.
 * \(x_i \in \mathbb{R}^3\): standardized explanatory variables for observation \(i\): `mean_radiance`, `population`, and `pixel_count`.
 * \(\alpha_t \in \mathbb{R}\): year-specific intercept for year \(t\).
-* \(\beta \in \mathbb{R}^3\): shared slopes for the explanatory variables.
+* \(P_i \in \mathbb{R}\): `population` for observation \(i\)
+* \(\beta \in \mathbb{R}^3\): shared coefficients for the explanatory variables.
 * \(a_t \in \mathbb{R}\): specified national GDP total for year \(t\).
-
-The model includes a separate training-year intercept and shared slopes for the explanatory variables. It is fit on standardized 2020–2024 data only; the population-weighted national GDP constraints apply to those training years. The 2025 holdout is scored against the shared OLS baseline without refitting.
-
-This chunk binds the common training and holdout design matrices and outcomes
-to the constrained model's symbols. It also matches national GDP targets to
-training years; the subsequent equality constraints use population-weighted
-predicted per-capita values to reproduce each matched annual total.
-
-```{r}
-# Constrained fitting uses exactly the shared training partition and design.
-X <- model_setup$X_train
-X_test <- model_setup$X_test
-y_train_scaled <- model_setup$y_train
-y <- model_setup$y_train_raw
-y_test <- model_setup$y_test_raw
-training_population <- training_data$population
-year <- training_data$year
-years <- training_years
-population <- training_population
-p <- ncol(X)
-target_gdp <- constrained_data$gdp[
-  match(training_years, constrained_data$year)
-]
-```
 
 ### Optimization problem
 
-Fit only the 2020–2024 training data using the shared standardized response
-and design matrix. National GDP constraints are retained for these training
-years only; 2025 remains an untouched evaluation partition.
+We define the linear model optimization problem
 \[
 \boxed{ 
 \begin{aligned}
-\min_{\alpha,\beta}\quad & \|y_{\mathrm{train}}-\hat y_{\mathrm{train}}\|_2^2\\
-\text{s.t.}\quad
-&\sum_{i:\,\mathrm{year}_i=t} P_i(\bar y+s_y\hat y_i)=a_t,
+\min_{\alpha,\beta}\quad
+& \|y-\hat{y}\|_2^2\\
+\text{subject to}\quad
+& \sum_{i:\,\mathrm{year}_i=t} P_i\hat{y}_i=a_t,
 \quad t\in\{2020,\ldots,2024\},\\
-&\hat y_i=\alpha_{\mathrm{year}_i}+x_i^\top\beta
+& \hat y_{it}=\alpha_t+x_i^\top\beta,
+\quad t\in\{2020,\ldots,2024\}.
 \end{aligned}
 }
 \]
-In this implementation, the optimization variable spans the year-effect and
-standardized-feature columns in the common design matrix. The equality
-constraints convert standardized fitted values back to original units before
-applying population weights. CLARABEL solves this convex quadratic problem;
-an unsuccessful solver status stops execution rather than producing a
-partial fit.
+The model is fitted using the 2020–2024 training data with the shared standardized response and design matrix.
+Note that equality constraints convert standardized predictions back to original units before applying population weights.
+For the sake of simplicity, \(\alpha\) and \(\beta\) are merged into just `beta`.
 
 ```{r}
-# Define optimization variable
+# target_gdp: level 0 gdp, a_t
+target_gdp <- constrained_data$gdp[
+  match(training_years, constrained_data$year)
+]
+
+# p: number of feature columns
+p <- ncol(X_train)
+
+# beta: optimization variable
 beta <- Variable(p)
 
-# Define standardized fitted values and convert them to GRDP-per-capita units.
-y_hat_scaled <- X %*% beta
-y_hat <- model_setup$response_mean +
-  model_setup$response_sd * y_hat_scaled
+# y_hat_scaled: predicted y using scaled X
+y_hat_scaled <- X_train %*% beta
+
+# y_hat: predicted y scaled back to original unite
+y_hat <- response_mean +
+  response_sd * y_hat_scaled
 
 # Define the annual GDP constraints for training years only.
-constraints <- lapply(seq_along(years), function(i) {
-  idx <- which(year == years[i])
-  sum_entries(population[idx] * y_hat[idx]) / target_gdp[i] == 1
+constraints <- lapply(seq_along(training_years), function(i) {
+  idx <- which(training_data$year == training_years[i])
+  sum_entries(training_data$population[idx] * y_hat[idx]) / target_gdp[i] == 1
 })
 
 # Define constrained least-squares problem
 problem <- Problem(
-  Minimize(sum_squares(y_train_scaled - y_hat_scaled)),
+  Minimize(sum_squares(y_train - y_hat_scaled)),
   constraints
 )
 
 # Solve
+suppressMessages({
 result <- solve(problem, solver = "CLARABEL")
+})
 
 # Print results
+cat("\nOptimization Solver Status:\n")
 print(result$status)
 
 if (result$status %in% c("optimal", "optimal_inaccurate")) {
+  # beta_hat: estimated coefficients
   beta_hat <- value(beta)
-  predictions <- as.vector(X %*% beta_hat) *
-    model_setup$response_sd + model_setup$response_mean
-  holdout_predictions <- as.vector(X_test %*% beta_hat) *
-    model_setup$response_sd + model_setup$response_mean
-  ols_predictions <- ols_comparison$training$predicted
-  ols_holdout_predictions <- ols_comparison$holdout$predicted
   
-  # Optimality and Constraints check
+  # training_predictions: predictions on training data
+  training_predictions <- as.vector(X_train %*% beta_hat) *
+    response_sd + response_mean
+  
+  # holdout_predictions: predictions on testing data
+  holdout_predictions <- as.vector(X_test %*% beta_hat) *
+    response_sd + response_mean
+
+  
+  # Constraints check
   yearly_check <- data.frame(
-    year = years,
-    predicted_total_grdp = sapply(years, function(t) {
-      idx <- which(year == t)
-      sum(population[idx] * predictions[idx])
+    year = training_years,
+    predicted_total_grdp = sapply(training_years, function(t) {
+      idx <- which(training_data$year == t)
+      sum(training_data$population[idx] * training_predictions[idx])
     }),
     target_total_grdp = target_gdp
   )
@@ -241,34 +246,23 @@ if (result$status %in% c("optimal", "optimal_inaccurate")) {
   yearly_check$difference <-
     yearly_check$predicted_total_grdp -
     yearly_check$target_total_grdp
-
+  
+  # Output model
+  cat("\nEstimated Model Coefficients:\n")
   print(beta_hat)
-  print(yearly_check)
+  
+  cat("\nOptimal Objective Function Value:\n")
   print(result$value)
   
-  # Save fitted model
-  fitted_model <- list(
-    coefficients = beta_hat,
-    variable_names = colnames(X),
-    years = training_years,
-    response_mean = model_setup$response_mean,
-    response_sd = model_setup$response_sd,
-    solver = "CLARABEL",
-    solver_status = result$status,
-    objective_value = result$value
-  )
-  
-  model_path = file.path(model_output_dir, "constrained_linear_model.rds")
-  saveRDS(fitted_model, model_path)
-  print(paste("Model saved to:", model_path))
+  cat("\nAnnual GDP Constraint Verification (Training Years):\n")
+  print(yearly_check)
   
 } else {
   stop(sprintf("Constrained regression failed with solver status: %s", result$status))
 }
 ```
 
-
-### Statistical Summary
+### Statistical Summary and Residual Diagnostics
 
 For each split, the response mean and total sum of squares are computed over that split's observed GRDP-per-capita values. The reported comparison table contains training-fit diagnostics and the 2025 holdout scores for both the constrained model and the shared OLS reference.
 \[
@@ -279,436 +273,471 @@ For each split, the response mean and total sum of squares are computed over tha
 
 The coefficient of determination is computed for each model as
 \[
-R_C^2
-= 1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i^{(C)})^2}{\mathrm{SST}},
-\qquad
-R_{OLS}^2
-= 1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}{\mathrm{SST}}.
+R^2
+= 1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i)^2}{\mathrm{SST}},
 \]
 
 The root mean squared error (RMSE), in GRDP-per-capita units, is
 \[
-\mathrm{RMSE}_C
+\mathrm{RMSE}
 =\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(C)})^2},
-\qquad
-\mathrm{RMSE}_{OLS}
-=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i^{(OLS)})^2}.
 \]
 
-This chunk calculates residuals and delegates the training/holdout metric
-tables and diagnostic CSVs/figures to the shared helper. \(R^2\) uses the
-observed outcome variation within each split, while RMSE is reported in
-original GRDP-per-capita units; OLS and constrained predictions are compared
-on identical rows.
-
 ```{r}
-constrained_residuals <- y - predictions
-ols_residuals <- y - ols_predictions
-comparison_metrics <- write_model_comparison_diagnostics(
-  model_name = "Constrained linear model",
-  training_data = training_data,
-  holdout_data = holdout_data,
-  training_fitted = predictions,
-  holdout_fitted = holdout_predictions,
-  ols_training = ols_predictions,
-  ols_holdout = ols_holdout_predictions,
-  data_output_dir = data_output_dir,
-  figure_output_dir = figure_output_dir,
-  file_prefix = "linear_model",
-  feature_columns = feature_columns
-)
-holdout_model_stats <- comparison_metrics[
-  comparison_metrics$split == "holdout",
-  c("model", "R_squared", "RMSE")
-]
-training_model_stats <- comparison_metrics[
-  comparison_metrics$split == "training",
-  c("model", "R_squared", "RMSE")
-]
-print(holdout_model_stats, row.names = FALSE)
-```
-
-### Training fit and residual diagnostics
-
-The next chunk records one row per training observation, including actual,
-constrained and OLS fitted values, residuals, year, and predictors. It derives
-standardized residuals and \(\sqrt{|r_{\mathrm{std}}|}\) for scale-location
-diagnostics, then saves the table for reproducibility.
-
-```{r}
-# Training diagnostics data frame
-training_diagnostics <- data.frame(
-  province = training_data$province,
-  year = year,
-  actual = y,
-  constrained_fitted = predictions,
-  constrained_residual = constrained_residuals,
-  ols_fitted = ols_predictions,
-  ols_residual = ols_residuals,
-  year_factor = factor(year),
-  mean_radiance = training_data$mean_radiance,
-  population = population,
-  pixel_count = training_data$pixel_count
+# Prepare diagnostics.
+training_diagnostics <- prepare_model_diagnostics(
+  training_data,
+  training_predictions,
+  ols_training_predictions,
+  "Constrained Linear Model",
+  "OLS"
 )
 
-# Calculate standardized residuals
-training_diagnostics <- training_diagnostics %>%
-  mutate(
-    standardized_residual = constrained_residual /
-      sd(constrained_residual),
-    scale_location = sqrt(abs(standardized_residual))
-  )
+holdout_diagnostics <- prepare_model_diagnostics(
+  holdout_data,
+  holdout_predictions,
+  ols_holdout_predictions,
+  "Constrained Linear Model",
+  "OLS"
+)
 
 # Save
 write.csv(
-  training_diagnostics,
-  file.path(data_output_dir, "linear_model_training_fit_diagnostics.csv"),
+  training_diagnostics$diagnostics,
+  file.path(data_output_dir, "linear_model_training_diagnostics.csv"),
   row.names = FALSE
 )
+write.csv(
+  holdout_diagnostics$diagnostics,
+  file.path(data_output_dir, "linear_model_holdout_diagnostics.csv"),
+  row.names = FALSE
+)
+model_comparison_metrics <- bind_rows(
+  Training = training_diagnostics$metrics,
+  Holdout = holdout_diagnostics$metrics,
+  .id = "Dataset"
+)
+write.csv(
+  model_comparison_metrics,
+  file.path(data_output_dir, "linear_model_comparison_metrics.csv"),
+  row.names = FALSE
+)
+
 ```
 
-This chunk plots observed training outcomes against constrained-model and OLS
-fitted values. The 45-degree line is the perfect-prediction reference; the
-figure is saved and embedded in the report.
-
-```{r, warning = FALSE}
-# Fitted plot
-actual_fitted_plot <- ggplot(training_diagnostics) +
-  geom_point(
-    aes(x = actual, y = constrained_fitted, color = "Constrained model"),
-    size = 2, alpha = 0.65
-  ) +
-  geom_point(
-    aes(x = actual, y = ols_fitted, color = "OLS reference"),
-    shape = 1, size = 2, alpha = 0.65
-  ) +
-  geom_abline(
-  aes(linetype = "Perfect fit"),
-  slope = 1,
-  intercept = 0,
-  color = "gray35"
-) +
-  scale_color_manual(
-    values = c(
-      "Constrained model" = "#0072B2",
-      "OLS reference" = "#D55E00"
-    )
-  ) +
-  scale_linetype_manual(values = c("Perfect fit" = 2)) +
-  coord_cartesian(
-    xlim = range(training_diagnostics$actual),
-    ylim = range(c(
-      training_diagnostics$constrained_fitted,
-      training_diagnostics$ols_fitted
-    ))
-  ) +
-  labs(
-    title = "Training observations: actual vs fitted",
-    x = "Actual GRDP per capita",
-    y = "Fitted GRDP per capita",
-    color = NULL,
-    linetype = NULL
-  ) +
-  theme_minimal()
+```{r}
+# Plot holdout actual vs fitted.
+holdout_actual_fitted_plot <- plot_actual_vs_fitted(
+  holdout_data,
+  holdout_predictions,
+  "Constrained Linear Model"
+)
 
 # Save and display
-actual_fitted_path <- file.path(
+holdout_actual_fitted_path <- file.path(
   figure_output_dir,
-  "linear_model_training_actual_vs_fitted.png"
+  "linear_model_holdout_actual_vs_fitted.png"
 )
 ggsave(
-  actual_fitted_path,
-  actual_fitted_plot,
+  holdout_actual_fitted_path,
+  holdout_actual_fitted_plot,
   width = 11.25,
   height = 6.875,
   dpi = 160
 )
 
-knitr::include_graphics(actual_fitted_path)
+knitr::include_graphics(holdout_actual_fitted_path)
 ```
 
-
-The diagnostic panels examine residual patterns against fitted values and predictors, approximate normality, residual spread, and differences across years. 
-These are visual checks rather than formal hypothesis tests.
-Because the constrained model imposes annual weighted-sum equalities, its residuals are not independent, identically distributed residuals assumed by standard OLS inference.
-
-The following chunk builds those eight complementary plots: constrained and
-OLS residual-versus-fitted, a Q-Q plot, scale-location, residuals against each
-feature, and residual distributions by year. The population axis is shown on a
-log scale to make its wide range readable; these plots diagnose patterns but
-do not establish inferential assumptions.
-
 ```{r}
-# 1. Constrained: residual vs fitted
-p1 <- residual_plot(
-  training_diagnostics,
-  "constrained_fitted", "constrained_residual",
-  "Constrained: residual vs fitted",
-  "Fitted values", "Constrained residual"
+training_model_comparison_plot <- plot_model_comparison(
+  training_data,
+  training_predictions,
+  ols_training_predictions,
+  "Constrained Linear Model",
+  "OLS"
 )
-
-# 2. OLS: residual vs fitted
-p2 <- residual_plot(
-  training_diagnostics,
-  "ols_fitted", "ols_residual",
-  "OLS: residual vs fitted",
-  "OLS fitted values", "OLS residual"
-)
-
-# 3. Normal Q-Q plot
-p3 <- ggplot(
-  training_diagnostics,
-  aes(sample = constrained_residual)
-) +
-  stat_qq(
-    color = "#0072B2",
-    alpha = 0.65
-  ) +
-  stat_qq_line(
-    color = "#D55E00",
-    linewidth = 0.8
-  ) +
-  labs(
-    title = "Constrained residual normal Q-Q",
-    x = "Theoretical quantiles",
-    y = "Sample quantiles"
-  ) +
-  theme_minimal()
-
-# 4. Scale-location
-p4 <- residual_plot(
-  training_diagnostics,
-  "constrained_fitted", "scale_location",
-  "Constrained: scale-location",
-  "Fitted values",
-  expression(sqrt("|standardized residual|")),
-  zero_line = FALSE
-)
-
-# 5. Residual vs radiance
-p5 <- residual_plot(
-  training_diagnostics,
-  "mean_radiance", "constrained_residual",
-  "Residual vs radiance",
-  "Mean radiance", "Constrained residual"
-)
-
-# 6. Residual vs population
-p6 <- residual_plot(
-  training_diagnostics,
-  "population", "constrained_residual",
-  "Residual vs population",
-  "Population (log scale)", "Constrained residual",
-  log_x = TRUE,
-  smooth = FALSE
-)
-
-# 7. Residual vs pixel count
-p7 <- residual_plot(
-  training_diagnostics,
-  "pixel_count", "constrained_residual",
-  "Residual vs pixel count",
-  "Pixel count", "Constrained residual"
-)
-
-# 8. Residual distribution by year
-p8 <- ggplot(
-  training_diagnostics,
-  aes(x = year_factor, y = constrained_residual)
-) +
-  geom_boxplot(
-    fill = "#B8D8E8",
-    color = "#0072B2"
-  ) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  labs(
-    title = "Residual distribution by year",
-    x = "Year",
-    y = "Constrained residual"
-  ) +
-  theme_minimal()
-
-# Combine diagnostic plots into a 2 x 4 layout
-residual_diagnostics_plot <-
-  (p1 | p2 | p3 | p4) /
-  (p5 | p6 | p7 | p8) +
-  plot_annotation(
-    title = "Training-model assumption checks (visual diagnostics)"
-  )
 
 # Save and display
-residual_diagnostics_path <- file.path(
+training_comparison_path <- file.path(
+  figure_output_dir,
+  "linear_model_training_actual_vs_fitted_comparison.png"
+)
+ggsave(
+  training_comparison_path,
+  training_model_comparison_plot,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(training_comparison_path)
+```
+
+```{r}
+holdout_model_comparison_plot <- plot_model_comparison(
+  holdout_data,
+  holdout_predictions,
+  ols_holdout_predictions,
+  "Constrained Linear Model",
+  "OLS"
+)
+
+# Save and display
+holdout_comparison_path <- file.path(
+  figure_output_dir,
+  "linear_model_holdout_actual_vs_fitted_comparison.png"
+)
+ggsave(
+  holdout_comparison_path,
+  holdout_model_comparison_plot,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(holdout_comparison_path)
+```
+
+```{r}
+# Plot training diagnostic plots.
+training_plots <- plot_residual_diagnostics(
+  training_diagnostics$diagnostics,
+  "Constrained Linear Model",
+  "OLS"
+)
+
+# Save and display
+training_diagnostics_path <- file.path(
   figure_output_dir,
   "linear_model_training_residual_diagnostics.png"
 )
-
 ggsave(
-  residual_diagnostics_path,
-  residual_diagnostics_plot,
-  width = 14,
-  height = 8,
-  dpi = 200
+  training_diagnostics_path,
+  training_plots$combined,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
 )
 
-knitr::include_graphics(normalizePath(residual_diagnostics_path))
+knitr::include_graphics(training_diagnostics_path)
+```
 
+```{r}
+# Plot holdout diagnostic plots.
+holdout_plots <- plot_residual_diagnostics(
+  holdout_diagnostics$diagnostics,
+  "Constrained Linear Model",
+  "OLS"
+)
+
+# Save and display
+holdout_diagnostics_path <- file.path(
+  figure_output_dir,
+  "linear_model_holdout_residual_diagnostics.png"
+)
+ggsave(
+  holdout_diagnostics_path,
+  holdout_plots$combined,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(holdout_diagnostics_path)
+```
+
+### Training using all data
+
+Prepare the complete dataset for the full optimization model. All observations are used to standardize the predictor variables and response variable.
+
+```{r}
+full_model_data <- prepare_full_model_setup(regression_data)
+X <- full_model_data$X
+y <- full_model_data$y
+years <- full_model_data$years
+feature_columns <- full_model_data$feature_columns
+feature_means <- full_model_data$feature_means
+feature_sds <- full_model_data$feature_sds
+response_mean <- full_model_data$response_mean
+response_sd <- full_model_data$response_sd
+```
+
+Fit the constrained linear regression model using all available years.
+
+```{r}
+# target_gdp: level 0 gdp, a_t
+target_gdp <- constrained_data$gdp[
+  match(years, constrained_data$year)
+]
+
+# p: number of feature columns
+p <- ncol(X)
+
+# beta: optimization variable
+beta <- Variable(p)
+
+# y_hat_scaled: predicted y using scaled X
+y_hat_scaled <- X %*% beta
+
+# y_hat: predicted y scaled back to original unite
+y_hat <- response_mean +
+  response_sd * y_hat_scaled
+
+# Define the annual GDP constraints for training years only.
+constraints <- lapply(seq_along(years), function(i) {
+  idx <- which(regression_data$year == years[i])
+  sum_entries(regression_data$population[idx] * y_hat[idx]) / target_gdp[i] == 1
+})
+
+# Define constrained least-squares problem
+problem <- Problem(
+  Minimize(sum_squares(y - y_hat_scaled)),
+  constraints
+)
+
+# Solve
+suppressMessages({
+result <- solve(problem, solver = "CLARABEL")
+})
+
+# Print results
+cat("\nOptimization Solver Status:\n")
+print(result$status)
+
+if (result$status %in% c("optimal", "optimal_inaccurate")) {
+  # beta_hat: estimated coefficients
+  beta_hat <- value(beta)
+  
+  # predictions: predictions on data
+  predictions <- as.vector(X %*% beta_hat) *
+    response_sd + response_mean
+  
+  # Constraints check
+  yearly_check <- data.frame(
+    year = years,
+    predicted_total_grdp = sapply(years, function(t) {
+      idx <- which(regression_data$year == t)
+      sum(regression_data$population[idx] * predictions[idx])
+    }),
+    target_total_grdp = target_gdp
+  )
+
+  yearly_check$difference <-
+    yearly_check$predicted_total_grdp -
+    yearly_check$target_total_grdp
+  
+  # Output model
+  cat("\nEstimated Model Coefficients:\n")
+  print(beta_hat)
+  
+  cat("\nOptimal Objective Function Value:\n")
+  print(result$value)
+  
+  cat("\nAnnual GDP Constraint Verification:\n")
+  print(yearly_check)
+  
+  # Save fitted model
+  fitted_model <- local({
+    coefficients <- beta_hat
+    variable_names <- colnames(X)
+    training_years <- years
+  
+    feature_means <- feature_means
+    feature_sds <- feature_sds
+  
+    response_mean <- response_mean
+    response_sd <- response_sd
+  
+    list(
+      coefficients = coefficients,
+      variable_names = variable_names,
+      years = training_years,
+      feature_columns = feature_columns,
+      feature_means = feature_means,
+      feature_sds = feature_sds,
+      response_mean = response_mean,
+      response_sd = response_sd,
+      solver = "CLARABEL",
+      solver_status = result$status,
+      objective_value = result$value,
+  
+      predict = function(newdata) {
+        # Calculate temporal extrapolation weights.
+        T <- length(training_years)
+        time_index <- seq_len(T)
+        time_mean <- mean(time_index)
+  
+        target_index <- newdata$year - min(training_years) + 1
+  
+        temporal_weights <- sapply(target_index, function(t_star) {
+          1 / T +
+            (t_star - time_mean) *
+            (time_index - time_mean) /
+            sum((time_index - time_mean)^2)
+        })
+  
+        # Standardize prediction features.
+        scaled_features <- as.matrix(newdata[feature_columns])
+        scaled_features <- sweep(
+          scaled_features, 2, feature_means[feature_columns], "-"
+        )
+        scaled_features <- sweep(
+          scaled_features, 2, feature_sds[feature_columns], "/"
+        )
+  
+        # Construct prediction matrix.
+        prediction_X <- cbind(
+          t(temporal_weights),
+          scaled_features
+        )
+  
+        colnames(prediction_X) <- variable_names
+  
+        # Calculate raw predictions.
+        as.vector(prediction_X %*% coefficients) *
+          response_sd + response_mean
+      }
+    )
+  })
+
+  model_path = file.path(model_output_dir, "constrained_linear_model.rds")
+  saveRDS(fitted_model, model_path)
+  print(paste("Model saved to:", model_path))
+  
+} else {
+  stop(sprintf("Constrained regression failed with solver status: %s", result$status))
+}
 ```
 
 ### 2025 Level-2 Predictions
 
-The first prediction chunk joins each level-2 unit to its provincial 2025
-target and population, then standardizes predictors using the training means
-and standard deviations. This keeps inference-time feature units consistent
-with fitting; it does not recompute scales from prediction observations.
+Using the trained model from the previous section, we first predicts GRDP per capita for each level-2 unit using the 2025 intercept and the same means and standard deviations used to standardize the training data.
 
-The model first predicts GRDP per capita for each level-2 unit using the 2025 intercept and the same means and standard deviations used to standardize the training data.
+```{r}
+# Setting up prediction data
+level2_prediction_data <- prepare_prediction_data(
+  prediction_data = prediction_data,
+  provincial_grdp_data = provincial_grdp_data,
+  provincial_population_data = provincial_population_data,
+  feature_columns = feature_columns,
+  feature_means = feature_means,
+  feature_sds = feature_sds
+)
+```
+
+The raw prediction is
+\[
+\hat{y}_{i,2025}
+=
+\sum_{t=1}^{T} w_t \alpha_t
++
+\sum_{m=1}^{p} \beta_m X_{mi,2025}
+\]
+```{r}
+# Make raw prediction
+raw_predictions <- fitted_model$predict(level2_prediction_data)
+level2_prediction_data$raw_predictions <- raw_predictions
+```
+
 Next, we adjust these predictions so that their population weighted total matches the province's reported 2025 GRDP per capita multiplied by its total population.
+
+#### Adjustment Solution 1: Additive adjustment
 To do this, we add the same adjustment \(\delta_j\) to every level-2 prediction within province \(j\):
 
 \[ \tilde y_{ij} = \hat y_{ij} + \delta_j \]
 
 The adjustment is calculated as:
 
-\[ \delta_j = \frac{g_jN_j-\sum_{i\in j}P_{ij}\hat y_{ij}} {\sum_{i\in j}P_{ij}} \]
+\[ \delta_j = \frac{g_j\sum_{i\in j}P_{ij}-\sum_{i\in j}P_{ij}\hat y_{ij}} {\sum_{i\in j}P_{ij}} \]
 
-where \(g_j\) is the province's reported GRDP per capita, \(N_j\) is its total population, and \(P_{ij}\) is the population of level-2 unit \(i\).
-
-```{r}
-# Prediction adjustment variables
-prediction_data$grdp_pc_2025 <- provincial_grdp_data[["2025"]][
-  match(prediction_data$level_1, provincial_grdp_data$province)
-]
-
-prediction_data$province_population_2025 <- provincial_population_data[["2025"]][
-  match(prediction_data$level_1, provincial_population_data$province)
-]
-
-# Scale features with the shared training statistics.
-for (feature in feature_columns) {
-  prediction_data[[paste0(feature, "_scaled")]] <-
-    (prediction_data[[feature]] - feature_means[[feature]]) /
-    feature_sds[[feature]]
-}
-
-# Prediction features
-prediction_features <- as.matrix(
-  prediction_data[paste0(feature_columns, "_scaled")]
-)
-```
-
-
-The final prediction chunk extrapolates year effects to 2025, applies the
-fitted coefficients, and adds a common provincial offset \(\delta_j\) so
-\(\sum_{i\in j}P_{ij}(\hat y_{ij}+\delta_j)=g_jN_j\). It verifies the
-aggregation equality, then writes unit-level predictions and constraint
-checks. The offset is population-weighted because every unit in a province
-receives the same adjustment.
+where \(g_j\) is the province's reported GRDP per capita and \(P_{ij}\) is the population of level-2 unit \(i\).
 
 ```{r}
-# Extrapolate the fitted year effects to 2025, matching the shared holdout setup.
-prediction_X <- cbind(
-  matrix(
-    rep(temporal_extrapolation_weights, each = nrow(prediction_data)),
-    nrow = nrow(prediction_data)
-  ),
-  as.matrix(prediction_data[paste0(feature_columns, "_scaled")])
-)
-colnames(prediction_X) <- colnames(model_setup$X_train)
+# Adjustment Solution 1: Additive adjustment
+calculate_additive_adjustments <- function(level2_prediction_data) {
 
-raw_predictions <- as.vector(prediction_X %*% beta_hat) *
-  model_setup$response_sd + model_setup$response_mean
-
-
-# Calculate a common adjustment for each province
-province_names <- sort(unique(prediction_data$level_1))
-
-province_adjustments <- setNames(
-  numeric(length(province_names)),
-  province_names
-)
-
-for (province in province_names) {
-
-  # Identify level-2 units within the province
-  idx <- which(prediction_data$level_1 == province)
-
-  # Calculate total provincial population from level-2 units
-  province_population <- sum(prediction_data$population[idx])
-
-  # Calculate the target provincial GRDP
-  target_total <- prediction_data$grdp_pc_2025[idx[1]] *
-    province_population
-
-  # Calculate the initial predicted provincial GRDP
-  raw_total <- sum(
-    prediction_data$population[idx] * raw_predictions[idx]
+  province_groups <- split(
+    seq_len(nrow(level2_prediction_data)),
+    level2_prediction_data$level_1
   )
 
-  # Calculate the common adjustment for all level-2 units
-  province_adjustments[province] <-
-    (target_total - raw_total) / province_population
+  vapply(province_groups, function(idx) {
+
+    population <- level2_prediction_data$population[idx]
+
+    level2_prediction_data$grdp_pc_2025[idx[1]] -
+      weighted.mean(
+        level2_prediction_data$raw_predictions[idx],
+        population
+      )
+
+  }, numeric(1))
 }
 
-
-# Apply provincial adjustments to level-2 predictions
-prediction_data$raw_grdp_per_capita <- raw_predictions
-
-prediction_data$province_adjustment <-
-  province_adjustments[prediction_data$level_1]
-
-prediction_data$predicted_grdp_per_capita <-
-  prediction_data$raw_grdp_per_capita +
-  prediction_data$province_adjustment
-
-
-# Verify provincial calibration
-province_check <- do.call(rbind, lapply(
-  province_names,
-  function(province) {
-
-    # Identify level-2 units within the province
-    idx <- which(prediction_data$level_1 == province)
-
-    # Calculate provincial population from level-2 units
-    province_population <- sum(prediction_data$population[idx])
-
-    # Retrieve the reported provincial GRDP per capita
-    target_grdp_per_capita <- prediction_data$grdp_pc_2025[idx[1]]
-
-    # Calculate target and predicted provincial GRDP
-    target_total <- target_grdp_per_capita * province_population
-
-    predicted_total <- sum(
-      prediction_data$population[idx] *
-        prediction_data$predicted_grdp_per_capita[idx]
-    )
-
-    data.frame(
-      province = province,
-      population = province_population,
-      target_grdp_per_capita = target_grdp_per_capita,
-      predicted_grdp_per_capita = predicted_total / province_population,
-      target_total_grdp = target_total,
-      predicted_total_grdp = predicted_total,
-      difference = predicted_total - target_total
-    )
-  }
-))
-
-
-# Prepare level-2 prediction results
-level2_predictions <- data.frame(
-  level_2 = prediction_data$name,
-  level_1 = prediction_data$level_1,
-  year = prediction_data$year,
-  population = prediction_data$population,
-  raw_grdp_per_capita = prediction_data$raw_grdp_per_capita,
-  province_adjustment = prediction_data$province_adjustment,
-  predicted_grdp_per_capita = prediction_data$predicted_grdp_per_capita,
-  province_grdp_per_capita_target_2025 = prediction_data$grdp_pc_2025
+# Apply additive adjustment
+additive_adjustments <- calculate_additive_adjustments(
+  level2_prediction_data
 )
 
+level2_prediction_data$additive_adjustment <-
+  unname(additive_adjustments[level2_prediction_data$level_1])
 
+level2_prediction_data$additive_predictions <-
+  level2_prediction_data$raw_predictions +
+  level2_prediction_data$additive_adjustment
+
+```
+
+#### Adjustment Solution 2: Proportional scaling
+Another approach is to adjust the level-2 predictions by multiplying every prediction within province \(j\) by a common scaling factor:
+
+\[ s_j = \frac{g_j}{\bar{y}_j}, \]
+
+where
+
+\[ \bar{y}_j = \frac{\sum_{i=1}^{n_j} P_{ij}\hat{y}_{ij}} {\sum_{i=1}^{n_j} P_{ij}} \]
+
+is the population-weighted average of the raw level-2 predictions in province \(j\).
+The adjusted prediction for each level-2 unit is then:
+
+\[ \tilde {y}_{ij}=s_j\hat{y}_{ij}. \]
+
+```{r}
+# Adjustment Solution 2: Proportional scaling
+calculate_scaling_adjustments <- function(level2_prediction_data) {
+  province_groups <- split(
+    seq_len(nrow(level2_prediction_data)),
+    level2_prediction_data$level_1
+  )
+
+  vapply(province_groups, function(idx) {
+
+    population <- level2_prediction_data$population[idx]
+
+    predicted_mean <- weighted.mean(
+      level2_prediction_data$raw_predictions[idx],
+      population
+    )
+
+    level2_prediction_data$grdp_pc_2025[idx[1]] /
+      predicted_mean
+
+  }, numeric(1))
+}
+
+# Apply proportional scaling
+scaling_adjustments <- calculate_scaling_adjustments(level2_prediction_data)
+
+level2_prediction_data$scaling_adjustments <-   
+  unname(scaling_adjustments[level2_prediction_data$level_1])
+
+level2_prediction_data$scaled_predictions <-
+  level2_prediction_data$raw_predictions *
+  level2_prediction_data$scaling_adjustments
+```
+
+```{r}
 # Save prediction results
 prediction_output <- file.path(
   data_output_dir,
@@ -716,15 +745,8 @@ prediction_output <- file.path(
 )
 
 write.csv(
-  level2_predictions,
+  level2_prediction_data,
   prediction_output,
   row.names = FALSE
 )
-
-
-# Display results
-print(province_check, row.names = FALSE)
-
-head(level2_predictions)
-
 ```

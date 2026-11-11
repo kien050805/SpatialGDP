@@ -4,8 +4,6 @@ prepare_model_comparison_setup <- function(
   holdout_year = 2025,
   feature_columns = c("mean_radiance", "population", "pixel_count")
 ) {
-  regression_data$population <- regression_data$population * 1000
-
   training_data <- regression_data[
     regression_data$year %in% training_years,
     ,
