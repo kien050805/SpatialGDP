@@ -39,8 +39,8 @@ data_output_dir <- file.path(data_dir,"predicted_data/ridge_model")
 dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
 
 # Model output path
-model_dir <-file.path(project_dir, "code/R/model")
-model_output_dir <-file.path(project_dir, "code/R/model/ridge_model")
+model_dir <- file.path(project_dir, "code/R/model")
+model_output_dir <- file.path(project_dir, "code/R/model/ridge_model")
 dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 ```
 
@@ -162,11 +162,12 @@ Supposed:
 * \(a_t \in \mathbb{R}\): specified national GDP total for year \(t\).
 * \(\lambda\): ridge penalty.
 
-For the choice of lambda, we search evaluates 61 logarithmically spaced penalties from
+#### Lambda: Ridge penalty
+For the choice of lambda, we search evaluates 97 logarithmically spaced penalties from
 \(10^{-3}\) through \(10^3\).
 ```{r}
 # lambda_grid: logarithmically spaced ridge penalty grid from 10^-3 to 10^3.
-lambda_grid <- 10^seq(-3, 3, length.out = 61)
+lambda_grid <- 10^seq(-3, 3, length.out = 97)
 ```
 
 ### Optimization problem

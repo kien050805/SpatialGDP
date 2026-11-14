@@ -1,3 +1,5 @@
+library(sf)
+
 prepare_model_setup <- function(
     regression_data,
     training_years = 2020:2024,
@@ -73,6 +75,31 @@ prepare_model_setup <- function(
   y_train <- (y_train_raw - response_mean) / response_sd
   y_test <- (y_test_raw - response_mean) / response_sd
   
+  # Convert design matrices into spatial sf objects.
+  training_sf <- st_as_sf(
+    data.frame(
+      X_train,
+      longitude = training_data$longitude,
+      latitude = training_data$latitude,
+      grdp_per_capita = training_data$grdp_per_capita
+    ),
+    coords = c("longitude", "latitude"),
+    crs = 4326,
+    remove = FALSE
+  )
+  
+  holdout_sf <- st_as_sf(
+    data.frame(
+      X_test,
+      longitude = holdout_data$longitude,
+      latitude = holdout_data$latitude,
+      grdp_per_capita = holdout_data$grdp_per_capita
+    ),
+    coords = c("longitude", "latitude"),
+    crs = 4326,
+    remove = FALSE
+  )
+  
   return(list(
     X_train = X_train,
     y_train = y_train,
@@ -83,6 +110,8 @@ prepare_model_setup <- function(
     
     training_data = training_data,
     holdout_data = holdout_data,
+    training_sf = training_sf,
+    holdout_sf = holdout_sf,
     
     training_years = training_years,
     holdout_year = holdout_year,
@@ -174,17 +203,6 @@ prepare_prediction_data <- function(
   
   prediction_data$province_population_2025 <-
     provincial_population_data[["2025"]][population_index]
-  
-  # Check that all required provincial values are available.
-  if (anyNA(prediction_data$grdp_pc_2025) ||
-      anyNA(prediction_data$province_population_2025)) {
-    stop("Missing provincial GRDP or population values.")
-  }
-  
-  # Check feature scaling parameters.
-  if (any(!is.finite(feature_sds)) || any(feature_sds <= 0)) {
-    stop("All feature standard deviations must be positive and finite.")
-  }
   
   # Scale features using the shared training statistics.
   for (feature in feature_columns) {

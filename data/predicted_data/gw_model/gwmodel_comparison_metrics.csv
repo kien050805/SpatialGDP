@@ -1,5 +1,5 @@
 "split","model","R_squared","RMSE"
-"training","GWmodel GWR with outlier correction",0.725855144552463,19.5570728579935
+"training","GWmodel GWR with outlier correction",0.725855144552464,19.5570728579934
 "training","Ordinary least squares reference",0.457940246644364,27.5002970551732
 "holdout","GWmodel GWR with outlier correction",0.436125434317659,34.0981605906072
 "holdout","Ordinary least squares reference",0.373151897003679,35.9518180357549

@@ -1,5 +1,5 @@
 "Dataset","R_squared","RMSE","Model"
-"Training",0.45507551107104,27.5728695577704,"Constrained Ridge Model"
+"Training",0.455448372263332,27.5634346613018,"Constrained Ridge Model"
 "Training",0.457940246644364,27.5002970551732,"OLS"
-"Holdout",0.384991429820535,35.6106813203751,"Constrained Ridge Model"
+"Holdout",0.384997798203832,35.6104969464768,"Constrained Ridge Model"
 "Holdout",0.373151897003679,35.9518180357549,"OLS"

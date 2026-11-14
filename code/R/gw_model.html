@@ -1557,15 +1557,6 @@ border-radius: 0px;
 </div>
 
 
-<p>This chunk loads GWmodel and <code>sf</code> for geographic weighting
-and centroid handling, CVXR for the independently implemented local
-regression, and the plotting/data packages used for evaluation. Both
-spatial implementations share the same training split and feature
-design.</p>
-<p>The hidden setup chunk resolves the project and creates dedicated
-locations for GW figures, prediction/diagnostic data, and saved model
-objects. It also loads the shared preprocessing and OLS-comparison
-functions.</p>
 <div id="load-dataset" class="section level3">
 <h3>Load dataset</h3>
 <p>For this model, we will use the following training and testing
@@ -1578,11 +1569,6 @@ purposes</p></li>
 <li><p><code>vnm_.csv</code>: For constraints purposes</p></li>
 </ul>
 <p>All data sets have been cleaned and contain no missing values.</p>
-<p>This chunk reads the provincial panel and level-2 centroid data,
-national GDP and provincial GRDP-per-capita targets, and official
-population totals. Population totals reported in thousands are converted
-once to persons to match the unit-level population weights used for
-provincial calibration.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Regression Dataset</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>regression_data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">file.path</span>(data_dir, <span class="st">&quot;training_data/regression_dataset.csv&quot;</span>))</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
@@ -1605,44 +1591,73 @@ provincial calibration.</p>
 <span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>)</span>
 <span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a></span>
 <span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="co"># Provincial population data are in thousands; convert to persons.</span></span>
-<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a>provincial_population_data[, <span class="fu">as.character</span>(<span class="dv">2020</span><span class="sc">:</span><span class="dv">2025</span>)] <span class="ot">&lt;-</span></span>
-<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a>  provincial_population_data[, <span class="fu">as.character</span>(<span class="dv">2020</span><span class="sc">:</span><span class="dv">2025</span>)] <span class="sc">*</span> <span class="dv">1000</span></span></code></pre></div>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a>regression_data<span class="sc">$</span>population <span class="ot">&lt;-</span> regression_data<span class="sc">$</span>population <span class="sc">*</span> <span class="dv">1000</span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a>provincial_population_data[, <span class="fu">as.character</span>(<span class="dv">2020</span><span class="sc">:</span><span class="dv">2025</span>)] <span class="ot">&lt;-</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a>  provincial_population_data[, <span class="fu">as.character</span>(<span class="dv">2020</span><span class="sc">:</span><span class="dv">2025</span>)] <span class="sc">*</span> <span class="dv">1000</span></span></code></pre></div>
 </div>
-<div id="shared-training-and-holdout-setup" class="section level3">
-<h3>Shared training and holdout setup</h3>
-<p>The shared setup converts regression population to persons, splits
-2020–2024 from the 2025 holdout, standardizes the three common features
-and outcome using training-only statistics, and computes linear temporal
-extrapolation weights. Its native OLS holdout reference is written to
-the same-schema CSV in each model’s output directory. Model-specific
-constraints and spatial weighting are applied after this common
-comparison setup.</p>
-<p>The common setup fixes the 2020–2024 training and 2025 holdout
-partitions, scales shared features and response from training
-statistics, and computes linear temporal extrapolation weights. It also
-constructs the native OLS reference on the common design so
-geographic-model performance is compared against the same baseline as
-the other notebooks.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>model_setup <span class="ot">&lt;-</span> <span class="fu">prepare_model_comparison_setup</span>(regression_data)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>regression_data <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>regression_data</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>training_data <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>training_data</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>holdout_data <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>holdout_data</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>training_years <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>training_years</span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>holdout_year <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>holdout_year</span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>feature_columns <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>feature_columns</span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>scaled_feature_columns <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>scaled_feature_columns</span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>feature_means <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>feature_means</span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>feature_sds <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>feature_sds</span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>temporal_extrapolation_weights <span class="ot">&lt;-</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  model_setup<span class="sc">$</span>temporal_extrapolation_weights</span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>ols_comparison <span class="ot">&lt;-</span> <span class="fu">fit_ols_comparison</span>(model_setup)</span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>ols_reference_predictions <span class="ot">&lt;-</span> ols_comparison<span class="sc">$</span>holdout</span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>ols_reference_predictions<span class="sc">$</span>residual <span class="ot">&lt;-</span></span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>  ols_reference_predictions<span class="sc">$</span>actual <span class="sc">-</span> ols_reference_predictions<span class="sc">$</span>predicted</span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>ols_reference_predictions<span class="sc">$</span>residual_scaled <span class="ot">&lt;-</span></span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>  ols_reference_predictions<span class="sc">$</span>actual_scaled <span class="sc">-</span></span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>  ols_reference_predictions<span class="sc">$</span>predicted_scaled</span></code></pre></div>
+<div id="splitting-the-training-and-testing-sets" class="section level3">
+<h3>Splitting the Training and Testing Sets</h3>
+<p>This setup performs the following tasks:</p>
+<ul>
+<li>Splits the data into a training set (2020–2024) and a holdout test
+set (2025).</li>
+<li>Selects <code>mean_radiance</code>, <code>population</code>, and
+<code>pixel_count</code> as the predictor variables.</li>
+<li>Standardizes the features in both the training and testing sets
+using the means and standard deviations calculated from the training
+data.</li>
+<li>Calculates the temporal extrapolation weights based on the training
+years</li>
+</ul>
+<p>The temporal extrapolation weights is calculated as <span class="math display">\[
+w_t = \frac{1}{T}
++ \frac{(2025-\bar{t})(t-\bar{t})}
+{\sum_{j=1}^{T}(t_j-\bar{t})^2}.
+\]</span></p>
+<p>where</p>
+<ul>
+<li><span class="math inline">\(T = 5\)</span>: number of training
+years</li>
+<li><span class="math inline">\(t\)</span>: individual training
+years</li>
+<li><span class="math inline">\(\bar{t}\)</span>: mean training
+years</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>model_data <span class="ot">&lt;-</span> <span class="fu">prepare_model_setup</span>(regression_data)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>X_train <span class="ot">&lt;-</span> model_data<span class="sc">$</span>X_train</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>y_train <span class="ot">&lt;-</span> model_data<span class="sc">$</span>y_train</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>X_test  <span class="ot">&lt;-</span> model_data<span class="sc">$</span>X_test</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>y_test  <span class="ot">&lt;-</span> model_data<span class="sc">$</span>y_test</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>temporal_weights <span class="ot">=</span> model_data<span class="sc">$</span>temporal_weights</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>training_data <span class="ot">=</span> model_data<span class="sc">$</span>training_data</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>holdout_data <span class="ot">=</span> model_data<span class="sc">$</span>holdout_data</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>training_sf <span class="ot">=</span> model_data<span class="sc">$</span>training_sf</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>holdout_sf <span class="ot">=</span> model_data<span class="sc">$</span>holdout_sf</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>training_years <span class="ot">=</span> model_data<span class="sc">$</span>training_years</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>holdout_year <span class="ot">=</span> model_data<span class="sc">$</span>holdout_year</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>y_train_raw <span class="ot">=</span> model_data<span class="sc">$</span>y_train_raw</span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>y_test_raw <span class="ot">=</span> model_data<span class="sc">$</span>y_test_raw</span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>feature_columns <span class="ot">=</span> model_data<span class="sc">$</span>feature_columns</span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>feature_means <span class="ot">=</span> model_data<span class="sc">$</span>feature_means</span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>feature_sds <span class="ot">=</span> model_data<span class="sc">$</span>feature_sds</span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>response_mean <span class="ot">=</span> model_data<span class="sc">$</span>response_mean</span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>response_sd <span class="ot">=</span> model_data<span class="sc">$</span>response_sd</span></code></pre></div>
+</div>
+<div id="prepare-ols-references" class="section level3">
+<h3>Prepare OLS references</h3>
+<p>Ordinary Least Squares (OLS) is used as a baseline reference model to
+evaluate predictions on both the training and holdout sets (2025). It
+also provides baseline performance metrics, including <span class="math inline">\(R^2\)</span> and RMSE, for comparison with more
+advanced models.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>ols_comparison <span class="ot">&lt;-</span> <span class="fu">fit_ols_comparison</span>(model_data)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>ols_coefficients <span class="ot">&lt;-</span> ols_comparison<span class="sc">$</span>coefficients</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>ols_training_predictions <span class="ot">&lt;-</span> ols_comparison<span class="sc">$</span>training</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>ols_holdout_predictions <span class="ot">&lt;-</span> ols_comparison<span class="sc">$</span>holdout</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>ols_metrics <span class="ot">&lt;-</span> ols_comparison<span class="sc">$</span>metrics</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>ols_training_predictions <span class="ot">&lt;-</span> ols_comparison<span class="sc">$</span>training<span class="sc">$</span>predicted</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>ols_holdout_predictions <span class="ot">&lt;-</span> ols_comparison<span class="sc">$</span>holdout<span class="sc">$</span>predicted</span></code></pre></div>
 </div>
 <div id="preliminaries" class="section level3">
 <h3>Preliminaries</h3>
@@ -1670,1336 +1685,94 @@ representing the number of nearest training observations used to
 determine spatial weights.</li>
 <li><span class="math inline">\(\lambda \geq 0\)</span>: optional ridge
 penalty parameter applied exclusively to the predictor slopes.</li>
-<li><span class="math inline">\(v_t \in \mathbb{R}\)</span>: temporal
-extrapolation weight assigned to training year <span class="math inline">\(t\)</span> when estimating the 2025 year
-effect.</li>
 </ul>
 <p>The model estimates geographically varying year-specific intercepts
 and explanatory-variable coefficients using locally weighted least
-squares. The 2020–2024 observations are used for model fitting, while
-2025 observations are reserved for holdout evaluation.</p>
-<p>The shared setup standardizes the response and common predictors from
-training data only. GWmodel and CVXR use those standardized training
-values, then transform predictions back to GRDP-per-capita units for
-holdout evaluation and reporting. Comparison tables and split-specific
-diagnostics include the same native OLS baseline used in the other
-notebooks.</p>
-<p>Since the 2025 year effect cannot be estimated from holdout outcomes,
-it is linearly extrapolated from the 2020–2024 year effects using the
-following temporal extrapolation weights:</p>
-<p><span class="math display">\[ v_t = \frac{1}{T} +
-\frac{(2025-\bar{t})(t-\bar{t})} {\sum\_{j=1}^{T}(t_j-\bar{t})^2}
-\]</span></p>
-<p>where <span class="math inline">\(T\)</span> is the number of
-training years, <span class="math inline">\(t\)</span> represents an
-individual training year, and <span class="math inline">\(\bar{t}\)</span> is the mean training year.</p>
-<p>These weights satisfy:</p>
-<p><span class="math display">\[ \sum\_{t=2020}^{2024}v_t=1
-\]</span></p>
-<p><span class="math display">\[ \sum\_{t=2020}^{2024}t v_t=2025
-\]</span></p>
-<p>Consequently, the extrapolated 2025 year effect is:</p>
-<p><span class="math display">\[ \alpha\_{2025}(s) =
-\sum\_{t=2020}^{2024}v_t\alpha_t(s) \]</span></p>
-<p>The extrapolation weights are also used when selecting the adaptive
-bandwidth and ridge penalty based on 2025 holdout RMSE. After parameter
-selection, the models are refitted using all available years for level-2
-prediction.</p>
-<p>The design-preparation chunk applies the training means and standard
-deviations to the features and response, forms year-effect columns
-(using linear extrapolation for the 2025 holdout), and verifies that the
-resulting matrices match the shared OLS design. It then builds
-longitude/latitude centroid coordinates and great-circle distance
-matrices. Adaptive bisquare weights use candidate nearest-neighbor
-counts derived from fractions <span class="math inline">\(0.35,0.50,0.65,0.80,0.95\)</span>, with at least
-<span class="math inline">\(p+2\)</span> neighbors and no more than the
-training sample; this allows neighborhood size to adapt to spatial
-sampling density.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>all_years <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(regression_data<span class="sc">$</span>year))</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(feature_sds)) <span class="sc">||</span> <span class="fu">any</span>(feature_sds <span class="sc">&lt;=</span> <span class="dv">0</span>)) {</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;All model features must have positive, finite training standard deviations.&quot;</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>}</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>prepare_features <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="cf">for</span> (feature <span class="cf">in</span> feature_columns) {</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>    data[[<span class="fu">paste0</span>(feature, <span class="st">&quot;_scaled&quot;</span>)]] <span class="ot">&lt;-</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>      (data[[feature]] <span class="sc">-</span> feature_means[[feature]]) <span class="sc">/</span></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>      feature_sds[[feature]]</span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>  }</span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>  data</span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>}</span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a></span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>add_year_effects <span class="ot">&lt;-</span> <span class="cf">function</span>(data, effect_years, <span class="at">extrapolation_weights =</span> <span class="cn">NULL</span>) {</span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>  <span class="cf">for</span> (year <span class="cf">in</span> effect_years) {</span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>    column <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;year_&quot;</span>, year)</span>
-<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.null</span>(extrapolation_weights)) {</span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>      data[[column]] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(data<span class="sc">$</span>year <span class="sc">==</span> year)</span>
-<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>      data[[column]] <span class="ot">&lt;-</span> <span class="fu">unname</span>(extrapolation_weights[<span class="fu">as.character</span>(year)])</span>
-<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>    }</span>
-<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>  }</span>
-<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>  data</span>
-<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>}</span>
-<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a></span>
-<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>training_data <span class="ot">&lt;-</span> <span class="fu">add_year_effects</span>(</span>
-<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>  <span class="fu">prepare_features</span>(training_data),</span>
-<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>  training_years</span>
-<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>)</span>
-<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>training_data<span class="sc">$</span>grdp_per_capita_scaled <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>y_train</span>
-<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>holdout_data <span class="ot">&lt;-</span> <span class="fu">add_year_effects</span>(</span>
-<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>  <span class="fu">prepare_features</span>(holdout_data),</span>
-<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>  training_years,</span>
-<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>  temporal_extrapolation_weights</span>
-<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>)</span>
-<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a>holdout_data<span class="sc">$</span>grdp_per_capita_scaled <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>y_test</span>
-<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a>prediction_data <span class="ot">&lt;-</span> <span class="fu">prepare_features</span>(prediction_data)</span>
-<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a></span>
-<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a>year_effect_columns <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;year_&quot;</span>, training_years)</span>
-<span id="cb3-41"><a href="#cb3-41" tabindex="-1"></a>model_predictors <span class="ot">&lt;-</span> <span class="fu">c</span>(year_effect_columns, scaled_feature_columns)</span>
-<span id="cb3-42"><a href="#cb3-42" tabindex="-1"></a>design_formula <span class="ot">&lt;-</span> <span class="fu">reformulate</span>(model_predictors, <span class="at">intercept =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb3-43"><a href="#cb3-43" tabindex="-1"></a>model_formula <span class="ot">&lt;-</span> <span class="fu">reformulate</span>(</span>
-<span id="cb3-44"><a href="#cb3-44" tabindex="-1"></a>  model_predictors,</span>
-<span id="cb3-45"><a href="#cb3-45" tabindex="-1"></a>  <span class="at">response =</span> <span class="st">&quot;grdp_per_capita_scaled&quot;</span>,</span>
-<span id="cb3-46"><a href="#cb3-46" tabindex="-1"></a>  <span class="at">intercept =</span> <span class="cn">FALSE</span></span>
-<span id="cb3-47"><a href="#cb3-47" tabindex="-1"></a>)</span>
-<span id="cb3-48"><a href="#cb3-48" tabindex="-1"></a></span>
-<span id="cb3-49"><a href="#cb3-49" tabindex="-1"></a>X_train <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(design_formula, <span class="at">data =</span> training_data)</span>
-<span id="cb3-50"><a href="#cb3-50" tabindex="-1"></a>X_holdout <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(design_formula, <span class="at">data =</span> holdout_data)</span>
-<span id="cb3-51"><a href="#cb3-51" tabindex="-1"></a>y_train <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>y_train</span>
-<span id="cb3-52"><a href="#cb3-52" tabindex="-1"></a>y_holdout <span class="ot">&lt;-</span> model_setup<span class="sc">$</span>y_test_raw</span>
-<span id="cb3-53"><a href="#cb3-53" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">isTRUE</span>(<span class="fu">all.equal</span>(</span>
-<span id="cb3-54"><a href="#cb3-54" tabindex="-1"></a>      <span class="fu">unname</span>(X_train),</span>
-<span id="cb3-55"><a href="#cb3-55" tabindex="-1"></a>      <span class="fu">unname</span>(model_setup<span class="sc">$</span>X_train),</span>
-<span id="cb3-56"><a href="#cb3-56" tabindex="-1"></a>      <span class="at">check.attributes =</span> <span class="cn">FALSE</span></span>
-<span id="cb3-57"><a href="#cb3-57" tabindex="-1"></a>    )) <span class="sc">||</span></span>
-<span id="cb3-58"><a href="#cb3-58" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">isTRUE</span>(<span class="fu">all.equal</span>(</span>
-<span id="cb3-59"><a href="#cb3-59" tabindex="-1"></a>      <span class="fu">unname</span>(X_holdout),</span>
-<span id="cb3-60"><a href="#cb3-60" tabindex="-1"></a>      <span class="fu">unname</span>(model_setup<span class="sc">$</span>X_test),</span>
-<span id="cb3-61"><a href="#cb3-61" tabindex="-1"></a>      <span class="at">check.attributes =</span> <span class="cn">FALSE</span></span>
-<span id="cb3-62"><a href="#cb3-62" tabindex="-1"></a>    ))) {</span>
-<span id="cb3-63"><a href="#cb3-63" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;GW model design matrices do not match the shared comparison setup.&quot;</span>)</span>
-<span id="cb3-64"><a href="#cb3-64" tabindex="-1"></a>}</span>
-<span id="cb3-65"><a href="#cb3-65" tabindex="-1"></a>feature_parameter_indices <span class="ot">&lt;-</span> <span class="fu">match</span>(scaled_feature_columns, <span class="fu">colnames</span>(X_train))</span>
-<span id="cb3-66"><a href="#cb3-66" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(feature_parameter_indices)) {</span>
-<span id="cb3-67"><a href="#cb3-67" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Could not identify all standardized feature slopes in the model matrix.&quot;</span>)</span>
-<span id="cb3-68"><a href="#cb3-68" tabindex="-1"></a>}</span>
-<span id="cb3-69"><a href="#cb3-69" tabindex="-1"></a>holdout_total_sum_squares <span class="ot">&lt;-</span> <span class="fu">sum</span>((y_holdout <span class="sc">-</span> <span class="fu">mean</span>(y_holdout))<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb3-70"><a href="#cb3-70" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(holdout_total_sum_squares) <span class="sc">||</span> holdout_total_sum_squares <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
-<span id="cb3-71"><a href="#cb3-71" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;The 2025 holdout outcomes must have positive finite variance.&quot;</span>)</span>
-<span id="cb3-72"><a href="#cb3-72" tabindex="-1"></a>}</span>
-<span id="cb3-73"><a href="#cb3-73" tabindex="-1"></a></span>
-<span id="cb3-74"><a href="#cb3-74" tabindex="-1"></a>training_coordinates <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(</span>
-<span id="cb3-75"><a href="#cb3-75" tabindex="-1"></a>  training_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)]</span>
-<span id="cb3-76"><a href="#cb3-76" tabindex="-1"></a>)</span>
-<span id="cb3-77"><a href="#cb3-77" tabindex="-1"></a>holdout_coordinates <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(</span>
-<span id="cb3-78"><a href="#cb3-78" tabindex="-1"></a>  holdout_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)]</span>
-<span id="cb3-79"><a href="#cb3-79" tabindex="-1"></a>)</span>
-<span id="cb3-80"><a href="#cb3-80" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(training_coordinates)) <span class="sc">||</span></span>
-<span id="cb3-81"><a href="#cb3-81" tabindex="-1"></a>    <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(holdout_coordinates))) {</span>
-<span id="cb3-82"><a href="#cb3-82" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Regression centroid coordinates must be finite.&quot;</span>)</span>
-<span id="cb3-83"><a href="#cb3-83" tabindex="-1"></a>}</span>
-<span id="cb3-84"><a href="#cb3-84" tabindex="-1"></a></span>
-<span id="cb3-85"><a href="#cb3-85" tabindex="-1"></a>training_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(</span>
-<span id="cb3-86"><a href="#cb3-86" tabindex="-1"></a>  training_data,</span>
-<span id="cb3-87"><a href="#cb3-87" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>),</span>
-<span id="cb3-88"><a href="#cb3-88" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">4326</span>,</span>
-<span id="cb3-89"><a href="#cb3-89" tabindex="-1"></a>  <span class="at">remove =</span> <span class="cn">FALSE</span></span>
-<span id="cb3-90"><a href="#cb3-90" tabindex="-1"></a>)</span>
-<span id="cb3-91"><a href="#cb3-91" tabindex="-1"></a>holdout_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(</span>
-<span id="cb3-92"><a href="#cb3-92" tabindex="-1"></a>  holdout_data,</span>
-<span id="cb3-93"><a href="#cb3-93" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>),</span>
-<span id="cb3-94"><a href="#cb3-94" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">4326</span>,</span>
-<span id="cb3-95"><a href="#cb3-95" tabindex="-1"></a>  <span class="at">remove =</span> <span class="cn">FALSE</span></span>
-<span id="cb3-96"><a href="#cb3-96" tabindex="-1"></a>)</span>
-<span id="cb3-97"><a href="#cb3-97" tabindex="-1"></a></span>
-<span id="cb3-98"><a href="#cb3-98" tabindex="-1"></a>bandwidth_fractions <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.35</span>, <span class="fl">0.50</span>, <span class="fl">0.65</span>, <span class="fl">0.80</span>, <span class="fl">0.95</span>)</span>
-<span id="cb3-99"><a href="#cb3-99" tabindex="-1"></a>bandwidth_grid <span class="ot">&lt;-</span> <span class="fu">unique</span>(<span class="fu">pmin</span>(</span>
-<span id="cb3-100"><a href="#cb3-100" tabindex="-1"></a>  <span class="fu">nrow</span>(training_data),</span>
-<span id="cb3-101"><a href="#cb3-101" tabindex="-1"></a>  <span class="fu">pmax</span>(</span>
-<span id="cb3-102"><a href="#cb3-102" tabindex="-1"></a>    <span class="fu">ncol</span>(X_train) <span class="sc">+</span> <span class="dv">2</span>,</span>
-<span id="cb3-103"><a href="#cb3-103" tabindex="-1"></a>    <span class="fu">ceiling</span>(bandwidth_fractions <span class="sc">*</span> <span class="fu">nrow</span>(training_data))</span>
-<span id="cb3-104"><a href="#cb3-104" tabindex="-1"></a>  )</span>
-<span id="cb3-105"><a href="#cb3-105" tabindex="-1"></a>))</span>
-<span id="cb3-106"><a href="#cb3-106" tabindex="-1"></a>kernel_name <span class="ot">&lt;-</span> <span class="st">&quot;bisquare&quot;</span></span>
-<span id="cb3-107"><a href="#cb3-107" tabindex="-1"></a></span>
-<span id="cb3-108"><a href="#cb3-108" tabindex="-1"></a><span class="co"># gw.dist returns prediction-by-training distances; model fitting needs</span></span>
-<span id="cb3-109"><a href="#cb3-109" tabindex="-1"></a><span class="co"># training-by-prediction distances.</span></span>
-<span id="cb3-110"><a href="#cb3-110" tabindex="-1"></a>holdout_distances <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">gw.dist</span>(</span>
-<span id="cb3-111"><a href="#cb3-111" tabindex="-1"></a>  <span class="at">dp.locat =</span> training_coordinates,</span>
-<span id="cb3-112"><a href="#cb3-112" tabindex="-1"></a>  <span class="at">rp.locat =</span> holdout_coordinates,</span>
-<span id="cb3-113"><a href="#cb3-113" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span></span>
-<span id="cb3-114"><a href="#cb3-114" tabindex="-1"></a>))</span>
-<span id="cb3-115"><a href="#cb3-115" tabindex="-1"></a>training_distances <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">gw.dist</span>(</span>
-<span id="cb3-116"><a href="#cb3-116" tabindex="-1"></a>  <span class="at">dp.locat =</span> training_coordinates,</span>
-<span id="cb3-117"><a href="#cb3-117" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span></span>
-<span id="cb3-118"><a href="#cb3-118" tabindex="-1"></a>))</span>
-<span id="cb3-119"><a href="#cb3-119" tabindex="-1"></a>holdout_weights <span class="ot">&lt;-</span> <span class="fu">lapply</span>(bandwidth_grid, <span class="cf">function</span>(bandwidth) {</span>
-<span id="cb3-120"><a href="#cb3-120" tabindex="-1"></a>  <span class="fu">gw.weight</span>(</span>
-<span id="cb3-121"><a href="#cb3-121" tabindex="-1"></a>    holdout_distances,</span>
-<span id="cb3-122"><a href="#cb3-122" tabindex="-1"></a>    <span class="at">bw =</span> bandwidth,</span>
-<span id="cb3-123"><a href="#cb3-123" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb3-124"><a href="#cb3-124" tabindex="-1"></a>    <span class="at">adaptive =</span> <span class="cn">TRUE</span></span>
-<span id="cb3-125"><a href="#cb3-125" tabindex="-1"></a>  )</span>
-<span id="cb3-126"><a href="#cb3-126" tabindex="-1"></a>})</span></code></pre></div>
+squares.</p>
+<div id="adaptive-bisquare-spatial-weighting" class="section level4">
+<h4>Adaptive bisquare spatial weighting</h4>
+<p>Spatial weights are determined using an adaptive bisquare kernel
+based on great-circle distances between geographic coordinates.</p>
+<p>For a target location <span class="math inline">\(s\)</span>, let
+<span class="math inline">\(d_i(s)\)</span> denote the great-circle
+distance between observation <span class="math inline">\(i\)</span> and
+the target location. The adaptive bandwidth <span class="math inline">\(b(s)\)</span> is defined as the distance to the
+<span class="math inline">\(h\)</span>-th nearest training observation.
+The spatial weight is then calculated as:</p>
+<p><span class="math display">\[
+w_i(s) =
+\begin{cases}
+\left[1-\left(\dfrac{d_i(s)}{b(s)}\right)^2\right]^2,
+&amp; \text{if } d_i(s) &lt; b(s), \\[8pt]
+0,
+&amp; \text{if } d_i(s) \geq b(s).
+\end{cases}
+\]</span> which is the bisquare kernel.</p>
+<p>This weighting scheme has the following properties:</p>
+<ol style="list-style-type: decimal">
+<li><p>Nearby observations receive greater weights. Observations closer
+to the target location have weights closer to one, giving them greater
+influence on the local coefficient estimates.</p></li>
+<li><p>Weights decrease smoothly with distance. As the distance
+approaches the adaptive bandwidth, the weight gradually decreases toward
+zero. This avoids an abrupt change in influence among observations
+within the local neighborhood.</p></li>
+<li><p>Distant observations receive zero weight. Observations outside
+the adaptive bandwidth do not contribute to the local
+estimation.</p></li>
+<li><p>The geographic bandwidth adapts to local observation density. The
+number of nearest neighbors remains approximately controlled by <span class="math inline">\(h\)</span>, while the corresponding geographic
+radius varies across locations.</p></li>
+</ol>
+<p>To select the adaptive bandwidth, candidate nearest-neighbor counts
+are derived from fractions <span class="math inline">\(0.35, 0.50, 0.65,
+0.80, 0.95\)</span> of the training sample size. Each candidate is
+constrained to have at least <span class="math inline">\(p+2\)</span>
+neighbors, where <span class="math inline">\(p\)</span> is the number of
+estimated local coefficients, and no more than the total number of
+training observations. This provides a range of neighborhood sizes that
+can be evaluated while avoiding neighborhoods that are too small for
+stable local estimation.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>bandwidth_fractions <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.01</span>,<span class="fl">0.99</span>, <span class="at">length.out =</span> <span class="dv">97</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>bandwidth_grid <span class="ot">&lt;-</span> <span class="fu">unique</span>(<span class="fu">pmin</span>(</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">nrow</span>(training_data),</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="fu">pmax</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>    <span class="fu">ncol</span>(X_train) <span class="sc">+</span> <span class="dv">2</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>    <span class="fu">ceiling</span>(bandwidth_fractions <span class="sc">*</span> <span class="fu">nrow</span>(training_data))</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  )</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>))</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>kernel_name <span class="ot">&lt;-</span> <span class="st">&quot;bisquare&quot;</span></span></code></pre></div>
+<p>We then compute the distances between training and holdout
+observations, distances between training observations, and the bandwidth
+weight matrix</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co">#gw.dist: gw distant</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co"># holdout_distances: distances between training and holdout data</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>holdout_distances <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">gw.dist</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">dp.locat =</span> training_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)] <span class="sc">|&gt;</span> <span class="fu">data.matrix</span>(),</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">rp.locat =</span> holdout_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)] <span class="sc">|&gt;</span> <span class="fu">data.matrix</span>(),</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>))</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co"># training_distances: distances between training data</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>training_distances <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">gw.dist</span>(</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>  <span class="at">dp.locat =</span> training_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)] <span class="sc">|&gt;</span> <span class="fu">data.matrix</span>(),</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>))</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co"># holdout_weights: weight matrix for every candidate bandwidth</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>holdout_weights <span class="ot">&lt;-</span> <span class="fu">lapply</span>(bandwidth_grid, <span class="cf">function</span>(bandwidth) {</span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>  <span class="fu">gw.weight</span>(</span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>    holdout_distances,</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>    <span class="at">bw =</span> bandwidth,</span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>    <span class="at">adaptive =</span> <span class="cn">TRUE</span></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a>  )</span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>})</span></code></pre></div>
 </div>
-<div id="gwmodel-bandwidth-selection" class="section level3">
-<h3>GWmodel bandwidth selection</h3>
-<p><code>GWmodel::gwr.predict()</code> estimates local year effects and
-predictor slopes from the 2020–2024 observations, then predicts each
-2025 centroid. The 2025 year indicators are set to the linear
-extrapolation weights above.</p>
-<p>This chunk fits <code>gwr.predict()</code> at every candidate
-adaptive bandwidth, converts predictions back to GRDP-per-capita units,
-and scores them against the 2025 outcomes. The chosen neighborhood is
-the one with the smallest holdout RMSE; <span class="math inline">\(R^2\)</span> is retained as a secondary metric.
-The GDP aggregate target is not a bandwidth-selection input.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>gwmodel_holdout_predictions <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="cn">NA_real_</span>,</span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="fu">nrow</span>(holdout_data),</span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="fu">length</span>(bandwidth_grid)</span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>)</span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="cf">for</span> (bandwidth_index <span class="cf">in</span> <span class="fu">seq_along</span>(bandwidth_grid)) {</span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  gwr_holdout_fit <span class="ot">&lt;-</span> <span class="fu">gwr.predict</span>(</span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>    model_formula,</span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>    <span class="at">data =</span> training_sf,</span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>    <span class="at">predictdata =</span> holdout_sf,</span>
-<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>    <span class="at">bw =</span> bandwidth_grid[bandwidth_index],</span>
-<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>    <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>    <span class="at">longlat =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>    <span class="at">dMat1 =</span> holdout_distances,</span>
-<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>    <span class="at">dMat2 =</span> training_distances</span>
-<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>  )</span>
-<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>  gwmodel_holdout_predictions[, bandwidth_index] <span class="ot">&lt;-</span></span>
-<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>    gwr_holdout_fit<span class="sc">$</span>SDF<span class="sc">$</span>prediction <span class="sc">*</span> model_setup<span class="sc">$</span>response_sd <span class="sc">+</span></span>
-<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>    model_setup<span class="sc">$</span>response_mean</span>
-<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>}</span>
-<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a></span>
-<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>gwmodel_bandwidth_results <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>  <span class="at">bandwidth_neighbors =</span> bandwidth_grid,</span>
-<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>  <span class="at">bandwidth_fraction =</span> bandwidth_grid <span class="sc">/</span> <span class="fu">nrow</span>(training_data),</span>
-<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>  <span class="at">holdout_RMSE =</span> <span class="fu">apply</span>(gwmodel_holdout_predictions, <span class="dv">2</span>, <span class="cf">function</span>(prediction) {</span>
-<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>((y_holdout <span class="sc">-</span> prediction)<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>  }),</span>
-<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>  <span class="at">holdout_R_squared =</span> <span class="fu">apply</span>(gwmodel_holdout_predictions, <span class="dv">2</span>, <span class="cf">function</span>(prediction) {</span>
-<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>((y_holdout <span class="sc">-</span> prediction)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> holdout_total_sum_squares</span>
-<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a>  })</span>
-<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a>)</span>
-<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a>selected_gwmodel_index <span class="ot">&lt;-</span> <span class="fu">which.min</span>(gwmodel_bandwidth_results<span class="sc">$</span>holdout_RMSE)</span>
-<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>selected_gwmodel_bandwidth <span class="ot">&lt;-</span></span>
-<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a>  gwmodel_bandwidth_results<span class="sc">$</span>bandwidth_neighbors[selected_gwmodel_index]</span>
-<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a>best_gwmodel_holdout_predictions <span class="ot">&lt;-</span></span>
-<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a>  gwmodel_holdout_predictions[, selected_gwmodel_index]</span>
-<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a></span>
-<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a>  gwmodel_bandwidth_results,</span>
-<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gwmodel_bandwidth_metrics.csv&quot;</span>),</span>
-<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a>)</span>
-<span id="cb4-44"><a href="#cb4-44" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(</span>
-<span id="cb4-45"><a href="#cb4-45" tabindex="-1"></a>  <span class="st">&quot;Selected GWmodel bandwidth: %d neighbors; holdout RMSE: %.6f</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
-<span id="cb4-46"><a href="#cb4-46" tabindex="-1"></a>  selected_gwmodel_bandwidth,</span>
-<span id="cb4-47"><a href="#cb4-47" tabindex="-1"></a>  gwmodel_bandwidth_results<span class="sc">$</span>holdout_RMSE[selected_gwmodel_index]</span>
-<span id="cb4-48"><a href="#cb4-48" tabindex="-1"></a>))</span></code></pre></div>
-<pre><code>## Selected GWmodel bandwidth: 60 neighbors; holdout RMSE: 34.862888</code></pre>
 </div>
-<div id="cvxr-locally-weighted-regression" class="section level3">
-<h3>CVXR locally weighted regression</h3>
-<p>CVXR solves the weighted regression for multiple prediction locations
-per problem. The intercept and year effects are unpenalized, matching
-the ridge model’s treatment of <span class="math inline">\(\alpha_t\)</span>.</p>
-<p>For each target location <span class="math inline">\(s\)</span>, this
-chunk solves <span class="math display">\[
-\min_{\theta_s}\ \sum_i w_i(s)(y_i-x_i^\top\theta_s)^2
-+\lambda\|\beta_s\|_2^2,
-\]</span> where <span class="math inline">\(w_i(s)\)</span> are adaptive
-bisquare geographic weights and only feature slopes <span class="math inline">\(\beta_s\)</span> are penalized. Target locations
-are solved in batches of 20 to limit optimization memory. The Cartesian
-grid of candidate bandwidth and <span class="math inline">\(\lambda\in\{0,0.01,0.1,1,10\}\)</span> is
-evaluated on 2025; minimum holdout RMSE selects the CVXR settings.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>cvxr_local_predict <span class="ot">&lt;-</span> <span class="cf">function</span>(</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  X,</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  y,</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  target_X,</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  weights,</span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  lambda,</span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  penalty_indices,</span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="at">chunk_size =</span> <span class="dv">20</span></span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>) {</span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>  predictions <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">nrow</span>(target_X))</span>
-<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>  coefficient_estimates <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>    <span class="cn">NA_real_</span>,</span>
-<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>    <span class="at">nrow =</span> <span class="fu">ncol</span>(X),</span>
-<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>    <span class="at">ncol =</span> <span class="fu">nrow</span>(target_X),</span>
-<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a>    <span class="at">dimnames =</span> <span class="fu">list</span>(<span class="fu">colnames</span>(X), <span class="cn">NULL</span>)</span>
-<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>  )</span>
-<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a></span>
-<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>  chunk_starts <span class="ot">&lt;-</span> <span class="fu">seq.int</span>(<span class="dv">1</span>, <span class="fu">nrow</span>(target_X), <span class="at">by =</span> chunk_size)</span>
-<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a>  <span class="cf">for</span> (chunk_start <span class="cf">in</span> chunk_starts) {</span>
-<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a>    target_indices <span class="ot">&lt;-</span> chunk_start<span class="sc">:</span><span class="fu">min</span>(</span>
-<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a>      chunk_start <span class="sc">+</span> chunk_size <span class="sc">-</span> <span class="dv">1</span>,</span>
-<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a>      <span class="fu">nrow</span>(target_X)</span>
-<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a>    )</span>
-<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a>    chunk_weights <span class="ot">&lt;-</span> weights[, target_indices, drop <span class="ot">=</span> <span class="cn">FALSE</span>]</span>
-<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a>    local_coefficients <span class="ot">&lt;-</span> <span class="fu">Variable</span>(</span>
-<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a>      <span class="at">shape =</span> <span class="fu">c</span>(<span class="fu">ncol</span>(X), <span class="fu">length</span>(target_indices))</span>
-<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a>    )</span>
-<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a>    response_matrix <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
-<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a>      y,</span>
-<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a>      <span class="at">nrow =</span> <span class="fu">length</span>(y),</span>
-<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a>      <span class="at">ncol =</span> <span class="fu">length</span>(target_indices)</span>
-<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a>    )</span>
-<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a>    weighted_residuals <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(chunk_weights) <span class="sc">*</span></span>
-<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a>      (X <span class="sc">%*%</span> local_coefficients <span class="sc">-</span> response_matrix)</span>
-<span id="cb6-35"><a href="#cb6-35" tabindex="-1"></a>    objective <span class="ot">&lt;-</span> <span class="fu">sum_squares</span>(weighted_residuals)</span>
-<span id="cb6-36"><a href="#cb6-36" tabindex="-1"></a>    <span class="cf">if</span> (lambda <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
-<span id="cb6-37"><a href="#cb6-37" tabindex="-1"></a>      objective <span class="ot">&lt;-</span> objective <span class="sc">+</span></span>
-<span id="cb6-38"><a href="#cb6-38" tabindex="-1"></a>        lambda <span class="sc">*</span> <span class="fu">sum_squares</span>(local_coefficients[penalty_indices, ])</span>
-<span id="cb6-39"><a href="#cb6-39" tabindex="-1"></a>    }</span>
-<span id="cb6-40"><a href="#cb6-40" tabindex="-1"></a></span>
-<span id="cb6-41"><a href="#cb6-41" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">solve</span>(</span>
-<span id="cb6-42"><a href="#cb6-42" tabindex="-1"></a>      <span class="fu">Problem</span>(<span class="fu">Minimize</span>(objective)),</span>
-<span id="cb6-43"><a href="#cb6-43" tabindex="-1"></a>      <span class="at">solver =</span> <span class="st">&quot;CLARABEL&quot;</span>,</span>
-<span id="cb6-44"><a href="#cb6-44" tabindex="-1"></a>      <span class="at">max_iter =</span> <span class="dv">1000</span></span>
-<span id="cb6-45"><a href="#cb6-45" tabindex="-1"></a>    )</span>
-<span id="cb6-46"><a href="#cb6-46" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span>fit<span class="sc">$</span>status <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;optimal&quot;</span>, <span class="st">&quot;optimal_inaccurate&quot;</span>)) {</span>
-<span id="cb6-47"><a href="#cb6-47" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="fu">sprintf</span>(</span>
-<span id="cb6-48"><a href="#cb6-48" tabindex="-1"></a>        <span class="st">&quot;CVXR local regression failed for lambda=%g with status: %s&quot;</span>,</span>
-<span id="cb6-49"><a href="#cb6-49" tabindex="-1"></a>        lambda,</span>
-<span id="cb6-50"><a href="#cb6-50" tabindex="-1"></a>        fit<span class="sc">$</span>status</span>
-<span id="cb6-51"><a href="#cb6-51" tabindex="-1"></a>      ))</span>
-<span id="cb6-52"><a href="#cb6-52" tabindex="-1"></a>    }</span>
-<span id="cb6-53"><a href="#cb6-53" tabindex="-1"></a></span>
-<span id="cb6-54"><a href="#cb6-54" tabindex="-1"></a>    chunk_coefficients <span class="ot">&lt;-</span> <span class="fu">value</span>(local_coefficients)</span>
-<span id="cb6-55"><a href="#cb6-55" tabindex="-1"></a>    coefficient_estimates[, target_indices] <span class="ot">&lt;-</span> chunk_coefficients</span>
-<span id="cb6-56"><a href="#cb6-56" tabindex="-1"></a>    predictions[target_indices] <span class="ot">&lt;-</span> <span class="fu">rowSums</span>(</span>
-<span id="cb6-57"><a href="#cb6-57" tabindex="-1"></a>      target_X[target_indices, , <span class="at">drop =</span> <span class="cn">FALSE</span>] <span class="sc">*</span></span>
-<span id="cb6-58"><a href="#cb6-58" tabindex="-1"></a>        <span class="fu">t</span>(chunk_coefficients)</span>
-<span id="cb6-59"><a href="#cb6-59" tabindex="-1"></a>    )</span>
-<span id="cb6-60"><a href="#cb6-60" tabindex="-1"></a>  }</span>
-<span id="cb6-61"><a href="#cb6-61" tabindex="-1"></a></span>
-<span id="cb6-62"><a href="#cb6-62" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb6-63"><a href="#cb6-63" tabindex="-1"></a>    <span class="at">predictions =</span> predictions,</span>
-<span id="cb6-64"><a href="#cb6-64" tabindex="-1"></a>    <span class="at">coefficients =</span> coefficient_estimates</span>
-<span id="cb6-65"><a href="#cb6-65" tabindex="-1"></a>  )</span>
-<span id="cb6-66"><a href="#cb6-66" tabindex="-1"></a>}</span>
-<span id="cb6-67"><a href="#cb6-67" tabindex="-1"></a></span>
-<span id="cb6-68"><a href="#cb6-68" tabindex="-1"></a>lambda_grid <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.01</span>, <span class="fl">0.1</span>, <span class="dv">1</span>, <span class="dv">10</span>)</span>
-<span id="cb6-69"><a href="#cb6-69" tabindex="-1"></a>cvxr_grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
-<span id="cb6-70"><a href="#cb6-70" tabindex="-1"></a>  <span class="at">bandwidth_index =</span> <span class="fu">seq_along</span>(bandwidth_grid),</span>
-<span id="cb6-71"><a href="#cb6-71" tabindex="-1"></a>  <span class="at">lambda =</span> lambda_grid</span>
-<span id="cb6-72"><a href="#cb6-72" tabindex="-1"></a>)</span>
-<span id="cb6-73"><a href="#cb6-73" tabindex="-1"></a>cvxr_grid<span class="sc">$</span>bandwidth_neighbors <span class="ot">&lt;-</span></span>
-<span id="cb6-74"><a href="#cb6-74" tabindex="-1"></a>  bandwidth_grid[cvxr_grid<span class="sc">$</span>bandwidth_index]</span>
-<span id="cb6-75"><a href="#cb6-75" tabindex="-1"></a>cvxr_grid<span class="sc">$</span>holdout_RMSE <span class="ot">&lt;-</span> <span class="cn">NA_real_</span></span>
-<span id="cb6-76"><a href="#cb6-76" tabindex="-1"></a>cvxr_grid<span class="sc">$</span>holdout_R_squared <span class="ot">&lt;-</span> <span class="cn">NA_real_</span></span>
-<span id="cb6-77"><a href="#cb6-77" tabindex="-1"></a>cvxr_holdout_predictions <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">&quot;list&quot;</span>, <span class="fu">nrow</span>(cvxr_grid))</span>
-<span id="cb6-78"><a href="#cb6-78" tabindex="-1"></a></span>
-<span id="cb6-79"><a href="#cb6-79" tabindex="-1"></a><span class="cf">for</span> (grid_index <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(cvxr_grid))) {</span>
-<span id="cb6-80"><a href="#cb6-80" tabindex="-1"></a>  holdout_fit <span class="ot">&lt;-</span> <span class="fu">cvxr_local_predict</span>(</span>
-<span id="cb6-81"><a href="#cb6-81" tabindex="-1"></a>    <span class="at">X =</span> X_train,</span>
-<span id="cb6-82"><a href="#cb6-82" tabindex="-1"></a>    <span class="at">y =</span> y_train,</span>
-<span id="cb6-83"><a href="#cb6-83" tabindex="-1"></a>    <span class="at">target_X =</span> X_holdout,</span>
-<span id="cb6-84"><a href="#cb6-84" tabindex="-1"></a>    <span class="at">weights =</span> holdout_weights[[cvxr_grid<span class="sc">$</span>bandwidth_index[grid_index]]],</span>
-<span id="cb6-85"><a href="#cb6-85" tabindex="-1"></a>    <span class="at">lambda =</span> cvxr_grid<span class="sc">$</span>lambda[grid_index],</span>
-<span id="cb6-86"><a href="#cb6-86" tabindex="-1"></a>    <span class="at">penalty_indices =</span> feature_parameter_indices</span>
-<span id="cb6-87"><a href="#cb6-87" tabindex="-1"></a>  )</span>
-<span id="cb6-88"><a href="#cb6-88" tabindex="-1"></a>  cvxr_holdout_predictions[[grid_index]] <span class="ot">&lt;-</span></span>
-<span id="cb6-89"><a href="#cb6-89" tabindex="-1"></a>    holdout_fit<span class="sc">$</span>predictions <span class="sc">*</span> model_setup<span class="sc">$</span>response_sd <span class="sc">+</span></span>
-<span id="cb6-90"><a href="#cb6-90" tabindex="-1"></a>    model_setup<span class="sc">$</span>response_mean</span>
-<span id="cb6-91"><a href="#cb6-91" tabindex="-1"></a>  residuals <span class="ot">&lt;-</span> y_holdout <span class="sc">-</span> cvxr_holdout_predictions[[grid_index]]</span>
-<span id="cb6-92"><a href="#cb6-92" tabindex="-1"></a>  cvxr_grid<span class="sc">$</span>holdout_RMSE[grid_index] <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>(residuals<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb6-93"><a href="#cb6-93" tabindex="-1"></a>  cvxr_grid<span class="sc">$</span>holdout_R_squared[grid_index] <span class="ot">&lt;-</span></span>
-<span id="cb6-94"><a href="#cb6-94" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(residuals<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> holdout_total_sum_squares</span>
-<span id="cb6-95"><a href="#cb6-95" tabindex="-1"></a>}</span></code></pre></div>
-<pre><code>## ℹ In a future CVXR release, `solve()` will return the optimal value directly
-##   (like `psolve()`).
-## ℹ The `$getValue()`/`$getDualValue()` interface will be removed.
-## ℹ New API: `psolve(prob)`, then `value(x)`, `dual_value(constr)`,
-##   `status(prob)`.
-## This message is displayed once per session.</code></pre>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>selected_cvxr_index <span class="ot">&lt;-</span> <span class="fu">which.min</span>(cvxr_grid<span class="sc">$</span>holdout_RMSE)</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>selected_cvxr_bandwidth_index <span class="ot">&lt;-</span></span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  cvxr_grid<span class="sc">$</span>bandwidth_index[selected_cvxr_index]</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>selected_cvxr_bandwidth <span class="ot">&lt;-</span> bandwidth_grid[selected_cvxr_bandwidth_index]</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>selected_cvxr_lambda <span class="ot">&lt;-</span> cvxr_grid<span class="sc">$</span>lambda[selected_cvxr_index]</span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>best_cvxr_holdout_predictions <span class="ot">&lt;-</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  cvxr_holdout_predictions[[selected_cvxr_index]]</span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a></span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>  cvxr_grid,</span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;cvxr_gwmodel_hyperparameter_metrics.csv&quot;</span>),</span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>)</span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(</span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>  <span class="st">&quot;Selected CVXR bandwidth: %d neighbors; lambda: %g; holdout RMSE: %.6f</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
-<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>  selected_cvxr_bandwidth,</span>
-<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a>  selected_cvxr_lambda,</span>
-<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a>  cvxr_grid<span class="sc">$</span>holdout_RMSE[selected_cvxr_index]</span>
-<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a>))</span></code></pre></div>
-<pre><code>## Selected CVXR bandwidth: 60 neighbors; lambda: 0.01; holdout RMSE: 26.834734</code></pre>
-</div>
-<div id="persistent-provincial-outlier-correction" class="section level3">
-<h3>Persistent provincial outlier correction</h3>
-<p>The selected spatial models are fitted to the 2020–2024 observations
-at their own centroids to obtain training residuals. Provinces with a
-median residual more than three robust standard deviations from the
-cross-province median are flagged. For each flagged province, a linear
-trend in its training residuals is extrapolated to 2025 and added to
-spatial predictions. The correction is estimated using training years
-only and does not remove any observations.</p>
-<p>This chunk obtains in-sample spatial fits for each selected method,
-aggregates residuals by province, and flags outliers using the median
-and MAD (scaled by 1.4826) with an absolute robust-score threshold of 3.
-Only flagged provinces receive a correction: an ordinary linear trend of
-their annual training residuals is extrapolated to 2025. The correction
-table is saved separately for auditability and does not delete or
-reweight observations.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>training_coordinates <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  training_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)]</span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>)</span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>training_distances <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">gw.dist</span>(</span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>  <span class="at">dp.locat =</span> training_coordinates,</span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>))</span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>training_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(</span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>  training_data,</span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>),</span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">4326</span>,</span>
-<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>  <span class="at">remove =</span> <span class="cn">FALSE</span></span>
-<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a>)</span>
-<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a></span>
-<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a>selected_gwmodel_training_fit <span class="ot">&lt;-</span> <span class="fu">gwr.basic</span>(</span>
-<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a>  <span class="at">formula =</span> model_formula,</span>
-<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a>  <span class="at">data =</span> training_sf,</span>
-<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a>  <span class="at">bw =</span> selected_gwmodel_bandwidth,</span>
-<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a>  <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a>  <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a>  <span class="at">dMat =</span> training_distances</span>
-<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a>)</span>
-<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.null</span>(selected_gwmodel_training_fit<span class="sc">$</span>SDF<span class="sc">$</span>yhat) <span class="sc">||</span></span>
-<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a>    <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(selected_gwmodel_training_fit<span class="sc">$</span>SDF<span class="sc">$</span>yhat))) {</span>
-<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;GWmodel training fit did not return finite fitted values for outlier detection.&quot;</span>)</span>
-<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a>}</span>
-<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a></span>
-<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a>training_weights <span class="ot">&lt;-</span> <span class="fu">gw.weight</span>(</span>
-<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a>  training_distances,</span>
-<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a>  <span class="at">bw =</span> selected_cvxr_bandwidth,</span>
-<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a>  <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a>  <span class="at">adaptive =</span> <span class="cn">TRUE</span></span>
-<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a>)</span>
-<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a>selected_cvxr_training_fit <span class="ot">&lt;-</span> <span class="fu">cvxr_local_predict</span>(</span>
-<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a>  <span class="at">X =</span> X_train,</span>
-<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a>  <span class="at">y =</span> y_train,</span>
-<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a>  <span class="at">target_X =</span> X_train,</span>
-<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a>  <span class="at">weights =</span> training_weights,</span>
-<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a>  <span class="at">lambda =</span> selected_cvxr_lambda,</span>
-<span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a>  <span class="at">penalty_indices =</span> feature_parameter_indices</span>
-<span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a>)</span>
-<span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a></span>
-<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a>fit_province_residual_correction <span class="ot">&lt;-</span> <span class="cf">function</span>(</span>
-<span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a>  data,</span>
-<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a>  residuals,</span>
-<span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a>  forecast_year,</span>
-<span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a>  <span class="at">threshold =</span> <span class="dv">3</span></span>
-<span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a>) {</span>
-<span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a>  residual_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb10-51"><a href="#cb10-51" tabindex="-1"></a>    <span class="at">province =</span> data<span class="sc">$</span>province,</span>
-<span id="cb10-52"><a href="#cb10-52" tabindex="-1"></a>    <span class="at">year =</span> data<span class="sc">$</span>year,</span>
-<span id="cb10-53"><a href="#cb10-53" tabindex="-1"></a>    <span class="at">residual =</span> residuals</span>
-<span id="cb10-54"><a href="#cb10-54" tabindex="-1"></a>  )</span>
-<span id="cb10-55"><a href="#cb10-55" tabindex="-1"></a>  province_residuals <span class="ot">&lt;-</span> <span class="fu">aggregate</span>(</span>
-<span id="cb10-56"><a href="#cb10-56" tabindex="-1"></a>    residual <span class="sc">~</span> province,</span>
-<span id="cb10-57"><a href="#cb10-57" tabindex="-1"></a>    <span class="at">data =</span> residual_data,</span>
-<span id="cb10-58"><a href="#cb10-58" tabindex="-1"></a>    <span class="at">FUN =</span> median</span>
-<span id="cb10-59"><a href="#cb10-59" tabindex="-1"></a>  )</span>
-<span id="cb10-60"><a href="#cb10-60" tabindex="-1"></a>  robust_center <span class="ot">&lt;-</span> <span class="fu">median</span>(province_residuals<span class="sc">$</span>residual)</span>
-<span id="cb10-61"><a href="#cb10-61" tabindex="-1"></a>  robust_scale <span class="ot">&lt;-</span> <span class="fu">mad</span>(province_residuals<span class="sc">$</span>residual, <span class="at">constant =</span> <span class="fl">1.4826</span>)</span>
-<span id="cb10-62"><a href="#cb10-62" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(robust_scale) <span class="sc">||</span> robust_scale <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
-<span id="cb10-63"><a href="#cb10-63" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Cannot identify provincial residual outliers: robust residual scale is zero.&quot;</span>)</span>
-<span id="cb10-64"><a href="#cb10-64" tabindex="-1"></a>  }</span>
-<span id="cb10-65"><a href="#cb10-65" tabindex="-1"></a>  province_residuals<span class="sc">$</span>robust_z <span class="ot">&lt;-</span></span>
-<span id="cb10-66"><a href="#cb10-66" tabindex="-1"></a>    (province_residuals<span class="sc">$</span>residual <span class="sc">-</span> robust_center) <span class="sc">/</span> robust_scale</span>
-<span id="cb10-67"><a href="#cb10-67" tabindex="-1"></a>  province_residuals<span class="sc">$</span>outlier <span class="ot">&lt;-</span> <span class="fu">abs</span>(province_residuals<span class="sc">$</span>robust_z) <span class="sc">&gt;=</span> threshold</span>
-<span id="cb10-68"><a href="#cb10-68" tabindex="-1"></a>  province_residuals<span class="sc">$</span>residual_correction <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb10-69"><a href="#cb10-69" tabindex="-1"></a></span>
-<span id="cb10-70"><a href="#cb10-70" tabindex="-1"></a>  outlier_provinces <span class="ot">&lt;-</span> province_residuals<span class="sc">$</span>province[</span>
-<span id="cb10-71"><a href="#cb10-71" tabindex="-1"></a>    province_residuals<span class="sc">$</span>outlier</span>
-<span id="cb10-72"><a href="#cb10-72" tabindex="-1"></a>  ]</span>
-<span id="cb10-73"><a href="#cb10-73" tabindex="-1"></a>  <span class="cf">for</span> (province <span class="cf">in</span> outlier_provinces) {</span>
-<span id="cb10-74"><a href="#cb10-74" tabindex="-1"></a>    province_data <span class="ot">&lt;-</span> residual_data[</span>
-<span id="cb10-75"><a href="#cb10-75" tabindex="-1"></a>      residual_data<span class="sc">$</span>province <span class="sc">==</span> province,</span>
-<span id="cb10-76"><a href="#cb10-76" tabindex="-1"></a>      ,</span>
-<span id="cb10-77"><a href="#cb10-77" tabindex="-1"></a>      drop <span class="ot">=</span> <span class="cn">FALSE</span></span>
-<span id="cb10-78"><a href="#cb10-78" tabindex="-1"></a>    ]</span>
-<span id="cb10-79"><a href="#cb10-79" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(<span class="fu">unique</span>(province_data<span class="sc">$</span>year)) <span class="sc">&lt;</span> <span class="dv">2</span>) {</span>
-<span id="cb10-80"><a href="#cb10-80" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="fu">sprintf</span>(</span>
-<span id="cb10-81"><a href="#cb10-81" tabindex="-1"></a>        <span class="st">&quot;Cannot extrapolate residual trend for outlier province %s.&quot;</span>,</span>
-<span id="cb10-82"><a href="#cb10-82" tabindex="-1"></a>        province</span>
-<span id="cb10-83"><a href="#cb10-83" tabindex="-1"></a>      ))</span>
-<span id="cb10-84"><a href="#cb10-84" tabindex="-1"></a>    }</span>
-<span id="cb10-85"><a href="#cb10-85" tabindex="-1"></a>    residual_trend <span class="ot">&lt;-</span> <span class="fu">lm</span>(residual <span class="sc">~</span> year, <span class="at">data =</span> province_data)</span>
-<span id="cb10-86"><a href="#cb10-86" tabindex="-1"></a>    forecast <span class="ot">&lt;-</span> <span class="fu">unname</span>(<span class="fu">predict</span>(</span>
-<span id="cb10-87"><a href="#cb10-87" tabindex="-1"></a>      residual_trend,</span>
-<span id="cb10-88"><a href="#cb10-88" tabindex="-1"></a>      <span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="at">year =</span> forecast_year)</span>
-<span id="cb10-89"><a href="#cb10-89" tabindex="-1"></a>    ))</span>
-<span id="cb10-90"><a href="#cb10-90" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(forecast)) {</span>
-<span id="cb10-91"><a href="#cb10-91" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="fu">sprintf</span>(</span>
-<span id="cb10-92"><a href="#cb10-92" tabindex="-1"></a>        <span class="st">&quot;Non-finite residual correction for outlier province %s.&quot;</span>,</span>
-<span id="cb10-93"><a href="#cb10-93" tabindex="-1"></a>        province</span>
-<span id="cb10-94"><a href="#cb10-94" tabindex="-1"></a>      ))</span>
-<span id="cb10-95"><a href="#cb10-95" tabindex="-1"></a>    }</span>
-<span id="cb10-96"><a href="#cb10-96" tabindex="-1"></a>    province_residuals<span class="sc">$</span>residual_correction[</span>
-<span id="cb10-97"><a href="#cb10-97" tabindex="-1"></a>      province_residuals<span class="sc">$</span>province <span class="sc">==</span> province</span>
-<span id="cb10-98"><a href="#cb10-98" tabindex="-1"></a>    ] <span class="ot">&lt;-</span> forecast</span>
-<span id="cb10-99"><a href="#cb10-99" tabindex="-1"></a>  }</span>
-<span id="cb10-100"><a href="#cb10-100" tabindex="-1"></a></span>
-<span id="cb10-101"><a href="#cb10-101" tabindex="-1"></a>  province_residuals</span>
-<span id="cb10-102"><a href="#cb10-102" tabindex="-1"></a>}</span>
-<span id="cb10-103"><a href="#cb10-103" tabindex="-1"></a></span>
-<span id="cb10-104"><a href="#cb10-104" tabindex="-1"></a>gwmodel_outlier_corrections <span class="ot">&lt;-</span> <span class="fu">fit_province_residual_correction</span>(</span>
-<span id="cb10-105"><a href="#cb10-105" tabindex="-1"></a>  training_data,</span>
-<span id="cb10-106"><a href="#cb10-106" tabindex="-1"></a>  model_setup<span class="sc">$</span>y_train_raw <span class="sc">-</span></span>
-<span id="cb10-107"><a href="#cb10-107" tabindex="-1"></a>    (selected_gwmodel_training_fit<span class="sc">$</span>SDF<span class="sc">$</span>yhat <span class="sc">*</span> model_setup<span class="sc">$</span>response_sd <span class="sc">+</span></span>
-<span id="cb10-108"><a href="#cb10-108" tabindex="-1"></a>      model_setup<span class="sc">$</span>response_mean),</span>
-<span id="cb10-109"><a href="#cb10-109" tabindex="-1"></a>  holdout_year</span>
-<span id="cb10-110"><a href="#cb10-110" tabindex="-1"></a>)</span>
-<span id="cb10-111"><a href="#cb10-111" tabindex="-1"></a>cvxr_outlier_corrections <span class="ot">&lt;-</span> <span class="fu">fit_province_residual_correction</span>(</span>
-<span id="cb10-112"><a href="#cb10-112" tabindex="-1"></a>  training_data,</span>
-<span id="cb10-113"><a href="#cb10-113" tabindex="-1"></a>  model_setup<span class="sc">$</span>y_train_raw <span class="sc">-</span></span>
-<span id="cb10-114"><a href="#cb10-114" tabindex="-1"></a>    (selected_cvxr_training_fit<span class="sc">$</span>predictions <span class="sc">*</span> model_setup<span class="sc">$</span>response_sd <span class="sc">+</span></span>
-<span id="cb10-115"><a href="#cb10-115" tabindex="-1"></a>      model_setup<span class="sc">$</span>response_mean),</span>
-<span id="cb10-116"><a href="#cb10-116" tabindex="-1"></a>  holdout_year</span>
-<span id="cb10-117"><a href="#cb10-117" tabindex="-1"></a>)</span>
-<span id="cb10-118"><a href="#cb10-118" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb10-119"><a href="#cb10-119" tabindex="-1"></a>  gwmodel_outlier_corrections,</span>
-<span id="cb10-120"><a href="#cb10-120" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gwmodel_outlier_corrections.csv&quot;</span>),</span>
-<span id="cb10-121"><a href="#cb10-121" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb10-122"><a href="#cb10-122" tabindex="-1"></a>)</span>
-<span id="cb10-123"><a href="#cb10-123" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb10-124"><a href="#cb10-124" tabindex="-1"></a>  cvxr_outlier_corrections,</span>
-<span id="cb10-125"><a href="#cb10-125" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;cvxr_gw_outlier_corrections.csv&quot;</span>),</span>
-<span id="cb10-126"><a href="#cb10-126" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb10-127"><a href="#cb10-127" tabindex="-1"></a>)</span>
-<span id="cb10-128"><a href="#cb10-128" tabindex="-1"></a><span class="fu">print</span>(gwmodel_outlier_corrections[</span>
-<span id="cb10-129"><a href="#cb10-129" tabindex="-1"></a>  gwmodel_outlier_corrections<span class="sc">$</span>outlier,</span>
-<span id="cb10-130"><a href="#cb10-130" tabindex="-1"></a>], <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
-<pre><code>##    province residual robust_z outlier residual_correction
-##  Quang Ninh 76.87747 7.330329    TRUE            113.9401</code></pre>
-</div>
-<div id="holdout-comparison" class="section level3">
-<h3>2025 holdout comparison</h3>
-<p>The table reports each raw spatial prediction and the prediction
-after applying its training-only outlier correction. Provincial GDP
-targets are not used in model selection or this correction.</p>
-<p>This comparison chunk applies those corrections to holdout
-predictions and writes method-specific training/holdout metric and
-diagnostic files. It reports uncorrected and corrected RMSE/<span class="math inline">\(R^2\)</span> alongside the shared OLS reference,
-and plots observed versus fitted holdout values against the identity
-line. These results assess spatial model selection before the separate
-level-2 provincial calibration step.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>gwmodel_holdout_correction <span class="ot">&lt;-</span> gwmodel_outlier_corrections<span class="sc">$</span>residual_correction[</span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="fu">match</span>(holdout_data<span class="sc">$</span>province, gwmodel_outlier_corrections<span class="sc">$</span>province)</span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>]</span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>cvxr_holdout_correction <span class="ot">&lt;-</span> cvxr_outlier_corrections<span class="sc">$</span>residual_correction[</span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="fu">match</span>(holdout_data<span class="sc">$</span>province, cvxr_outlier_corrections<span class="sc">$</span>province)</span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>]</span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(gwmodel_holdout_correction) <span class="sc">||</span> <span class="fu">anyNA</span>(cvxr_holdout_correction)) {</span>
-<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Could not match all 2025 holdout provinces to the outlier-correction table.&quot;</span>)</span>
-<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>}</span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>adjusted_gwmodel_holdout_predictions <span class="ot">&lt;-</span></span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>  best_gwmodel_holdout_predictions <span class="sc">+</span> gwmodel_holdout_correction</span>
-<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>adjusted_cvxr_holdout_predictions <span class="ot">&lt;-</span></span>
-<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>  best_cvxr_holdout_predictions <span class="sc">+</span> cvxr_holdout_correction</span>
-<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a></span>
-<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a>gwmodel_split_metrics <span class="ot">&lt;-</span> <span class="fu">write_model_comparison_diagnostics</span>(</span>
-<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a>  <span class="at">model_name =</span> <span class="st">&quot;GWmodel GWR with outlier correction&quot;</span>,</span>
-<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a>  <span class="at">training_data =</span> training_data,</span>
-<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a>  <span class="at">holdout_data =</span> holdout_data,</span>
-<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a>  <span class="at">training_fitted =</span></span>
-<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a>    selected_gwmodel_training_fit<span class="sc">$</span>SDF<span class="sc">$</span>yhat <span class="sc">*</span> model_setup<span class="sc">$</span>response_sd <span class="sc">+</span></span>
-<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a>    model_setup<span class="sc">$</span>response_mean,</span>
-<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a>  <span class="at">holdout_fitted =</span> adjusted_gwmodel_holdout_predictions,</span>
-<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a>  <span class="at">ols_training =</span> ols_comparison<span class="sc">$</span>training<span class="sc">$</span>predicted,</span>
-<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a>  <span class="at">ols_holdout =</span> ols_comparison<span class="sc">$</span>holdout<span class="sc">$</span>predicted,</span>
-<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a>  <span class="at">data_output_dir =</span> data_output_dir,</span>
-<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a>  <span class="at">figure_output_dir =</span> figure_output_dir,</span>
-<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a>  <span class="at">file_prefix =</span> <span class="st">&quot;gwmodel&quot;</span>,</span>
-<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a>  <span class="at">feature_columns =</span> feature_columns</span>
-<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a>)</span>
-<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a>cvxr_split_metrics <span class="ot">&lt;-</span> <span class="fu">write_model_comparison_diagnostics</span>(</span>
-<span id="cb12-31"><a href="#cb12-31" tabindex="-1"></a>  <span class="at">model_name =</span> <span class="st">&quot;CVXR local regression with outlier correction&quot;</span>,</span>
-<span id="cb12-32"><a href="#cb12-32" tabindex="-1"></a>  <span class="at">training_data =</span> training_data,</span>
-<span id="cb12-33"><a href="#cb12-33" tabindex="-1"></a>  <span class="at">holdout_data =</span> holdout_data,</span>
-<span id="cb12-34"><a href="#cb12-34" tabindex="-1"></a>  <span class="at">training_fitted =</span></span>
-<span id="cb12-35"><a href="#cb12-35" tabindex="-1"></a>    selected_cvxr_training_fit<span class="sc">$</span>predictions <span class="sc">*</span> model_setup<span class="sc">$</span>response_sd <span class="sc">+</span></span>
-<span id="cb12-36"><a href="#cb12-36" tabindex="-1"></a>    model_setup<span class="sc">$</span>response_mean,</span>
-<span id="cb12-37"><a href="#cb12-37" tabindex="-1"></a>  <span class="at">holdout_fitted =</span> adjusted_cvxr_holdout_predictions,</span>
-<span id="cb12-38"><a href="#cb12-38" tabindex="-1"></a>  <span class="at">ols_training =</span> ols_comparison<span class="sc">$</span>training<span class="sc">$</span>predicted,</span>
-<span id="cb12-39"><a href="#cb12-39" tabindex="-1"></a>  <span class="at">ols_holdout =</span> ols_comparison<span class="sc">$</span>holdout<span class="sc">$</span>predicted,</span>
-<span id="cb12-40"><a href="#cb12-40" tabindex="-1"></a>  <span class="at">data_output_dir =</span> data_output_dir,</span>
-<span id="cb12-41"><a href="#cb12-41" tabindex="-1"></a>  <span class="at">figure_output_dir =</span> figure_output_dir,</span>
-<span id="cb12-42"><a href="#cb12-42" tabindex="-1"></a>  <span class="at">file_prefix =</span> <span class="st">&quot;cvxr_gw&quot;</span>,</span>
-<span id="cb12-43"><a href="#cb12-43" tabindex="-1"></a>  <span class="at">feature_columns =</span> feature_columns</span>
-<span id="cb12-44"><a href="#cb12-44" tabindex="-1"></a>)</span>
-<span id="cb12-45"><a href="#cb12-45" tabindex="-1"></a></span>
-<span id="cb12-46"><a href="#cb12-46" tabindex="-1"></a>holdout_model_comparison <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb12-47"><a href="#cb12-47" tabindex="-1"></a>  <span class="at">model =</span> <span class="fu">c</span>(</span>
-<span id="cb12-48"><a href="#cb12-48" tabindex="-1"></a>    <span class="st">&quot;GWmodel GWR&quot;</span>,</span>
-<span id="cb12-49"><a href="#cb12-49" tabindex="-1"></a>    <span class="st">&quot;GWmodel GWR with outlier correction&quot;</span>,</span>
-<span id="cb12-50"><a href="#cb12-50" tabindex="-1"></a>    <span class="st">&quot;CVXR local regression&quot;</span>,</span>
-<span id="cb12-51"><a href="#cb12-51" tabindex="-1"></a>    <span class="st">&quot;CVXR local regression with outlier correction&quot;</span>,</span>
-<span id="cb12-52"><a href="#cb12-52" tabindex="-1"></a>    <span class="st">&quot;Ordinary least squares reference&quot;</span></span>
-<span id="cb12-53"><a href="#cb12-53" tabindex="-1"></a>  ),</span>
-<span id="cb12-54"><a href="#cb12-54" tabindex="-1"></a>  <span class="at">bandwidth_neighbors =</span> <span class="fu">c</span>(</span>
-<span id="cb12-55"><a href="#cb12-55" tabindex="-1"></a>    selected_gwmodel_bandwidth,</span>
-<span id="cb12-56"><a href="#cb12-56" tabindex="-1"></a>    selected_gwmodel_bandwidth,</span>
-<span id="cb12-57"><a href="#cb12-57" tabindex="-1"></a>    selected_cvxr_bandwidth,</span>
-<span id="cb12-58"><a href="#cb12-58" tabindex="-1"></a>    selected_cvxr_bandwidth,</span>
-<span id="cb12-59"><a href="#cb12-59" tabindex="-1"></a>    <span class="cn">NA_real_</span></span>
-<span id="cb12-60"><a href="#cb12-60" tabindex="-1"></a>  ),</span>
-<span id="cb12-61"><a href="#cb12-61" tabindex="-1"></a>  <span class="at">lambda =</span> <span class="fu">c</span>(</span>
-<span id="cb12-62"><a href="#cb12-62" tabindex="-1"></a>    <span class="cn">NA_real_</span>, <span class="cn">NA_real_</span>, selected_cvxr_lambda, selected_cvxr_lambda, <span class="cn">NA_real_</span></span>
-<span id="cb12-63"><a href="#cb12-63" tabindex="-1"></a>  ),</span>
-<span id="cb12-64"><a href="#cb12-64" tabindex="-1"></a>  <span class="at">R_squared =</span> <span class="fu">c</span>(</span>
-<span id="cb12-65"><a href="#cb12-65" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>((y_holdout <span class="sc">-</span> best_gwmodel_holdout_predictions)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span></span>
-<span id="cb12-66"><a href="#cb12-66" tabindex="-1"></a>      holdout_total_sum_squares,</span>
-<span id="cb12-67"><a href="#cb12-67" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>((y_holdout <span class="sc">-</span> adjusted_gwmodel_holdout_predictions)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span></span>
-<span id="cb12-68"><a href="#cb12-68" tabindex="-1"></a>      holdout_total_sum_squares,</span>
-<span id="cb12-69"><a href="#cb12-69" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>((y_holdout <span class="sc">-</span> best_cvxr_holdout_predictions)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span></span>
-<span id="cb12-70"><a href="#cb12-70" tabindex="-1"></a>      holdout_total_sum_squares,</span>
-<span id="cb12-71"><a href="#cb12-71" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>((y_holdout <span class="sc">-</span> adjusted_cvxr_holdout_predictions)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span></span>
-<span id="cb12-72"><a href="#cb12-72" tabindex="-1"></a>      holdout_total_sum_squares,</span>
-<span id="cb12-73"><a href="#cb12-73" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(ols_reference_predictions<span class="sc">$</span>residual<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span></span>
-<span id="cb12-74"><a href="#cb12-74" tabindex="-1"></a>      holdout_total_sum_squares</span>
-<span id="cb12-75"><a href="#cb12-75" tabindex="-1"></a>  ),</span>
-<span id="cb12-76"><a href="#cb12-76" tabindex="-1"></a>  <span class="at">RMSE =</span> <span class="fu">c</span>(</span>
-<span id="cb12-77"><a href="#cb12-77" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>((y_holdout <span class="sc">-</span> best_gwmodel_holdout_predictions)<span class="sc">^</span><span class="dv">2</span>)),</span>
-<span id="cb12-78"><a href="#cb12-78" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>((y_holdout <span class="sc">-</span> adjusted_gwmodel_holdout_predictions)<span class="sc">^</span><span class="dv">2</span>)),</span>
-<span id="cb12-79"><a href="#cb12-79" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>((y_holdout <span class="sc">-</span> best_cvxr_holdout_predictions)<span class="sc">^</span><span class="dv">2</span>)),</span>
-<span id="cb12-80"><a href="#cb12-80" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>((y_holdout <span class="sc">-</span> adjusted_cvxr_holdout_predictions)<span class="sc">^</span><span class="dv">2</span>)),</span>
-<span id="cb12-81"><a href="#cb12-81" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>(ols_reference_predictions<span class="sc">$</span>residual<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb12-82"><a href="#cb12-82" tabindex="-1"></a>  )</span>
-<span id="cb12-83"><a href="#cb12-83" tabindex="-1"></a>)</span>
-<span id="cb12-84"><a href="#cb12-84" tabindex="-1"></a><span class="fu">print</span>(holdout_model_comparison, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
-<pre><code>##                                          model bandwidth_neighbors lambda
-##                                    GWmodel GWR                  60     NA
-##            GWmodel GWR with outlier correction                  60     NA
-##                          CVXR local regression                  60   0.01
-##  CVXR local regression with outlier correction                  60   0.01
-##               Ordinary least squares reference                  NA     NA
-##  R_squared     RMSE
-##  0.4105495 34.86289
-##  0.4361254 34.09816
-##  0.6507671 26.83473
-##  0.8542638 17.33499
-##  0.3731519 35.95182</code></pre>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>holdout_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">province =</span> holdout_data<span class="sc">$</span>province,</span>
-<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">year =</span> holdout_year,</span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">actual =</span> y_holdout,</span>
-<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="at">gwmodel_spatial_prediction =</span> best_gwmodel_holdout_predictions,</span>
-<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  <span class="at">gwmodel_outlier_correction =</span> gwmodel_holdout_correction,</span>
-<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>  <span class="at">gwmodel_fitted =</span> adjusted_gwmodel_holdout_predictions,</span>
-<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>  <span class="at">gwmodel_residual =</span> y_holdout <span class="sc">-</span> adjusted_gwmodel_holdout_predictions,</span>
-<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>  <span class="at">cvxr_spatial_prediction =</span> best_cvxr_holdout_predictions,</span>
-<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>  <span class="at">cvxr_outlier_correction =</span> cvxr_holdout_correction,</span>
-<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>  <span class="at">cvxr_fitted =</span> adjusted_cvxr_holdout_predictions,</span>
-<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>  <span class="at">cvxr_residual =</span> y_holdout <span class="sc">-</span> adjusted_cvxr_holdout_predictions</span>
-<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>)</span>
-<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>  holdout_predictions,</span>
-<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gw_model_2025_holdout_predictions.csv&quot;</span>),</span>
-<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a>)</span>
-<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a></span>
-<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a>holdout_plot_data <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
-<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
-<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a>    <span class="at">actual =</span> y_holdout,</span>
-<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a>    <span class="at">fitted =</span> best_gwmodel_holdout_predictions,</span>
-<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">&quot;GWmodel GWR&quot;</span></span>
-<span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a>  ),</span>
-<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
-<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a>    <span class="at">actual =</span> y_holdout,</span>
-<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a>    <span class="at">fitted =</span> adjusted_gwmodel_holdout_predictions,</span>
-<span id="cb14-29"><a href="#cb14-29" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">&quot;GWmodel GWR with outlier correction&quot;</span></span>
-<span id="cb14-30"><a href="#cb14-30" tabindex="-1"></a>  ),</span>
-<span id="cb14-31"><a href="#cb14-31" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
-<span id="cb14-32"><a href="#cb14-32" tabindex="-1"></a>    <span class="at">actual =</span> y_holdout,</span>
-<span id="cb14-33"><a href="#cb14-33" tabindex="-1"></a>    <span class="at">fitted =</span> best_cvxr_holdout_predictions,</span>
-<span id="cb14-34"><a href="#cb14-34" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">&quot;CVXR local regression&quot;</span></span>
-<span id="cb14-35"><a href="#cb14-35" tabindex="-1"></a>  ),</span>
-<span id="cb14-36"><a href="#cb14-36" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
-<span id="cb14-37"><a href="#cb14-37" tabindex="-1"></a>    <span class="at">actual =</span> y_holdout,</span>
-<span id="cb14-38"><a href="#cb14-38" tabindex="-1"></a>    <span class="at">fitted =</span> adjusted_cvxr_holdout_predictions,</span>
-<span id="cb14-39"><a href="#cb14-39" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">&quot;CVXR with outlier correction&quot;</span></span>
-<span id="cb14-40"><a href="#cb14-40" tabindex="-1"></a>  )</span>
-<span id="cb14-41"><a href="#cb14-41" tabindex="-1"></a>)</span>
-<span id="cb14-42"><a href="#cb14-42" tabindex="-1"></a>holdout_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(</span>
-<span id="cb14-43"><a href="#cb14-43" tabindex="-1"></a>  holdout_plot_data,</span>
-<span id="cb14-44"><a href="#cb14-44" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> actual, <span class="at">y =</span> fitted, <span class="at">color =</span> model)</span>
-<span id="cb14-45"><a href="#cb14-45" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb14-46"><a href="#cb14-46" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
-<span id="cb14-47"><a href="#cb14-47" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>, <span class="at">color =</span> <span class="st">&quot;gray35&quot;</span>) <span class="sc">+</span></span>
-<span id="cb14-48"><a href="#cb14-48" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(</span>
-<span id="cb14-49"><a href="#cb14-49" tabindex="-1"></a>    <span class="st">&quot;GWmodel GWR&quot;</span> <span class="ot">=</span> <span class="st">&quot;#0072B2&quot;</span>,</span>
-<span id="cb14-50"><a href="#cb14-50" tabindex="-1"></a>    <span class="st">&quot;GWmodel GWR with outlier correction&quot;</span> <span class="ot">=</span> <span class="st">&quot;#56B4E9&quot;</span>,</span>
-<span id="cb14-51"><a href="#cb14-51" tabindex="-1"></a>    <span class="st">&quot;CVXR local regression&quot;</span> <span class="ot">=</span> <span class="st">&quot;#D55E00&quot;</span>,</span>
-<span id="cb14-52"><a href="#cb14-52" tabindex="-1"></a>    <span class="st">&quot;CVXR with outlier correction&quot;</span> <span class="ot">=</span> <span class="st">&quot;#E69F00&quot;</span></span>
-<span id="cb14-53"><a href="#cb14-53" tabindex="-1"></a>  )) <span class="sc">+</span></span>
-<span id="cb14-54"><a href="#cb14-54" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb14-55"><a href="#cb14-55" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">&quot;2025 spatial-model holdout: actual vs fitted&quot;</span>,</span>
-<span id="cb14-56"><a href="#cb14-56" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">&quot;Actual GRDP per capita&quot;</span>,</span>
-<span id="cb14-57"><a href="#cb14-57" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">&quot;Predicted GRDP per capita&quot;</span>,</span>
-<span id="cb14-58"><a href="#cb14-58" tabindex="-1"></a>    <span class="at">color =</span> <span class="cn">NULL</span></span>
-<span id="cb14-59"><a href="#cb14-59" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb14-60"><a href="#cb14-60" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb14-61"><a href="#cb14-61" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
-<span id="cb14-62"><a href="#cb14-62" tabindex="-1"></a>  <span class="fu">file.path</span>(figure_output_dir, <span class="st">&quot;gw_model_2025_holdout_actual_vs_fitted.png&quot;</span>),</span>
-<span id="cb14-63"><a href="#cb14-63" tabindex="-1"></a>  holdout_plot,</span>
-<span id="cb14-64"><a href="#cb14-64" tabindex="-1"></a>  <span class="at">width =</span> <span class="fl">11.25</span>,</span>
-<span id="cb14-65"><a href="#cb14-65" tabindex="-1"></a>  <span class="at">height =</span> <span class="fl">6.875</span>,</span>
-<span id="cb14-66"><a href="#cb14-66" tabindex="-1"></a>  <span class="at">dpi =</span> <span class="dv">160</span></span>
-<span id="cb14-67"><a href="#cb14-67" tabindex="-1"></a>)</span></code></pre></div>
-</div>
-<div id="refit-selected-models-and-training-diagnostics" class="section level3">
-<h3>Refit selected models and training diagnostics</h3>
-<p>Refit each method using all available regression years. The final
-year effects include separate 2020–2025 intercept terms; 2025 level-2
-predictions use the 2025 term directly.</p>
-<p>This chunk refits both methods on all years using their
-holdout-selected bandwidths (rescaled to the larger all-years sample)
-and selected CVXR <span class="math inline">\(\lambda\)</span>. It
-computes training fitted values/residuals, writes observation
-diagnostics, and reports training <span class="math inline">\(R^2\)</span> and RMSE. The final refit is for
-level-2 prediction; holdout metrics continue to come from models trained
-without 2025 outcomes.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>final_training_data <span class="ot">&lt;-</span> <span class="fu">add_year_effects</span>(</span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="fu">prepare_features</span>(regression_data),</span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  all_years</span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>)</span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>final_year_effect_columns <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;year_&quot;</span>, all_years[<span class="sc">-</span><span class="dv">1</span>])</span>
-<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>final_predictors <span class="ot">&lt;-</span> <span class="fu">c</span>(final_year_effect_columns, scaled_feature_columns)</span>
-<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>final_design_formula <span class="ot">&lt;-</span> <span class="fu">reformulate</span>(final_predictors)</span>
-<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>final_model_formula <span class="ot">&lt;-</span> <span class="fu">reformulate</span>(</span>
-<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a>  final_predictors,</span>
-<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a>  <span class="at">response =</span> <span class="st">&quot;grdp_per_capita&quot;</span></span>
-<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a>)</span>
-<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a>final_X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(final_design_formula, <span class="at">data =</span> final_training_data)</span>
-<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a>final_y <span class="ot">&lt;-</span> final_training_data<span class="sc">$</span>grdp_per_capita</span>
-<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a>final_feature_parameter_indices <span class="ot">&lt;-</span> <span class="fu">match</span>(</span>
-<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a>  scaled_feature_columns,</span>
-<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a>  <span class="fu">colnames</span>(final_X)</span>
-<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a>)</span>
-<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(final_feature_parameter_indices)) {</span>
-<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Could not identify all final-model feature slopes.&quot;</span>)</span>
-<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a>}</span>
-<span id="cb15-21"><a href="#cb15-21" tabindex="-1"></a></span>
-<span id="cb15-22"><a href="#cb15-22" tabindex="-1"></a>final_bandwidth_gwmodel <span class="ot">&lt;-</span> <span class="fu">min</span>(</span>
-<span id="cb15-23"><a href="#cb15-23" tabindex="-1"></a>  <span class="fu">nrow</span>(final_training_data),</span>
-<span id="cb15-24"><a href="#cb15-24" tabindex="-1"></a>  <span class="fu">max</span>(</span>
-<span id="cb15-25"><a href="#cb15-25" tabindex="-1"></a>    <span class="fu">ncol</span>(final_X) <span class="sc">+</span> <span class="dv">2</span>,</span>
-<span id="cb15-26"><a href="#cb15-26" tabindex="-1"></a>    <span class="fu">ceiling</span>(selected_gwmodel_bandwidth <span class="sc">/</span> <span class="fu">nrow</span>(training_data) <span class="sc">*</span></span>
-<span id="cb15-27"><a href="#cb15-27" tabindex="-1"></a>      <span class="fu">nrow</span>(final_training_data))</span>
-<span id="cb15-28"><a href="#cb15-28" tabindex="-1"></a>  )</span>
-<span id="cb15-29"><a href="#cb15-29" tabindex="-1"></a>)</span>
-<span id="cb15-30"><a href="#cb15-30" tabindex="-1"></a>final_bandwidth_cvxr <span class="ot">&lt;-</span> <span class="fu">min</span>(</span>
-<span id="cb15-31"><a href="#cb15-31" tabindex="-1"></a>  <span class="fu">nrow</span>(final_training_data),</span>
-<span id="cb15-32"><a href="#cb15-32" tabindex="-1"></a>  <span class="fu">max</span>(</span>
-<span id="cb15-33"><a href="#cb15-33" tabindex="-1"></a>    <span class="fu">ncol</span>(final_X) <span class="sc">+</span> <span class="dv">2</span>,</span>
-<span id="cb15-34"><a href="#cb15-34" tabindex="-1"></a>    <span class="fu">ceiling</span>(selected_cvxr_bandwidth <span class="sc">/</span> <span class="fu">nrow</span>(training_data) <span class="sc">*</span></span>
-<span id="cb15-35"><a href="#cb15-35" tabindex="-1"></a>      <span class="fu">nrow</span>(final_training_data))</span>
-<span id="cb15-36"><a href="#cb15-36" tabindex="-1"></a>  )</span>
-<span id="cb15-37"><a href="#cb15-37" tabindex="-1"></a>)</span>
-<span id="cb15-38"><a href="#cb15-38" tabindex="-1"></a>final_training_coordinates <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(</span>
-<span id="cb15-39"><a href="#cb15-39" tabindex="-1"></a>  final_training_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)]</span>
-<span id="cb15-40"><a href="#cb15-40" tabindex="-1"></a>)</span>
-<span id="cb15-41"><a href="#cb15-41" tabindex="-1"></a>final_training_distances <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">gw.dist</span>(</span>
-<span id="cb15-42"><a href="#cb15-42" tabindex="-1"></a>  <span class="at">dp.locat =</span> final_training_coordinates,</span>
-<span id="cb15-43"><a href="#cb15-43" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span></span>
-<span id="cb15-44"><a href="#cb15-44" tabindex="-1"></a>))</span>
-<span id="cb15-45"><a href="#cb15-45" tabindex="-1"></a>final_training_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(</span>
-<span id="cb15-46"><a href="#cb15-46" tabindex="-1"></a>  final_training_data,</span>
-<span id="cb15-47"><a href="#cb15-47" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>),</span>
-<span id="cb15-48"><a href="#cb15-48" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">4326</span>,</span>
-<span id="cb15-49"><a href="#cb15-49" tabindex="-1"></a>  <span class="at">remove =</span> <span class="cn">FALSE</span></span>
-<span id="cb15-50"><a href="#cb15-50" tabindex="-1"></a>)</span>
-<span id="cb15-51"><a href="#cb15-51" tabindex="-1"></a></span>
-<span id="cb15-52"><a href="#cb15-52" tabindex="-1"></a>final_gwr <span class="ot">&lt;-</span> <span class="fu">gwr.basic</span>(</span>
-<span id="cb15-53"><a href="#cb15-53" tabindex="-1"></a>  <span class="at">formula =</span> final_model_formula,</span>
-<span id="cb15-54"><a href="#cb15-54" tabindex="-1"></a>  <span class="at">data =</span> final_training_sf,</span>
-<span id="cb15-55"><a href="#cb15-55" tabindex="-1"></a>  <span class="at">bw =</span> final_bandwidth_gwmodel,</span>
-<span id="cb15-56"><a href="#cb15-56" tabindex="-1"></a>  <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb15-57"><a href="#cb15-57" tabindex="-1"></a>  <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb15-58"><a href="#cb15-58" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb15-59"><a href="#cb15-59" tabindex="-1"></a>  <span class="at">dMat =</span> final_training_distances</span>
-<span id="cb15-60"><a href="#cb15-60" tabindex="-1"></a>)</span>
-<span id="cb15-61"><a href="#cb15-61" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.null</span>(final_gwr<span class="sc">$</span>SDF<span class="sc">$</span>yhat) <span class="sc">||</span></span>
-<span id="cb15-62"><a href="#cb15-62" tabindex="-1"></a>    <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(final_gwr<span class="sc">$</span>SDF<span class="sc">$</span>yhat))) {</span>
-<span id="cb15-63"><a href="#cb15-63" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;GWmodel final fit did not return finite training fitted values.&quot;</span>)</span>
-<span id="cb15-64"><a href="#cb15-64" tabindex="-1"></a>}</span>
-<span id="cb15-65"><a href="#cb15-65" tabindex="-1"></a></span>
-<span id="cb15-66"><a href="#cb15-66" tabindex="-1"></a>final_cvxr_weights <span class="ot">&lt;-</span> <span class="fu">gw.weight</span>(</span>
-<span id="cb15-67"><a href="#cb15-67" tabindex="-1"></a>  final_training_distances,</span>
-<span id="cb15-68"><a href="#cb15-68" tabindex="-1"></a>  <span class="at">bw =</span> final_bandwidth_cvxr,</span>
-<span id="cb15-69"><a href="#cb15-69" tabindex="-1"></a>  <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb15-70"><a href="#cb15-70" tabindex="-1"></a>  <span class="at">adaptive =</span> <span class="cn">TRUE</span></span>
-<span id="cb15-71"><a href="#cb15-71" tabindex="-1"></a>)</span>
-<span id="cb15-72"><a href="#cb15-72" tabindex="-1"></a>final_cvxr_training_fit <span class="ot">&lt;-</span> <span class="fu">cvxr_local_predict</span>(</span>
-<span id="cb15-73"><a href="#cb15-73" tabindex="-1"></a>  <span class="at">X =</span> final_X,</span>
-<span id="cb15-74"><a href="#cb15-74" tabindex="-1"></a>  <span class="at">y =</span> final_y,</span>
-<span id="cb15-75"><a href="#cb15-75" tabindex="-1"></a>  <span class="at">target_X =</span> final_X,</span>
-<span id="cb15-76"><a href="#cb15-76" tabindex="-1"></a>  <span class="at">weights =</span> final_cvxr_weights,</span>
-<span id="cb15-77"><a href="#cb15-77" tabindex="-1"></a>  <span class="at">lambda =</span> selected_cvxr_lambda,</span>
-<span id="cb15-78"><a href="#cb15-78" tabindex="-1"></a>  <span class="at">penalty_indices =</span> final_feature_parameter_indices</span>
-<span id="cb15-79"><a href="#cb15-79" tabindex="-1"></a>)</span>
-<span id="cb15-80"><a href="#cb15-80" tabindex="-1"></a></span>
-<span id="cb15-81"><a href="#cb15-81" tabindex="-1"></a>training_diagnostics <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb15-82"><a href="#cb15-82" tabindex="-1"></a>  <span class="at">province =</span> final_training_data<span class="sc">$</span>province,</span>
-<span id="cb15-83"><a href="#cb15-83" tabindex="-1"></a>  <span class="at">year =</span> final_training_data<span class="sc">$</span>year,</span>
-<span id="cb15-84"><a href="#cb15-84" tabindex="-1"></a>  <span class="at">year_factor =</span> <span class="fu">factor</span>(final_training_data<span class="sc">$</span>year),</span>
-<span id="cb15-85"><a href="#cb15-85" tabindex="-1"></a>  <span class="at">actual =</span> final_y,</span>
-<span id="cb15-86"><a href="#cb15-86" tabindex="-1"></a>  <span class="at">gwmodel_fitted =</span> final_gwr<span class="sc">$</span>SDF<span class="sc">$</span>yhat,</span>
-<span id="cb15-87"><a href="#cb15-87" tabindex="-1"></a>  <span class="at">gwmodel_residual =</span> final_y <span class="sc">-</span> final_gwr<span class="sc">$</span>SDF<span class="sc">$</span>yhat,</span>
-<span id="cb15-88"><a href="#cb15-88" tabindex="-1"></a>  <span class="at">cvxr_fitted =</span> final_cvxr_training_fit<span class="sc">$</span>predictions,</span>
-<span id="cb15-89"><a href="#cb15-89" tabindex="-1"></a>  <span class="at">cvxr_residual =</span> final_y <span class="sc">-</span> final_cvxr_training_fit<span class="sc">$</span>predictions,</span>
-<span id="cb15-90"><a href="#cb15-90" tabindex="-1"></a>  <span class="at">mean_radiance =</span> final_training_data<span class="sc">$</span>mean_radiance,</span>
-<span id="cb15-91"><a href="#cb15-91" tabindex="-1"></a>  <span class="at">population =</span> final_training_data<span class="sc">$</span>population,</span>
-<span id="cb15-92"><a href="#cb15-92" tabindex="-1"></a>  <span class="at">pixel_count =</span> final_training_data<span class="sc">$</span>pixel_count</span>
-<span id="cb15-93"><a href="#cb15-93" tabindex="-1"></a>)</span>
-<span id="cb15-94"><a href="#cb15-94" tabindex="-1"></a>training_diagnostics <span class="ot">&lt;-</span> training_diagnostics <span class="sc">%&gt;%</span></span>
-<span id="cb15-95"><a href="#cb15-95" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb15-96"><a href="#cb15-96" tabindex="-1"></a>    <span class="at">gwmodel_standardized_residual =</span></span>
-<span id="cb15-97"><a href="#cb15-97" tabindex="-1"></a>      gwmodel_residual <span class="sc">/</span> <span class="fu">sd</span>(gwmodel_residual),</span>
-<span id="cb15-98"><a href="#cb15-98" tabindex="-1"></a>    <span class="at">gwmodel_scale_location =</span> <span class="fu">sqrt</span>(<span class="fu">abs</span>(gwmodel_standardized_residual)),</span>
-<span id="cb15-99"><a href="#cb15-99" tabindex="-1"></a>    <span class="at">cvxr_standardized_residual =</span> cvxr_residual <span class="sc">/</span> <span class="fu">sd</span>(cvxr_residual),</span>
-<span id="cb15-100"><a href="#cb15-100" tabindex="-1"></a>    <span class="at">cvxr_scale_location =</span> <span class="fu">sqrt</span>(<span class="fu">abs</span>(cvxr_standardized_residual))</span>
-<span id="cb15-101"><a href="#cb15-101" tabindex="-1"></a>  )</span>
-<span id="cb15-102"><a href="#cb15-102" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb15-103"><a href="#cb15-103" tabindex="-1"></a>  training_diagnostics,</span>
-<span id="cb15-104"><a href="#cb15-104" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gw_model_all_year_refit_diagnostics.csv&quot;</span>),</span>
-<span id="cb15-105"><a href="#cb15-105" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb15-106"><a href="#cb15-106" tabindex="-1"></a>)</span>
-<span id="cb15-107"><a href="#cb15-107" tabindex="-1"></a></span>
-<span id="cb15-108"><a href="#cb15-108" tabindex="-1"></a>training_total_sum_squares <span class="ot">&lt;-</span> <span class="fu">sum</span>((final_y <span class="sc">-</span> <span class="fu">mean</span>(final_y))<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb15-109"><a href="#cb15-109" tabindex="-1"></a>final_refit_model_stats <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb15-110"><a href="#cb15-110" tabindex="-1"></a>  <span class="at">model =</span> <span class="fu">c</span>(<span class="st">&quot;GWmodel GWR&quot;</span>, <span class="st">&quot;CVXR local regression&quot;</span>),</span>
-<span id="cb15-111"><a href="#cb15-111" tabindex="-1"></a>  <span class="at">R_squared =</span> <span class="fu">c</span>(</span>
-<span id="cb15-112"><a href="#cb15-112" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(training_diagnostics<span class="sc">$</span>gwmodel_residual<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span></span>
-<span id="cb15-113"><a href="#cb15-113" tabindex="-1"></a>      training_total_sum_squares,</span>
-<span id="cb15-114"><a href="#cb15-114" tabindex="-1"></a>    <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>(training_diagnostics<span class="sc">$</span>cvxr_residual<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span></span>
-<span id="cb15-115"><a href="#cb15-115" tabindex="-1"></a>      training_total_sum_squares</span>
-<span id="cb15-116"><a href="#cb15-116" tabindex="-1"></a>  ),</span>
-<span id="cb15-117"><a href="#cb15-117" tabindex="-1"></a>  <span class="at">RMSE =</span> <span class="fu">c</span>(</span>
-<span id="cb15-118"><a href="#cb15-118" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>(training_diagnostics<span class="sc">$</span>gwmodel_residual<span class="sc">^</span><span class="dv">2</span>)),</span>
-<span id="cb15-119"><a href="#cb15-119" tabindex="-1"></a>    <span class="fu">sqrt</span>(<span class="fu">mean</span>(training_diagnostics<span class="sc">$</span>cvxr_residual<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb15-120"><a href="#cb15-120" tabindex="-1"></a>  )</span>
-<span id="cb15-121"><a href="#cb15-121" tabindex="-1"></a>)</span>
-<span id="cb15-122"><a href="#cb15-122" tabindex="-1"></a><span class="fu">print</span>(final_refit_model_stats, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
-<pre><code>##                  model R_squared     RMSE
-##            GWmodel GWR 0.7304294 20.72948
-##  CVXR local regression 0.7303283 20.73336</code></pre>
-<p>The fitted-value and residual figures follow the linear model’s
-diagnostic outputs. Training diagnostics are descriptive; local fits and
-spatially overlapping neighborhoods do not have independent
-residuals.</p>
-<p>The next chunk draws actual-versus-fitted plots for both spatial
-methods and residual-versus-fitted, Q-Q, residual-versus-radiance, and
-residual-by-year panels. Using parallel panels makes method differences
-visible, but spatial overlap and local fitting mean these are visual
-diagnostics rather than independent-error inference.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>actual_fitted_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(training_diagnostics) <span class="sc">+</span></span>
-<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
-<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> actual, <span class="at">y =</span> gwmodel_fitted, <span class="at">color =</span> <span class="st">&quot;GWmodel GWR&quot;</span>),</span>
-<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.65</span>,</span>
-<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>    <span class="at">size =</span> <span class="fl">1.8</span></span>
-<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
-<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> actual, <span class="at">y =</span> cvxr_fitted, <span class="at">color =</span> <span class="st">&quot;CVXR local regression&quot;</span>),</span>
-<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.65</span>,</span>
-<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a>    <span class="at">size =</span> <span class="fl">1.8</span></span>
-<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>, <span class="at">color =</span> <span class="st">&quot;gray35&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
-<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="st">&quot;GWmodel GWR&quot;</span> <span class="ot">=</span> <span class="st">&quot;#0072B2&quot;</span>, <span class="st">&quot;CVXR local regression&quot;</span> <span class="ot">=</span> <span class="st">&quot;#D55E00&quot;</span>)</span>
-<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">&quot;Training observations: actual vs fitted&quot;</span>,</span>
-<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">&quot;Actual GRDP per capita&quot;</span>,</span>
-<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">&quot;Fitted GRDP per capita&quot;</span>,</span>
-<span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a>    <span class="at">color =</span> <span class="cn">NULL</span></span>
-<span id="cb17-21"><a href="#cb17-21" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb17-22"><a href="#cb17-22" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb17-23"><a href="#cb17-23" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
-<span id="cb17-24"><a href="#cb17-24" tabindex="-1"></a>  <span class="fu">file.path</span>(figure_output_dir, <span class="st">&quot;gw_model_all_year_refit_actual_vs_fitted.png&quot;</span>),</span>
-<span id="cb17-25"><a href="#cb17-25" tabindex="-1"></a>  actual_fitted_plot,</span>
-<span id="cb17-26"><a href="#cb17-26" tabindex="-1"></a>  <span class="at">width =</span> <span class="fl">11.25</span>,</span>
-<span id="cb17-27"><a href="#cb17-27" tabindex="-1"></a>  <span class="at">height =</span> <span class="fl">6.875</span>,</span>
-<span id="cb17-28"><a href="#cb17-28" tabindex="-1"></a>  <span class="at">dpi =</span> <span class="dv">160</span></span>
-<span id="cb17-29"><a href="#cb17-29" tabindex="-1"></a>)</span>
-<span id="cb17-30"><a href="#cb17-30" tabindex="-1"></a></span>
-<span id="cb17-31"><a href="#cb17-31" tabindex="-1"></a>diagnostic_scatter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, fitted_column, residual_column, title) {</span>
-<span id="cb17-32"><a href="#cb17-32" tabindex="-1"></a>  <span class="fu">ggplot</span>(data, <span class="fu">aes</span>(<span class="at">x =</span> .data[[fitted_column]], <span class="at">y =</span> .data[[residual_column]])) <span class="sc">+</span></span>
-<span id="cb17-33"><a href="#cb17-33" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">&quot;#0072B2&quot;</span>, <span class="at">alpha =</span> <span class="fl">0.55</span>, <span class="at">size =</span> <span class="fl">1.4</span>) <span class="sc">+</span></span>
-<span id="cb17-34"><a href="#cb17-34" tabindex="-1"></a>    <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb17-35"><a href="#cb17-35" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> title, <span class="at">x =</span> <span class="st">&quot;Fitted values&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Residual&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-36"><a href="#cb17-36" tabindex="-1"></a>    <span class="fu">theme_minimal</span>()</span>
-<span id="cb17-37"><a href="#cb17-37" tabindex="-1"></a>}</span>
-<span id="cb17-38"><a href="#cb17-38" tabindex="-1"></a>diagnostic_qq <span class="ot">&lt;-</span> <span class="cf">function</span>(data, residual_column, title) {</span>
-<span id="cb17-39"><a href="#cb17-39" tabindex="-1"></a>  <span class="fu">ggplot</span>(data, <span class="fu">aes</span>(<span class="at">sample =</span> .data[[residual_column]])) <span class="sc">+</span></span>
-<span id="cb17-40"><a href="#cb17-40" tabindex="-1"></a>    <span class="fu">stat_qq</span>(<span class="at">color =</span> <span class="st">&quot;#0072B2&quot;</span>, <span class="at">alpha =</span> <span class="fl">0.55</span>) <span class="sc">+</span></span>
-<span id="cb17-41"><a href="#cb17-41" tabindex="-1"></a>    <span class="fu">stat_qq_line</span>(<span class="at">color =</span> <span class="st">&quot;#D55E00&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-42"><a href="#cb17-42" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> title, <span class="at">x =</span> <span class="st">&quot;Theoretical quantiles&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Sample quantiles&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-43"><a href="#cb17-43" tabindex="-1"></a>    <span class="fu">theme_minimal</span>()</span>
-<span id="cb17-44"><a href="#cb17-44" tabindex="-1"></a>}</span>
-<span id="cb17-45"><a href="#cb17-45" tabindex="-1"></a></span>
-<span id="cb17-46"><a href="#cb17-46" tabindex="-1"></a>gw_residual_fitted <span class="ot">&lt;-</span> <span class="fu">diagnostic_scatter</span>(</span>
-<span id="cb17-47"><a href="#cb17-47" tabindex="-1"></a>  training_diagnostics, <span class="st">&quot;gwmodel_fitted&quot;</span>, <span class="st">&quot;gwmodel_residual&quot;</span>,</span>
-<span id="cb17-48"><a href="#cb17-48" tabindex="-1"></a>  <span class="st">&quot;GWmodel: residual vs fitted&quot;</span></span>
-<span id="cb17-49"><a href="#cb17-49" tabindex="-1"></a>)</span>
-<span id="cb17-50"><a href="#cb17-50" tabindex="-1"></a>cvxr_residual_fitted <span class="ot">&lt;-</span> <span class="fu">diagnostic_scatter</span>(</span>
-<span id="cb17-51"><a href="#cb17-51" tabindex="-1"></a>  training_diagnostics, <span class="st">&quot;cvxr_fitted&quot;</span>, <span class="st">&quot;cvxr_residual&quot;</span>,</span>
-<span id="cb17-52"><a href="#cb17-52" tabindex="-1"></a>  <span class="st">&quot;CVXR: residual vs fitted&quot;</span></span>
-<span id="cb17-53"><a href="#cb17-53" tabindex="-1"></a>)</span>
-<span id="cb17-54"><a href="#cb17-54" tabindex="-1"></a>gw_qq <span class="ot">&lt;-</span> <span class="fu">diagnostic_qq</span>(</span>
-<span id="cb17-55"><a href="#cb17-55" tabindex="-1"></a>  training_diagnostics, <span class="st">&quot;gwmodel_residual&quot;</span>, <span class="st">&quot;GWmodel residual Q-Q&quot;</span></span>
-<span id="cb17-56"><a href="#cb17-56" tabindex="-1"></a>)</span>
-<span id="cb17-57"><a href="#cb17-57" tabindex="-1"></a>cvxr_qq <span class="ot">&lt;-</span> <span class="fu">diagnostic_qq</span>(</span>
-<span id="cb17-58"><a href="#cb17-58" tabindex="-1"></a>  training_diagnostics, <span class="st">&quot;cvxr_residual&quot;</span>, <span class="st">&quot;CVXR residual Q-Q&quot;</span></span>
-<span id="cb17-59"><a href="#cb17-59" tabindex="-1"></a>)</span>
-<span id="cb17-60"><a href="#cb17-60" tabindex="-1"></a>gw_radiance <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(</span>
-<span id="cb17-61"><a href="#cb17-61" tabindex="-1"></a>  training_diagnostics,</span>
-<span id="cb17-62"><a href="#cb17-62" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> mean_radiance, <span class="at">y =</span> gwmodel_residual)</span>
-<span id="cb17-63"><a href="#cb17-63" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb17-64"><a href="#cb17-64" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">&quot;#0072B2&quot;</span>, <span class="at">alpha =</span> <span class="fl">0.55</span>, <span class="at">size =</span> <span class="fl">1.4</span>) <span class="sc">+</span></span>
-<span id="cb17-65"><a href="#cb17-65" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb17-66"><a href="#cb17-66" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;GWmodel residual vs radiance&quot;</span>, <span class="at">x =</span> <span class="st">&quot;Mean radiance&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Residual&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-67"><a href="#cb17-67" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb17-68"><a href="#cb17-68" tabindex="-1"></a>cvxr_radiance <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(</span>
-<span id="cb17-69"><a href="#cb17-69" tabindex="-1"></a>  training_diagnostics,</span>
-<span id="cb17-70"><a href="#cb17-70" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> mean_radiance, <span class="at">y =</span> cvxr_residual)</span>
-<span id="cb17-71"><a href="#cb17-71" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb17-72"><a href="#cb17-72" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">&quot;#D55E00&quot;</span>, <span class="at">alpha =</span> <span class="fl">0.55</span>, <span class="at">size =</span> <span class="fl">1.4</span>) <span class="sc">+</span></span>
-<span id="cb17-73"><a href="#cb17-73" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb17-74"><a href="#cb17-74" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;CVXR residual vs radiance&quot;</span>, <span class="at">x =</span> <span class="st">&quot;Mean radiance&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Residual&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-75"><a href="#cb17-75" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb17-76"><a href="#cb17-76" tabindex="-1"></a>gw_by_year <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(</span>
-<span id="cb17-77"><a href="#cb17-77" tabindex="-1"></a>  training_diagnostics,</span>
-<span id="cb17-78"><a href="#cb17-78" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> year_factor, <span class="at">y =</span> gwmodel_residual)</span>
-<span id="cb17-79"><a href="#cb17-79" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb17-80"><a href="#cb17-80" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">fill =</span> <span class="st">&quot;#B8D8E8&quot;</span>, <span class="at">color =</span> <span class="st">&quot;#0072B2&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-81"><a href="#cb17-81" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb17-82"><a href="#cb17-82" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;GWmodel residual by year&quot;</span>, <span class="at">x =</span> <span class="st">&quot;Year&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Residual&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-83"><a href="#cb17-83" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb17-84"><a href="#cb17-84" tabindex="-1"></a>cvxr_by_year <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(</span>
-<span id="cb17-85"><a href="#cb17-85" tabindex="-1"></a>  training_diagnostics,</span>
-<span id="cb17-86"><a href="#cb17-86" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> year_factor, <span class="at">y =</span> cvxr_residual)</span>
-<span id="cb17-87"><a href="#cb17-87" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb17-88"><a href="#cb17-88" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">fill =</span> <span class="st">&quot;#F4C7B8&quot;</span>, <span class="at">color =</span> <span class="st">&quot;#D55E00&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-89"><a href="#cb17-89" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb17-90"><a href="#cb17-90" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;CVXR residual by year&quot;</span>, <span class="at">x =</span> <span class="st">&quot;Year&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Residual&quot;</span>) <span class="sc">+</span></span>
-<span id="cb17-91"><a href="#cb17-91" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb17-92"><a href="#cb17-92" tabindex="-1"></a></span>
-<span id="cb17-93"><a href="#cb17-93" tabindex="-1"></a>residual_diagnostics_plot <span class="ot">&lt;-</span></span>
-<span id="cb17-94"><a href="#cb17-94" tabindex="-1"></a>  (gw_residual_fitted <span class="sc">|</span> gw_qq <span class="sc">|</span> gw_radiance <span class="sc">|</span> gw_by_year) <span class="sc">/</span></span>
-<span id="cb17-95"><a href="#cb17-95" tabindex="-1"></a>  (cvxr_residual_fitted <span class="sc">|</span> cvxr_qq <span class="sc">|</span> cvxr_radiance <span class="sc">|</span> cvxr_by_year) <span class="sc">+</span></span>
-<span id="cb17-96"><a href="#cb17-96" tabindex="-1"></a>  <span class="fu">plot_annotation</span>(<span class="at">title =</span> <span class="st">&quot;Spatial-model training residual diagnostics&quot;</span>)</span>
-<span id="cb17-97"><a href="#cb17-97" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
-<span id="cb17-98"><a href="#cb17-98" tabindex="-1"></a>  <span class="fu">file.path</span>(figure_output_dir, <span class="st">&quot;gw_model_all_year_refit_residual_diagnostics.png&quot;</span>),</span>
-<span id="cb17-99"><a href="#cb17-99" tabindex="-1"></a>  residual_diagnostics_plot,</span>
-<span id="cb17-100"><a href="#cb17-100" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">14</span>,</span>
-<span id="cb17-101"><a href="#cb17-101" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">8</span>,</span>
-<span id="cb17-102"><a href="#cb17-102" tabindex="-1"></a>  <span class="at">dpi =</span> <span class="dv">200</span></span>
-<span id="cb17-103"><a href="#cb17-103" tabindex="-1"></a>)</span></code></pre></div>
-</div>
-<div id="level-2-predictions" class="section level3">
-<h3>2025 level-2 predictions</h3>
-<p>Use the refitted model’s 2025 year effect and the training-set
-feature standardization to predict each level-2 centroid. A
-province-specific additive adjustment calibrates level-2 predictions to
-the reported 2025 provincial GRDP-per-capita target. Because GRDP per
-capita cannot be negative, the model predictions are floored at zero and
-the adjustment is solved with that floor active, preserving provincial
-totals while keeping estimates non-negative.</p>
-<p>The final chunk predicts each centroid with both the
-<code>GWmodel</code> and CVXR refits, applies the corresponding
-training-only outlier correction, and calibrates each method separately.
-Within province <span class="math inline">\(j\)</span>, it finds <span class="math inline">\(\delta_j\)</span> such that <span class="math inline">\(\sum_iP_{ij}\max(0,\hat
-y_{ij}+\delta_j)=g_jN_j\)</span>, using bisection; this preserves the
-official target while preventing negative estimates. It checks the
-aggregate totals and writes both unit prediction tables, constraint
-checks, and fitted model objects.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>prediction_data<span class="sc">$</span>year <span class="ot">&lt;-</span> <span class="dv">2025</span></span>
-<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>prediction_data <span class="ot">&lt;-</span> <span class="fu">add_year_effects</span>(prediction_data, all_years)</span>
-<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>final_prediction_X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(</span>
-<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  final_design_formula,</span>
-<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  <span class="at">data =</span> prediction_data</span>
-<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>)</span>
-<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">identical</span>(<span class="fu">colnames</span>(final_prediction_X), <span class="fu">colnames</span>(final_X))) {</span>
-<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Level-2 prediction design does not match the final fitted model.&quot;</span>)</span>
-<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a>}</span>
-<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a></span>
-<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a>prediction_coordinates <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(</span>
-<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a>  prediction_data[, <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>)]</span>
-<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a>)</span>
-<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(prediction_coordinates))) {</span>
-<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Level-2 centroid coordinates must be finite.&quot;</span>)</span>
-<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a>}</span>
-<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a>prediction_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(</span>
-<span id="cb18-18"><a href="#cb18-18" tabindex="-1"></a>  prediction_data,</span>
-<span id="cb18-19"><a href="#cb18-19" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;longitude&quot;</span>, <span class="st">&quot;latitude&quot;</span>),</span>
-<span id="cb18-20"><a href="#cb18-20" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">4326</span>,</span>
-<span id="cb18-21"><a href="#cb18-21" tabindex="-1"></a>  <span class="at">remove =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-22"><a href="#cb18-22" tabindex="-1"></a>)</span>
-<span id="cb18-23"><a href="#cb18-23" tabindex="-1"></a>prediction_distances <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">gw.dist</span>(</span>
-<span id="cb18-24"><a href="#cb18-24" tabindex="-1"></a>  <span class="at">dp.locat =</span> final_training_coordinates,</span>
-<span id="cb18-25"><a href="#cb18-25" tabindex="-1"></a>  <span class="at">rp.locat =</span> prediction_coordinates,</span>
-<span id="cb18-26"><a href="#cb18-26" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span></span>
-<span id="cb18-27"><a href="#cb18-27" tabindex="-1"></a>))</span>
-<span id="cb18-28"><a href="#cb18-28" tabindex="-1"></a>final_gwr_predictions <span class="ot">&lt;-</span> <span class="fu">gwr.predict</span>(</span>
-<span id="cb18-29"><a href="#cb18-29" tabindex="-1"></a>  <span class="at">formula =</span> final_model_formula,</span>
-<span id="cb18-30"><a href="#cb18-30" tabindex="-1"></a>  <span class="at">data =</span> final_training_sf,</span>
-<span id="cb18-31"><a href="#cb18-31" tabindex="-1"></a>  <span class="at">predictdata =</span> prediction_sf,</span>
-<span id="cb18-32"><a href="#cb18-32" tabindex="-1"></a>  <span class="at">bw =</span> final_bandwidth_gwmodel,</span>
-<span id="cb18-33"><a href="#cb18-33" tabindex="-1"></a>  <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb18-34"><a href="#cb18-34" tabindex="-1"></a>  <span class="at">adaptive =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb18-35"><a href="#cb18-35" tabindex="-1"></a>  <span class="at">longlat =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb18-36"><a href="#cb18-36" tabindex="-1"></a>  <span class="at">dMat1 =</span> prediction_distances,</span>
-<span id="cb18-37"><a href="#cb18-37" tabindex="-1"></a>  <span class="at">dMat2 =</span> final_training_distances</span>
-<span id="cb18-38"><a href="#cb18-38" tabindex="-1"></a>)</span>
-<span id="cb18-39"><a href="#cb18-39" tabindex="-1"></a>raw_gwmodel_predictions <span class="ot">&lt;-</span> final_gwr_predictions<span class="sc">$</span>SDF<span class="sc">$</span>prediction</span>
-<span id="cb18-40"><a href="#cb18-40" tabindex="-1"></a></span>
-<span id="cb18-41"><a href="#cb18-41" tabindex="-1"></a>prediction_weights <span class="ot">&lt;-</span> <span class="fu">gw.weight</span>(</span>
-<span id="cb18-42"><a href="#cb18-42" tabindex="-1"></a>  prediction_distances,</span>
-<span id="cb18-43"><a href="#cb18-43" tabindex="-1"></a>  <span class="at">bw =</span> final_bandwidth_cvxr,</span>
-<span id="cb18-44"><a href="#cb18-44" tabindex="-1"></a>  <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb18-45"><a href="#cb18-45" tabindex="-1"></a>  <span class="at">adaptive =</span> <span class="cn">TRUE</span></span>
-<span id="cb18-46"><a href="#cb18-46" tabindex="-1"></a>)</span>
-<span id="cb18-47"><a href="#cb18-47" tabindex="-1"></a>final_cvxr_prediction_fit <span class="ot">&lt;-</span> <span class="fu">cvxr_local_predict</span>(</span>
-<span id="cb18-48"><a href="#cb18-48" tabindex="-1"></a>  <span class="at">X =</span> final_X,</span>
-<span id="cb18-49"><a href="#cb18-49" tabindex="-1"></a>  <span class="at">y =</span> final_y,</span>
-<span id="cb18-50"><a href="#cb18-50" tabindex="-1"></a>  <span class="at">target_X =</span> final_prediction_X,</span>
-<span id="cb18-51"><a href="#cb18-51" tabindex="-1"></a>  <span class="at">weights =</span> prediction_weights,</span>
-<span id="cb18-52"><a href="#cb18-52" tabindex="-1"></a>  <span class="at">lambda =</span> selected_cvxr_lambda,</span>
-<span id="cb18-53"><a href="#cb18-53" tabindex="-1"></a>  <span class="at">penalty_indices =</span> final_feature_parameter_indices</span>
-<span id="cb18-54"><a href="#cb18-54" tabindex="-1"></a>)</span>
-<span id="cb18-55"><a href="#cb18-55" tabindex="-1"></a>raw_cvxr_predictions <span class="ot">&lt;-</span> final_cvxr_prediction_fit<span class="sc">$</span>predictions</span>
-<span id="cb18-56"><a href="#cb18-56" tabindex="-1"></a></span>
-<span id="cb18-57"><a href="#cb18-57" tabindex="-1"></a>gwmodel_prediction_correction <span class="ot">&lt;-</span> gwmodel_outlier_corrections<span class="sc">$</span>residual_correction[</span>
-<span id="cb18-58"><a href="#cb18-58" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, gwmodel_outlier_corrections<span class="sc">$</span>province)</span>
-<span id="cb18-59"><a href="#cb18-59" tabindex="-1"></a>]</span>
-<span id="cb18-60"><a href="#cb18-60" tabindex="-1"></a>cvxr_prediction_correction <span class="ot">&lt;-</span> cvxr_outlier_corrections<span class="sc">$</span>residual_correction[</span>
-<span id="cb18-61"><a href="#cb18-61" tabindex="-1"></a>  <span class="fu">match</span>(prediction_data<span class="sc">$</span>level_1, cvxr_outlier_corrections<span class="sc">$</span>province)</span>
-<span id="cb18-62"><a href="#cb18-62" tabindex="-1"></a>]</span>
-<span id="cb18-63"><a href="#cb18-63" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">anyNA</span>(gwmodel_prediction_correction) <span class="sc">||</span></span>
-<span id="cb18-64"><a href="#cb18-64" tabindex="-1"></a>    <span class="fu">anyNA</span>(cvxr_prediction_correction)) {</span>
-<span id="cb18-65"><a href="#cb18-65" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Could not match all level-2 provinces to the outlier-correction table.&quot;</span>)</span>
-<span id="cb18-66"><a href="#cb18-66" tabindex="-1"></a>}</span>
-<span id="cb18-67"><a href="#cb18-67" tabindex="-1"></a>adjusted_gwmodel_predictions <span class="ot">&lt;-</span></span>
-<span id="cb18-68"><a href="#cb18-68" tabindex="-1"></a>  raw_gwmodel_predictions <span class="sc">+</span> gwmodel_prediction_correction</span>
-<span id="cb18-69"><a href="#cb18-69" tabindex="-1"></a>adjusted_cvxr_predictions <span class="ot">&lt;-</span></span>
-<span id="cb18-70"><a href="#cb18-70" tabindex="-1"></a>  raw_cvxr_predictions <span class="sc">+</span> cvxr_prediction_correction</span>
-<span id="cb18-71"><a href="#cb18-71" tabindex="-1"></a></span>
-<span id="cb18-72"><a href="#cb18-72" tabindex="-1"></a>calibrate_province_predictions <span class="ot">&lt;-</span> <span class="cf">function</span>(raw_predictions, data) {</span>
-<span id="cb18-73"><a href="#cb18-73" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(raw_predictions) <span class="sc">!=</span> <span class="fu">nrow</span>(data) <span class="sc">||</span></span>
-<span id="cb18-74"><a href="#cb18-74" tabindex="-1"></a>      <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(raw_predictions)) <span class="sc">||</span></span>
-<span id="cb18-75"><a href="#cb18-75" tabindex="-1"></a>      <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(data<span class="sc">$</span>population)) <span class="sc">||</span></span>
-<span id="cb18-76"><a href="#cb18-76" tabindex="-1"></a>      <span class="fu">any</span>(data<span class="sc">$</span>population <span class="sc">&lt;</span> <span class="dv">0</span>)) {</span>
-<span id="cb18-77"><a href="#cb18-77" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Level-2 predictions and populations must be finite and correctly sized.&quot;</span>)</span>
-<span id="cb18-78"><a href="#cb18-78" tabindex="-1"></a>  }</span>
-<span id="cb18-79"><a href="#cb18-79" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">anyDuplicated</span>(<span class="fu">paste</span>(data<span class="sc">$</span>level_1, data<span class="sc">$</span>name, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\r</span><span class="st">&quot;</span>))) {</span>
-<span id="cb18-80"><a href="#cb18-80" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;The level-2 prediction data contains duplicate units within a province.&quot;</span>)</span>
-<span id="cb18-81"><a href="#cb18-81" tabindex="-1"></a>  }</span>
-<span id="cb18-82"><a href="#cb18-82" tabindex="-1"></a></span>
-<span id="cb18-83"><a href="#cb18-83" tabindex="-1"></a>  target_grdp <span class="ot">&lt;-</span> provincial_grdp_data[[<span class="st">&quot;2025&quot;</span>]][</span>
-<span id="cb18-84"><a href="#cb18-84" tabindex="-1"></a>    <span class="fu">match</span>(data<span class="sc">$</span>level_1, provincial_grdp_data<span class="sc">$</span>province)</span>
-<span id="cb18-85"><a href="#cb18-85" tabindex="-1"></a>  ]</span>
-<span id="cb18-86"><a href="#cb18-86" tabindex="-1"></a>  province_population <span class="ot">&lt;-</span> provincial_population_data[[<span class="st">&quot;2025&quot;</span>]][</span>
-<span id="cb18-87"><a href="#cb18-87" tabindex="-1"></a>    <span class="fu">match</span>(data<span class="sc">$</span>level_1, provincial_population_data<span class="sc">$</span>province)</span>
-<span id="cb18-88"><a href="#cb18-88" tabindex="-1"></a>  ]</span>
-<span id="cb18-89"><a href="#cb18-89" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">anyNA</span>(target_grdp) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(target_grdp)) <span class="sc">||</span></span>
-<span id="cb18-90"><a href="#cb18-90" tabindex="-1"></a>      <span class="fu">anyNA</span>(province_population) <span class="sc">||</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(province_population)) <span class="sc">||</span></span>
-<span id="cb18-91"><a href="#cb18-91" tabindex="-1"></a>      <span class="fu">any</span>(province_population <span class="sc">&lt;=</span> <span class="dv">0</span>)) {</span>
-<span id="cb18-92"><a href="#cb18-92" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Missing or invalid 2025 provincial GRDP or population target.&quot;</span>)</span>
-<span id="cb18-93"><a href="#cb18-93" tabindex="-1"></a>  }</span>
-<span id="cb18-94"><a href="#cb18-94" tabindex="-1"></a></span>
-<span id="cb18-95"><a href="#cb18-95" tabindex="-1"></a>  provinces <span class="ot">&lt;-</span> <span class="fu">unique</span>(data<span class="sc">$</span>level_1)</span>
-<span id="cb18-96"><a href="#cb18-96" tabindex="-1"></a>  adjustments <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(provinces)), provinces)</span>
-<span id="cb18-97"><a href="#cb18-97" tabindex="-1"></a>  nonnegative_raw_predictions <span class="ot">&lt;-</span> <span class="fu">pmax</span>(raw_predictions, <span class="dv">0</span>)</span>
-<span id="cb18-98"><a href="#cb18-98" tabindex="-1"></a>  calibrated_predictions <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">length</span>(raw_predictions))</span>
-<span id="cb18-99"><a href="#cb18-99" tabindex="-1"></a>  <span class="cf">for</span> (province <span class="cf">in</span> provinces) {</span>
-<span id="cb18-100"><a href="#cb18-100" tabindex="-1"></a>    index <span class="ot">&lt;-</span> <span class="fu">which</span>(data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
-<span id="cb18-101"><a href="#cb18-101" tabindex="-1"></a>    level2_population <span class="ot">&lt;-</span> <span class="fu">sum</span>(data<span class="sc">$</span>population[index])</span>
-<span id="cb18-102"><a href="#cb18-102" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(level2_population) <span class="sc">||</span> level2_population <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
-<span id="cb18-103"><a href="#cb18-103" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has no positive level-2 population.&quot;</span>, province))</span>
-<span id="cb18-104"><a href="#cb18-104" tabindex="-1"></a>    }</span>
-<span id="cb18-105"><a href="#cb18-105" tabindex="-1"></a>    province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, data<span class="sc">$</span>level_1)</span>
-<span id="cb18-106"><a href="#cb18-106" tabindex="-1"></a>    target_total <span class="ot">&lt;-</span> target_grdp[province_index] <span class="sc">*</span></span>
-<span id="cb18-107"><a href="#cb18-107" tabindex="-1"></a>      province_population[province_index]</span>
-<span id="cb18-108"><a href="#cb18-108" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(target_total) <span class="sc">||</span> target_total <span class="sc">&lt;=</span> <span class="dv">0</span>) {</span>
-<span id="cb18-109"><a href="#cb18-109" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">&quot;Province %s has an invalid non-positive GRDP target.&quot;</span>, province))</span>
-<span id="cb18-110"><a href="#cb18-110" tabindex="-1"></a>    }</span>
-<span id="cb18-111"><a href="#cb18-111" tabindex="-1"></a></span>
-<span id="cb18-112"><a href="#cb18-112" tabindex="-1"></a>    province_raw <span class="ot">&lt;-</span> nonnegative_raw_predictions[index]</span>
-<span id="cb18-113"><a href="#cb18-113" tabindex="-1"></a>    weighted_total <span class="ot">&lt;-</span> <span class="cf">function</span>(adjustment) {</span>
-<span id="cb18-114"><a href="#cb18-114" tabindex="-1"></a>      <span class="fu">sum</span>(data<span class="sc">$</span>population[index] <span class="sc">*</span> <span class="fu">pmax</span>(province_raw <span class="sc">+</span> adjustment, <span class="dv">0</span>))</span>
-<span id="cb18-115"><a href="#cb18-115" tabindex="-1"></a>    }</span>
-<span id="cb18-116"><a href="#cb18-116" tabindex="-1"></a>    lower <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">max</span>(province_raw) <span class="sc">-</span> <span class="dv">1</span></span>
-<span id="cb18-117"><a href="#cb18-117" tabindex="-1"></a>    upper <span class="ot">&lt;-</span> target_total <span class="sc">/</span> level2_population <span class="sc">-</span> <span class="fu">min</span>(province_raw) <span class="sc">+</span> <span class="dv">1</span></span>
-<span id="cb18-118"><a href="#cb18-118" tabindex="-1"></a>    <span class="cf">for</span> (iteration <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="dv">100</span>)) {</span>
-<span id="cb18-119"><a href="#cb18-119" tabindex="-1"></a>      adjustment <span class="ot">&lt;-</span> lower <span class="sc">+</span> (upper <span class="sc">-</span> lower) <span class="sc">/</span> <span class="dv">2</span></span>
-<span id="cb18-120"><a href="#cb18-120" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">weighted_total</span>(adjustment) <span class="sc">&lt;</span> target_total) {</span>
-<span id="cb18-121"><a href="#cb18-121" tabindex="-1"></a>        lower <span class="ot">&lt;-</span> adjustment</span>
-<span id="cb18-122"><a href="#cb18-122" tabindex="-1"></a>      } <span class="cf">else</span> {</span>
-<span id="cb18-123"><a href="#cb18-123" tabindex="-1"></a>        upper <span class="ot">&lt;-</span> adjustment</span>
-<span id="cb18-124"><a href="#cb18-124" tabindex="-1"></a>      }</span>
-<span id="cb18-125"><a href="#cb18-125" tabindex="-1"></a>    }</span>
-<span id="cb18-126"><a href="#cb18-126" tabindex="-1"></a></span>
-<span id="cb18-127"><a href="#cb18-127" tabindex="-1"></a>    adjustments[[province]] <span class="ot">&lt;-</span> lower <span class="sc">+</span> (upper <span class="sc">-</span> lower) <span class="sc">/</span> <span class="dv">2</span></span>
-<span id="cb18-128"><a href="#cb18-128" tabindex="-1"></a>    calibrated_predictions[index] <span class="ot">&lt;-</span></span>
-<span id="cb18-129"><a href="#cb18-129" tabindex="-1"></a>      <span class="fu">pmax</span>(province_raw <span class="sc">+</span> adjustments[[province]], <span class="dv">0</span>)</span>
-<span id="cb18-130"><a href="#cb18-130" tabindex="-1"></a>  }</span>
-<span id="cb18-131"><a href="#cb18-131" tabindex="-1"></a></span>
-<span id="cb18-132"><a href="#cb18-132" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(calibrated_predictions)) <span class="sc">||</span></span>
-<span id="cb18-133"><a href="#cb18-133" tabindex="-1"></a>      <span class="fu">any</span>(calibrated_predictions <span class="sc">&lt;</span> <span class="dv">0</span>)) {</span>
-<span id="cb18-134"><a href="#cb18-134" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions must be finite and non-negative.&quot;</span>)</span>
-<span id="cb18-135"><a href="#cb18-135" tabindex="-1"></a>  }</span>
-<span id="cb18-136"><a href="#cb18-136" tabindex="-1"></a>  province_check <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(provinces, <span class="cf">function</span>(province) {</span>
-<span id="cb18-137"><a href="#cb18-137" tabindex="-1"></a>    index <span class="ot">&lt;-</span> <span class="fu">which</span>(data<span class="sc">$</span>level_1 <span class="sc">==</span> province)</span>
-<span id="cb18-138"><a href="#cb18-138" tabindex="-1"></a>    province_index <span class="ot">&lt;-</span> <span class="fu">match</span>(province, data<span class="sc">$</span>level_1)</span>
-<span id="cb18-139"><a href="#cb18-139" tabindex="-1"></a>    target_total <span class="ot">&lt;-</span> target_grdp[province_index] <span class="sc">*</span></span>
-<span id="cb18-140"><a href="#cb18-140" tabindex="-1"></a>      province_population[province_index]</span>
-<span id="cb18-141"><a href="#cb18-141" tabindex="-1"></a>    predicted_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(</span>
-<span id="cb18-142"><a href="#cb18-142" tabindex="-1"></a>      data<span class="sc">$</span>population[index] <span class="sc">*</span> calibrated_predictions[index]</span>
-<span id="cb18-143"><a href="#cb18-143" tabindex="-1"></a>    )</span>
-<span id="cb18-144"><a href="#cb18-144" tabindex="-1"></a>    <span class="fu">data.frame</span>(</span>
-<span id="cb18-145"><a href="#cb18-145" tabindex="-1"></a>      <span class="at">province =</span> province,</span>
-<span id="cb18-146"><a href="#cb18-146" tabindex="-1"></a>      <span class="at">population =</span> province_population[province_index],</span>
-<span id="cb18-147"><a href="#cb18-147" tabindex="-1"></a>      <span class="at">level2_population =</span> <span class="fu">sum</span>(data<span class="sc">$</span>population[index]),</span>
-<span id="cb18-148"><a href="#cb18-148" tabindex="-1"></a>      <span class="at">target_grdp_per_capita =</span> target_grdp[province_index],</span>
-<span id="cb18-149"><a href="#cb18-149" tabindex="-1"></a>      <span class="at">target_total_grdp =</span> target_total,</span>
-<span id="cb18-150"><a href="#cb18-150" tabindex="-1"></a>      <span class="at">predicted_total_grdp =</span> predicted_total,</span>
-<span id="cb18-151"><a href="#cb18-151" tabindex="-1"></a>      <span class="at">difference =</span> predicted_total <span class="sc">-</span> target_total</span>
-<span id="cb18-152"><a href="#cb18-152" tabindex="-1"></a>    )</span>
-<span id="cb18-153"><a href="#cb18-153" tabindex="-1"></a>  }))</span>
-<span id="cb18-154"><a href="#cb18-154" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>difference) <span class="sc">&gt;</span></span>
-<span id="cb18-155"><a href="#cb18-155" tabindex="-1"></a>          <span class="fl">1e-8</span> <span class="sc">*</span> <span class="fu">pmax</span>(<span class="fu">abs</span>(province_check<span class="sc">$</span>target_total_grdp), <span class="dv">1</span>))) {</span>
-<span id="cb18-156"><a href="#cb18-156" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">&quot;Calibrated level-2 predictions do not match provincial GDP targets.&quot;</span>)</span>
-<span id="cb18-157"><a href="#cb18-157" tabindex="-1"></a>  }</span>
-<span id="cb18-158"><a href="#cb18-158" tabindex="-1"></a></span>
-<span id="cb18-159"><a href="#cb18-159" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb18-160"><a href="#cb18-160" tabindex="-1"></a>    <span class="at">raw =</span> nonnegative_raw_predictions,</span>
-<span id="cb18-161"><a href="#cb18-161" tabindex="-1"></a>    <span class="at">calibrated =</span> calibrated_predictions,</span>
-<span id="cb18-162"><a href="#cb18-162" tabindex="-1"></a>    <span class="at">adjustment =</span> <span class="fu">unname</span>(adjustments[data<span class="sc">$</span>level_1]),</span>
-<span id="cb18-163"><a href="#cb18-163" tabindex="-1"></a>    <span class="at">target_grdp_per_capita =</span> target_grdp,</span>
-<span id="cb18-164"><a href="#cb18-164" tabindex="-1"></a>    <span class="at">province_check =</span> province_check</span>
-<span id="cb18-165"><a href="#cb18-165" tabindex="-1"></a>  )</span>
-<span id="cb18-166"><a href="#cb18-166" tabindex="-1"></a>}</span>
-<span id="cb18-167"><a href="#cb18-167" tabindex="-1"></a></span>
-<span id="cb18-168"><a href="#cb18-168" tabindex="-1"></a>gwmodel_calibration <span class="ot">&lt;-</span> <span class="fu">calibrate_province_predictions</span>(</span>
-<span id="cb18-169"><a href="#cb18-169" tabindex="-1"></a>  adjusted_gwmodel_predictions,</span>
-<span id="cb18-170"><a href="#cb18-170" tabindex="-1"></a>  prediction_data</span>
-<span id="cb18-171"><a href="#cb18-171" tabindex="-1"></a>)</span>
-<span id="cb18-172"><a href="#cb18-172" tabindex="-1"></a>cvxr_calibration <span class="ot">&lt;-</span> <span class="fu">calibrate_province_predictions</span>(</span>
-<span id="cb18-173"><a href="#cb18-173" tabindex="-1"></a>  adjusted_cvxr_predictions,</span>
-<span id="cb18-174"><a href="#cb18-174" tabindex="-1"></a>  prediction_data</span>
-<span id="cb18-175"><a href="#cb18-175" tabindex="-1"></a>)</span>
-<span id="cb18-176"><a href="#cb18-176" tabindex="-1"></a></span>
-<span id="cb18-177"><a href="#cb18-177" tabindex="-1"></a>gwmodel_level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb18-178"><a href="#cb18-178" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
-<span id="cb18-179"><a href="#cb18-179" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
-<span id="cb18-180"><a href="#cb18-180" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
-<span id="cb18-181"><a href="#cb18-181" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
-<span id="cb18-182"><a href="#cb18-182" tabindex="-1"></a>  <span class="at">spatial_grdp_per_capita =</span> raw_gwmodel_predictions,</span>
-<span id="cb18-183"><a href="#cb18-183" tabindex="-1"></a>  <span class="at">outlier_correction =</span> gwmodel_prediction_correction,</span>
-<span id="cb18-184"><a href="#cb18-184" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> gwmodel_calibration<span class="sc">$</span>raw,</span>
-<span id="cb18-185"><a href="#cb18-185" tabindex="-1"></a>  <span class="at">province_adjustment =</span> gwmodel_calibration<span class="sc">$</span>adjustment,</span>
-<span id="cb18-186"><a href="#cb18-186" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> gwmodel_calibration<span class="sc">$</span>calibrated,</span>
-<span id="cb18-187"><a href="#cb18-187" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
-<span id="cb18-188"><a href="#cb18-188" tabindex="-1"></a>    gwmodel_calibration<span class="sc">$</span>target_grdp_per_capita</span>
-<span id="cb18-189"><a href="#cb18-189" tabindex="-1"></a>)</span>
-<span id="cb18-190"><a href="#cb18-190" tabindex="-1"></a>cvxr_level2_predictions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb18-191"><a href="#cb18-191" tabindex="-1"></a>  <span class="at">level_2 =</span> prediction_data<span class="sc">$</span>name,</span>
-<span id="cb18-192"><a href="#cb18-192" tabindex="-1"></a>  <span class="at">level_1 =</span> prediction_data<span class="sc">$</span>level_1,</span>
-<span id="cb18-193"><a href="#cb18-193" tabindex="-1"></a>  <span class="at">year =</span> prediction_data<span class="sc">$</span>year,</span>
-<span id="cb18-194"><a href="#cb18-194" tabindex="-1"></a>  <span class="at">population =</span> prediction_data<span class="sc">$</span>population,</span>
-<span id="cb18-195"><a href="#cb18-195" tabindex="-1"></a>  <span class="at">spatial_grdp_per_capita =</span> raw_cvxr_predictions,</span>
-<span id="cb18-196"><a href="#cb18-196" tabindex="-1"></a>  <span class="at">outlier_correction =</span> cvxr_prediction_correction,</span>
-<span id="cb18-197"><a href="#cb18-197" tabindex="-1"></a>  <span class="at">raw_grdp_per_capita =</span> cvxr_calibration<span class="sc">$</span>raw,</span>
-<span id="cb18-198"><a href="#cb18-198" tabindex="-1"></a>  <span class="at">province_adjustment =</span> cvxr_calibration<span class="sc">$</span>adjustment,</span>
-<span id="cb18-199"><a href="#cb18-199" tabindex="-1"></a>  <span class="at">predicted_grdp_per_capita =</span> cvxr_calibration<span class="sc">$</span>calibrated,</span>
-<span id="cb18-200"><a href="#cb18-200" tabindex="-1"></a>  <span class="at">province_grdp_per_capita_target_2025 =</span></span>
-<span id="cb18-201"><a href="#cb18-201" tabindex="-1"></a>    cvxr_calibration<span class="sc">$</span>target_grdp_per_capita</span>
-<span id="cb18-202"><a href="#cb18-202" tabindex="-1"></a>)</span>
-<span id="cb18-203"><a href="#cb18-203" tabindex="-1"></a></span>
-<span id="cb18-204"><a href="#cb18-204" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb18-205"><a href="#cb18-205" tabindex="-1"></a>  gwmodel_level2_predictions,</span>
-<span id="cb18-206"><a href="#cb18-206" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gwmodel_level2_predictions.csv&quot;</span>),</span>
-<span id="cb18-207"><a href="#cb18-207" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-208"><a href="#cb18-208" tabindex="-1"></a>)</span>
-<span id="cb18-209"><a href="#cb18-209" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb18-210"><a href="#cb18-210" tabindex="-1"></a>  cvxr_level2_predictions,</span>
-<span id="cb18-211"><a href="#cb18-211" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;cvxr_gw_level2_predictions.csv&quot;</span>),</span>
-<span id="cb18-212"><a href="#cb18-212" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-213"><a href="#cb18-213" tabindex="-1"></a>)</span>
-<span id="cb18-214"><a href="#cb18-214" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb18-215"><a href="#cb18-215" tabindex="-1"></a>  gwmodel_calibration<span class="sc">$</span>province_check,</span>
-<span id="cb18-216"><a href="#cb18-216" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;gwmodel_province_constraint_check.csv&quot;</span>),</span>
-<span id="cb18-217"><a href="#cb18-217" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-218"><a href="#cb18-218" tabindex="-1"></a>)</span>
-<span id="cb18-219"><a href="#cb18-219" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb18-220"><a href="#cb18-220" tabindex="-1"></a>  cvxr_calibration<span class="sc">$</span>province_check,</span>
-<span id="cb18-221"><a href="#cb18-221" tabindex="-1"></a>  <span class="fu">file.path</span>(data_output_dir, <span class="st">&quot;cvxr_gw_province_constraint_check.csv&quot;</span>),</span>
-<span id="cb18-222"><a href="#cb18-222" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-223"><a href="#cb18-223" tabindex="-1"></a>)</span>
-<span id="cb18-224"><a href="#cb18-224" tabindex="-1"></a></span>
-<span id="cb18-225"><a href="#cb18-225" tabindex="-1"></a><span class="fu">saveRDS</span>(</span>
-<span id="cb18-226"><a href="#cb18-226" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb18-227"><a href="#cb18-227" tabindex="-1"></a>    <span class="at">model =</span> final_gwr,</span>
-<span id="cb18-228"><a href="#cb18-228" tabindex="-1"></a>    <span class="at">formula =</span> final_model_formula,</span>
-<span id="cb18-229"><a href="#cb18-229" tabindex="-1"></a>    <span class="at">year_effects =</span> all_years,</span>
-<span id="cb18-230"><a href="#cb18-230" tabindex="-1"></a>    <span class="at">feature_columns =</span> feature_columns,</span>
-<span id="cb18-231"><a href="#cb18-231" tabindex="-1"></a>    <span class="at">feature_means =</span> feature_means,</span>
-<span id="cb18-232"><a href="#cb18-232" tabindex="-1"></a>    <span class="at">feature_sds =</span> feature_sds,</span>
-<span id="cb18-233"><a href="#cb18-233" tabindex="-1"></a>    <span class="at">prediction_floor =</span> <span class="dv">0</span>,</span>
-<span id="cb18-234"><a href="#cb18-234" tabindex="-1"></a>    <span class="at">level2_calibration =</span> <span class="st">&quot;additive province adjustment with non-negative prediction floor&quot;</span>,</span>
-<span id="cb18-235"><a href="#cb18-235" tabindex="-1"></a>    <span class="at">bandwidth_neighbors =</span> final_bandwidth_gwmodel,</span>
-<span id="cb18-236"><a href="#cb18-236" tabindex="-1"></a>    <span class="at">bandwidth_fraction =</span> selected_gwmodel_bandwidth <span class="sc">/</span> <span class="fu">nrow</span>(training_data),</span>
-<span id="cb18-237"><a href="#cb18-237" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb18-238"><a href="#cb18-238" tabindex="-1"></a>    <span class="at">outlier_corrections =</span> gwmodel_outlier_corrections,</span>
-<span id="cb18-239"><a href="#cb18-239" tabindex="-1"></a>    <span class="at">holdout_metrics =</span> gwmodel_bandwidth_results[selected_gwmodel_index, ],</span>
-<span id="cb18-240"><a href="#cb18-240" tabindex="-1"></a>    <span class="at">training_metrics =</span> gwmodel_split_metrics[</span>
-<span id="cb18-241"><a href="#cb18-241" tabindex="-1"></a>      gwmodel_split_metrics<span class="sc">$</span>split <span class="sc">==</span> <span class="st">&quot;training&quot;</span> <span class="sc">&amp;</span></span>
-<span id="cb18-242"><a href="#cb18-242" tabindex="-1"></a>        gwmodel_split_metrics<span class="sc">$</span>model <span class="sc">==</span> <span class="st">&quot;GWmodel GWR with outlier correction&quot;</span>,</span>
-<span id="cb18-243"><a href="#cb18-243" tabindex="-1"></a>      ,</span>
-<span id="cb18-244"><a href="#cb18-244" tabindex="-1"></a>      <span class="at">drop =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-245"><a href="#cb18-245" tabindex="-1"></a>    ]</span>
-<span id="cb18-246"><a href="#cb18-246" tabindex="-1"></a>  ),</span>
-<span id="cb18-247"><a href="#cb18-247" tabindex="-1"></a>  <span class="fu">file.path</span>(model_output_dir, <span class="st">&quot;gwmodel_gwr.rds&quot;</span>)</span>
-<span id="cb18-248"><a href="#cb18-248" tabindex="-1"></a>)</span>
-<span id="cb18-249"><a href="#cb18-249" tabindex="-1"></a><span class="fu">saveRDS</span>(</span>
-<span id="cb18-250"><a href="#cb18-250" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb18-251"><a href="#cb18-251" tabindex="-1"></a>    <span class="at">coefficients =</span> final_cvxr_prediction_fit<span class="sc">$</span>coefficients,</span>
-<span id="cb18-252"><a href="#cb18-252" tabindex="-1"></a>    <span class="at">training_coefficients =</span> final_cvxr_training_fit<span class="sc">$</span>coefficients,</span>
-<span id="cb18-253"><a href="#cb18-253" tabindex="-1"></a>    <span class="at">feature_names =</span> <span class="fu">colnames</span>(final_X),</span>
-<span id="cb18-254"><a href="#cb18-254" tabindex="-1"></a>    <span class="at">formula =</span> final_model_formula,</span>
-<span id="cb18-255"><a href="#cb18-255" tabindex="-1"></a>    <span class="at">year_effects =</span> all_years,</span>
-<span id="cb18-256"><a href="#cb18-256" tabindex="-1"></a>    <span class="at">feature_columns =</span> feature_columns,</span>
-<span id="cb18-257"><a href="#cb18-257" tabindex="-1"></a>    <span class="at">feature_means =</span> feature_means,</span>
-<span id="cb18-258"><a href="#cb18-258" tabindex="-1"></a>    <span class="at">feature_sds =</span> feature_sds,</span>
-<span id="cb18-259"><a href="#cb18-259" tabindex="-1"></a>    <span class="at">prediction_floor =</span> <span class="dv">0</span>,</span>
-<span id="cb18-260"><a href="#cb18-260" tabindex="-1"></a>    <span class="at">level2_calibration =</span> <span class="st">&quot;additive province adjustment with non-negative prediction floor&quot;</span>,</span>
-<span id="cb18-261"><a href="#cb18-261" tabindex="-1"></a>    <span class="at">bandwidth_neighbors =</span> final_bandwidth_cvxr,</span>
-<span id="cb18-262"><a href="#cb18-262" tabindex="-1"></a>    <span class="at">bandwidth_fraction =</span> selected_cvxr_bandwidth <span class="sc">/</span> <span class="fu">nrow</span>(training_data),</span>
-<span id="cb18-263"><a href="#cb18-263" tabindex="-1"></a>    <span class="at">lambda =</span> selected_cvxr_lambda,</span>
-<span id="cb18-264"><a href="#cb18-264" tabindex="-1"></a>    <span class="at">kernel =</span> kernel_name,</span>
-<span id="cb18-265"><a href="#cb18-265" tabindex="-1"></a>    <span class="at">outlier_corrections =</span> cvxr_outlier_corrections,</span>
-<span id="cb18-266"><a href="#cb18-266" tabindex="-1"></a>    <span class="at">holdout_metrics =</span> cvxr_grid[selected_cvxr_index, ],</span>
-<span id="cb18-267"><a href="#cb18-267" tabindex="-1"></a>    <span class="at">training_metrics =</span> cvxr_split_metrics[</span>
-<span id="cb18-268"><a href="#cb18-268" tabindex="-1"></a>      cvxr_split_metrics<span class="sc">$</span>split <span class="sc">==</span> <span class="st">&quot;training&quot;</span> <span class="sc">&amp;</span></span>
-<span id="cb18-269"><a href="#cb18-269" tabindex="-1"></a>        cvxr_split_metrics<span class="sc">$</span>model <span class="sc">==</span></span>
-<span id="cb18-270"><a href="#cb18-270" tabindex="-1"></a>          <span class="st">&quot;CVXR local regression with outlier correction&quot;</span>,</span>
-<span id="cb18-271"><a href="#cb18-271" tabindex="-1"></a>      ,</span>
-<span id="cb18-272"><a href="#cb18-272" tabindex="-1"></a>      <span class="at">drop =</span> <span class="cn">FALSE</span></span>
-<span id="cb18-273"><a href="#cb18-273" tabindex="-1"></a>    ]</span>
-<span id="cb18-274"><a href="#cb18-274" tabindex="-1"></a>  ),</span>
-<span id="cb18-275"><a href="#cb18-275" tabindex="-1"></a>  <span class="fu">file.path</span>(model_output_dir, <span class="st">&quot;cvxr_gw_model.rds&quot;</span>)</span>
-<span id="cb18-276"><a href="#cb18-276" tabindex="-1"></a>)</span>
-<span id="cb18-277"><a href="#cb18-277" tabindex="-1"></a></span>
-<span id="cb18-278"><a href="#cb18-278" tabindex="-1"></a><span class="fu">print</span>(gwmodel_calibration<span class="sc">$</span>province_check, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
-<pre><code>##          province population level2_population target_grdp_per_capita
-##          An Giang    3694600           4995214                   80.2
-##          Bac Ninh    3572350           2059480                  146.2
-##            Ca Mau    2150440           1988464                   78.6
-##           Can Tho    3224940           4112487                   94.9
-##          Cao Bang     562930            573119                   49.6
-##           Da Nang    2856380           3122915                  110.6
-##           Dak Lak    2849200           3346853                   80.6
-##         Dien Bien     667420            673091                   53.4
-##          Dong Nai    4493700           4491408                  150.8
-##         Dong Thap    3403780           4370046                   84.0
-##           Gia Lai    3182650           3583691                   85.0
-##            Ha Noi    8857530           8807523                  179.3
-##           Ha Tinh    1335140           1623061                   90.5
-##         Hai Phong    4149870           4664124                  177.0
-##  Ho Chi Minh city   13803800          14668098                  215.3
-##               Hue    1190340           1432986                   75.3
-##          Hung Yen    3235170           3567943                   98.9
-##         Khanh Hoa    1898550           2243553                  110.3
-##          Lai Chau     501160            512601                   79.4
-##          Lam Dong    3356380           3872999                  105.2
-##          Lang Son     820630            881384                   70.9
-##           Lao Cai    1675670           1770645                   84.7
-##           Nghe An    3497750           3831694                   67.6
-##         Ninh Binh    3843770           4412264                   89.2
-##           Phu Tho    3701530           4022493                  111.3
-##        Quang Ngai    1881240           2161735                  101.9
-##        Quang Ninh    1411580           1497447                  261.2
-##         Quang Tri    1594130           1870844                   77.4
-##            Son La    1341220           1404587                   71.4
-##          Tay Ninh    2980280           3254170                  115.6
-##       Thai Nguyen    1711580           1799489                  112.4
-##         Thanh Hoa    3771770           4320947                   88.5
-##       Tuyen Quang    1748250           1858056                   54.6
-##         Vinh Long    3379610           4257581                   82.4
-##  target_total_grdp predicted_total_grdp    difference
-##          296306920            296306920  0.000000e+00
-##          522277570            522277570  0.000000e+00
-##          169024584            169024584 -2.980232e-08
-##          306046806            306046806  0.000000e+00
-##           27921328             27921328  0.000000e+00
-##          315915628            315915628  0.000000e+00
-##          229645520            229645520  0.000000e+00
-##           35640228             35640228  0.000000e+00
-##          677649960            677649960  0.000000e+00
-##          285917520            285917520  0.000000e+00
-##          270525250            270525250 -1.192093e-07
-##         1588155129           1588155129  0.000000e+00
-##          120830170            120830170  0.000000e+00
-##          734526990            734526990 -1.192093e-07
-##         2971958140           2971958140 -4.768372e-07
-##           89632602             89632602 -1.490116e-08
-##          319958313            319958313  0.000000e+00
-##          209410065            209410065 -2.980232e-08
-##           39792104             39792104  0.000000e+00
-##          353091176            353091176  0.000000e+00
-##           58182667             58182667  7.450581e-09
-##          141929249            141929249 -2.980232e-08
-##          236447900            236447900  0.000000e+00
-##          342864284            342864284  5.960464e-08
-##          411980289            411980289  5.960464e-08
-##          191698356            191698356 -2.980232e-08
-##          368704696            368704696 -5.960464e-08
-##          123385662            123385662 -1.490116e-08
-##           95763108             95763108  0.000000e+00
-##          344520368            344520368  0.000000e+00
-##          192381592            192381592 -5.960464e-08
-##          333801645            333801645  5.960464e-08
-##           95454450             95454450  2.980232e-08
-##          278479864            278479864  0.000000e+00</code></pre>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">head</span>(gwmodel_level2_predictions)</span></code></pre></div>
-<pre><code>##      level_2  level_1 year population spatial_grdp_per_capita
-## 1   Rạch Giá An Giang 2025     250661                68.05899
-## 2   Phú Quốc An Giang 2025     157629                55.10774
-## 3 Long Xuyên An Giang 2025     154858                62.18311
-## 4   Châu Đốc An Giang 2025      97438                56.65818
-## 5    Nhơn Mỹ An Giang 2025      89018                54.42669
-## 6    Chợ Mới An Giang 2025      80832                54.61714
-##   outlier_correction raw_grdp_per_capita province_adjustment
-## 1                  0            68.05899            4.745196
-## 2                  0            55.10774            4.745196
-## 3                  0            62.18311            4.745196
-## 4                  0            56.65818            4.745196
-## 5                  0            54.42669            4.745196
-## 6                  0            54.61714            4.745196
-##   predicted_grdp_per_capita province_grdp_per_capita_target_2025
-## 1                  72.80418                                 80.2
-## 2                  59.85294                                 80.2
-## 3                  66.92831                                 80.2
-## 4                  61.40337                                 80.2
-## 5                  59.17189                                 80.2
-## 6                  59.36233                                 80.2</code></pre>
+<div id="model-evaluation-and-hyperparameter-selection" class="section level3">
+<h3>Model Evaluation and Hyperparameter Selection</h3>
 </div>
 
 
@@ -3051,7 +1824,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1,h2,h3",
+      selectors: "h1,h2,h3,h4",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {

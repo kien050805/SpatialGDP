@@ -1,0 +1,1353 @@
+---
+title: "Geographically Weighted Model"
+author: ""
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+This chunk loads GWmodel and `sf` for geographic weighting and centroid
+handling, CVXR for the independently implemented local regression, and the
+plotting/data packages used for evaluation. Both spatial implementations share
+the same training split and feature design.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(CVXR)
+library(GWmodel)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(here)
+library(sf)
+```
+
+The hidden setup chunk resolves the project and creates dedicated locations
+for GW figures, prediction/diagnostic data, and saved model objects. It also
+loads the shared preprocessing and OLS-comparison functions.
+
+```{r setup, include=FALSE}
+project_dir <- here()
+data_dir <- file.path(project_dir, "data")
+figure_output_dir <- file.path(project_dir, "figures", "gw_model")
+data_output_dir <- file.path(data_dir, "predicted_data", "gw_model")
+model_output_dir <- file.path(project_dir, "code", "R", "model", "gw_model")
+source_dir <- file.path(project_dir, "code", "R")
+
+dir.create(figure_output_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(data_output_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
+source(file.path(source_dir, "model_comparison_setup.R"))
+```
+
+
+### Load dataset
+
+For this model, we will use the following training and testing datasets:
+
+* `prediction_dataset.csv`: For prediction purposes
+
+* `regression_dataset.csv`: For training and regression purposes
+
+* `vnm_.csv`: For constraints purposes
+
+All data sets have been cleaned and contain no missing values.
+
+This chunk reads the provincial panel and level-2 centroid data, national GDP
+and provincial GRDP-per-capita targets, and official population totals.
+Population totals reported in thousands are converted once to persons to match
+the unit-level population weights used for provincial calibration.
+
+```{r}
+# Regression Dataset
+regression_data <- read.csv(file.path(data_dir, "training_data/regression_dataset.csv"))
+
+# Prediction Dataset
+prediction_data <- read.csv(file.path(data_dir, "training_data/prediction_dataset.csv"))
+
+# National GDP totals used to constrain the regression fit
+constrained_data <- read.csv(file.path(data_dir, "_vnm_indicators/vnm_level0_gdp.csv"))
+
+# Provincial GRDP per-capita targets used to calibrate 2025 level-2 predictions
+provincial_grdp_data <- read.csv(file.path(data_dir,
+  "_vnm_indicators/vnm_GRDPpc.csv"),
+  check.names = FALSE
+)
+
+# Provincial population totals (thousands) used as the aggregation constraint
+provincial_population_data <- read.csv(file.path(data_dir,
+  "_vnm_indicators/vnm_population.csv"),
+  check.names = FALSE
+)
+
+# Provincial population data are in thousands; convert to persons.
+provincial_population_data[, as.character(2020:2025)] <-
+  provincial_population_data[, as.character(2020:2025)] * 1000
+```
+
+### Shared training and holdout setup
+
+The shared setup converts regression population to persons, splits 2020–2024
+from the 2025 holdout, standardizes the three common features and outcome using
+training-only statistics, and computes linear temporal extrapolation weights.
+Its native OLS holdout reference is written to the same-schema CSV in each
+model's output directory. Model-specific constraints and spatial weighting
+are applied after this common comparison setup.
+
+The common setup fixes the 2020–2024 training and 2025 holdout partitions,
+scales shared features and response from training statistics, and computes
+linear temporal extrapolation weights. It also constructs the native OLS
+reference on the common design so geographic-model performance is compared
+against the same baseline as the other notebooks.
+
+```{r}
+model_setup <- prepare_model_comparison_setup(regression_data)
+regression_data <- model_setup$regression_data
+training_data <- model_setup$training_data
+holdout_data <- model_setup$holdout_data
+training_years <- model_setup$training_years
+holdout_year <- model_setup$holdout_year
+feature_columns <- model_setup$feature_columns
+scaled_feature_columns <- model_setup$scaled_feature_columns
+feature_means <- model_setup$feature_means
+feature_sds <- model_setup$feature_sds
+temporal_extrapolation_weights <-
+  model_setup$temporal_extrapolation_weights
+
+ols_comparison <- fit_ols_comparison(model_setup)
+ols_reference_predictions <- ols_comparison$holdout
+ols_reference_predictions$residual <-
+  ols_reference_predictions$actual - ols_reference_predictions$predicted
+ols_reference_predictions$residual_scaled <-
+  ols_reference_predictions$actual_scaled -
+  ols_reference_predictions$predicted_scaled
+```
+
+### Preliminaries
+
+Supposed:
+
+- \(y \in \mathbb{R}^n\): observed outcome vector. That is, `grdp_per_capita`.
+- \(x_i \in \mathbb{R}^3\): standardized explanatory variables for observation \(i\): `mean_radiance`, `population`, and `pixel_count`.
+- \(s_i \in \mathbb{R}^2\): geographic coordinates (longitude and latitude) representing the centroid of observation \(i\).
+- \(\alpha_t(s) \in \mathbb{R}\): locally estimated year-specific intercept for year \(t\) at geographic location \(s\).
+- \(\beta(s) \in \mathbb{R}^3\): locally estimated slopes for the three explanatory variables at geographic location \(s\).
+- \(w_i(s) \in [0,1]\): spatial weight assigned to observation \(i\) when estimating the model at location \(s\), determined by great-circle distance and an adaptive bisquare kernel.
+- \(h\): adaptive bandwidth, representing the number of nearest training observations used to determine spatial weights.
+- \(\lambda \geq 0\): optional ridge penalty parameter applied exclusively to the predictor slopes.
+- \(v_t \in \mathbb{R}\): temporal extrapolation weight assigned to training year \(t\) when estimating the 2025 year effect.
+
+The model estimates geographically varying year-specific intercepts and explanatory-variable coefficients using locally weighted least squares. The 2020–2024 observations are used for model fitting, while 2025 observations are reserved for holdout evaluation.
+
+The shared setup standardizes the response and common predictors from training data only. GWmodel and CVXR use those standardized training values, then transform predictions back to GRDP-per-capita units for holdout evaluation and reporting. Comparison tables and split-specific diagnostics include the same native OLS baseline used in the other notebooks.
+
+Since the 2025 year effect cannot be estimated from holdout outcomes, it is linearly extrapolated from the 2020–2024 year effects using the following temporal extrapolation weights:
+
+\[ v_t = \frac{1}{T} + \frac{(2025-\bar{t})(t-\bar{t})} {\sum\_{j=1}^{T}(t_j-\bar{t})^2} \]
+
+where \(T\) is the number of training years, \(t\) represents an individual training year, and \(\bar{t}\) is the mean training year.
+
+These weights satisfy:
+
+\[ \sum\_{t=2020}^{2024}v_t=1 \]
+
+\[ \sum\_{t=2020}^{2024}t v_t=2025 \]
+
+Consequently, the extrapolated 2025 year effect is:
+
+\[ \alpha\_{2025}(s) = \sum\_{t=2020}^{2024}v_t\alpha_t(s) \]
+
+The extrapolation weights are also used when selecting the adaptive bandwidth and ridge penalty based on 2025 holdout RMSE. After parameter selection, the models are refitted using all available years for level-2 prediction.
+
+The design-preparation chunk applies the training means and standard
+deviations to the features and response, forms year-effect columns (using
+linear extrapolation for the 2025 holdout), and verifies that the resulting
+matrices match the shared OLS design. It then builds longitude/latitude
+centroid coordinates and great-circle distance matrices. Adaptive bisquare
+weights use candidate nearest-neighbor counts derived from fractions
+\(0.35,0.50,0.65,0.80,0.95\), with at least \(p+2\) neighbors and no more
+than the training sample; this allows neighborhood size to adapt to spatial
+sampling density.
+
+```{r}
+all_years <- sort(unique(regression_data$year))
+if (any(!is.finite(feature_sds)) || any(feature_sds <= 0)) {
+  stop("All model features must have positive, finite training standard deviations.")
+}
+
+prepare_features <- function(data) {
+  for (feature in feature_columns) {
+    data[[paste0(feature, "_scaled")]] <-
+      (data[[feature]] - feature_means[[feature]]) /
+      feature_sds[[feature]]
+  }
+  data
+}
+
+add_year_effects <- function(data, effect_years, extrapolation_weights = NULL) {
+  for (year in effect_years) {
+    column <- paste0("year_", year)
+    if (is.null(extrapolation_weights)) {
+      data[[column]] <- as.numeric(data$year == year)
+    } else {
+      data[[column]] <- unname(extrapolation_weights[as.character(year)])
+    }
+  }
+  data
+}
+
+training_data <- add_year_effects(
+  prepare_features(training_data),
+  training_years
+)
+training_data$grdp_per_capita_scaled <- model_setup$y_train
+holdout_data <- add_year_effects(
+  prepare_features(holdout_data),
+  training_years,
+  temporal_extrapolation_weights
+)
+holdout_data$grdp_per_capita_scaled <- model_setup$y_test
+prediction_data <- prepare_features(prediction_data)
+
+year_effect_columns <- paste0("year_", training_years)
+model_predictors <- c(year_effect_columns, scaled_feature_columns)
+design_formula <- reformulate(model_predictors, intercept = FALSE)
+model_formula <- reformulate(
+  model_predictors,
+  response = "grdp_per_capita_scaled",
+  intercept = FALSE
+)
+
+X_train <- model.matrix(design_formula, data = training_data)
+X_holdout <- model.matrix(design_formula, data = holdout_data)
+y_train <- model_setup$y_train
+y_holdout <- model_setup$y_test_raw
+if (!isTRUE(all.equal(
+      unname(X_train),
+      unname(model_setup$X_train),
+      check.attributes = FALSE
+    )) ||
+    !isTRUE(all.equal(
+      unname(X_holdout),
+      unname(model_setup$X_test),
+      check.attributes = FALSE
+    ))) {
+  stop("GW model design matrices do not match the shared comparison setup.")
+}
+feature_parameter_indices <- match(scaled_feature_columns, colnames(X_train))
+if (anyNA(feature_parameter_indices)) {
+  stop("Could not identify all standardized feature slopes in the model matrix.")
+}
+holdout_total_sum_squares <- sum((y_holdout - mean(y_holdout))^2)
+if (!is.finite(holdout_total_sum_squares) || holdout_total_sum_squares <= 0) {
+  stop("The 2025 holdout outcomes must have positive finite variance.")
+}
+
+training_coordinates <- as.matrix(
+  training_data[, c("longitude", "latitude")]
+)
+holdout_coordinates <- as.matrix(
+  holdout_data[, c("longitude", "latitude")]
+)
+if (any(!is.finite(training_coordinates)) ||
+    any(!is.finite(holdout_coordinates))) {
+  stop("Regression centroid coordinates must be finite.")
+}
+
+training_sf <- st_as_sf(
+  training_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+holdout_sf <- st_as_sf(
+  holdout_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+
+bandwidth_fractions <- c(0.35, 0.50, 0.65, 0.80, 0.95)
+bandwidth_grid <- unique(pmin(
+  nrow(training_data),
+  pmax(
+    ncol(X_train) + 2,
+    ceiling(bandwidth_fractions * nrow(training_data))
+  )
+))
+kernel_name <- "bisquare"
+
+# gw.dist returns prediction-by-training distances; model fitting needs
+# training-by-prediction distances.
+holdout_distances <- t(gw.dist(
+  dp.locat = training_coordinates,
+  rp.locat = holdout_coordinates,
+  longlat = TRUE
+))
+training_distances <- t(gw.dist(
+  dp.locat = training_coordinates,
+  longlat = TRUE
+))
+holdout_weights <- lapply(bandwidth_grid, function(bandwidth) {
+  gw.weight(
+    holdout_distances,
+    bw = bandwidth,
+    kernel = kernel_name,
+    adaptive = TRUE
+  )
+})
+```
+
+### GWmodel bandwidth selection
+
+`GWmodel::gwr.predict()` estimates local year effects and predictor slopes from the 2020–2024 observations, then predicts each 2025 centroid. The 2025 year indicators are set to the linear extrapolation weights above.
+
+This chunk fits `gwr.predict()` at every candidate adaptive bandwidth, converts
+predictions back to GRDP-per-capita units, and scores them against the 2025
+outcomes. The chosen neighborhood is the one with the smallest holdout RMSE;
+\(R^2\) is retained as a secondary metric. The GDP aggregate target is not a
+bandwidth-selection input.
+
+```{r}
+gwmodel_holdout_predictions <- matrix(
+  NA_real_,
+  nrow = nrow(holdout_data),
+  ncol = length(bandwidth_grid)
+)
+for (bandwidth_index in seq_along(bandwidth_grid)) {
+  gwr_holdout_fit <- gwr.predict(
+    model_formula,
+    data = training_sf,
+    predictdata = holdout_sf,
+    bw = bandwidth_grid[bandwidth_index],
+    kernel = kernel_name,
+    adaptive = TRUE,
+    longlat = TRUE,
+    dMat1 = holdout_distances,
+    dMat2 = training_distances
+  )
+  gwmodel_holdout_predictions[, bandwidth_index] <-
+    gwr_holdout_fit$SDF$prediction * model_setup$response_sd +
+    model_setup$response_mean
+}
+
+gwmodel_bandwidth_results <- data.frame(
+  bandwidth_neighbors = bandwidth_grid,
+  bandwidth_fraction = bandwidth_grid / nrow(training_data),
+  holdout_RMSE = apply(gwmodel_holdout_predictions, 2, function(prediction) {
+    sqrt(mean((y_holdout - prediction)^2))
+  }),
+  holdout_R_squared = apply(gwmodel_holdout_predictions, 2, function(prediction) {
+    1 - sum((y_holdout - prediction)^2) / holdout_total_sum_squares
+  })
+)
+selected_gwmodel_index <- which.min(gwmodel_bandwidth_results$holdout_RMSE)
+selected_gwmodel_bandwidth <-
+  gwmodel_bandwidth_results$bandwidth_neighbors[selected_gwmodel_index]
+best_gwmodel_holdout_predictions <-
+  gwmodel_holdout_predictions[, selected_gwmodel_index]
+
+write.csv(
+  gwmodel_bandwidth_results,
+  file.path(data_output_dir, "gwmodel_bandwidth_metrics.csv"),
+  row.names = FALSE
+)
+cat(sprintf(
+  "Selected GWmodel bandwidth: %d neighbors; holdout RMSE: %.6f\n",
+  selected_gwmodel_bandwidth,
+  gwmodel_bandwidth_results$holdout_RMSE[selected_gwmodel_index]
+))
+```
+
+### CVXR locally weighted regression
+
+CVXR solves the weighted regression for multiple prediction locations per problem. The intercept and year effects are unpenalized, matching the ridge model's treatment of \(\alpha_t\).
+
+For each target location \(s\), this chunk solves
+\[
+\min_{\theta_s}\ \sum_i w_i(s)(y_i-x_i^\top\theta_s)^2
++\lambda\|\beta_s\|_2^2,
+\]
+where \(w_i(s)\) are adaptive bisquare geographic weights and only feature
+slopes \(\beta_s\) are penalized. Target locations are solved in batches of
+20 to limit optimization memory. The Cartesian grid of candidate bandwidth
+and \(\lambda\in\{0,0.01,0.1,1,10\}\) is evaluated on 2025; minimum holdout
+RMSE selects the CVXR settings.
+
+```{r}
+cvxr_local_predict <- function(
+  X,
+  y,
+  target_X,
+  weights,
+  lambda,
+  penalty_indices,
+  chunk_size = 20
+) {
+  predictions <- numeric(nrow(target_X))
+  coefficient_estimates <- matrix(
+    NA_real_,
+    nrow = ncol(X),
+    ncol = nrow(target_X),
+    dimnames = list(colnames(X), NULL)
+  )
+
+  chunk_starts <- seq.int(1, nrow(target_X), by = chunk_size)
+  for (chunk_start in chunk_starts) {
+    target_indices <- chunk_start:min(
+      chunk_start + chunk_size - 1,
+      nrow(target_X)
+    )
+    chunk_weights <- weights[, target_indices, drop = FALSE]
+    local_coefficients <- Variable(
+      shape = c(ncol(X), length(target_indices))
+    )
+    response_matrix <- matrix(
+      y,
+      nrow = length(y),
+      ncol = length(target_indices)
+    )
+    weighted_residuals <- sqrt(chunk_weights) *
+      (X %*% local_coefficients - response_matrix)
+    objective <- sum_squares(weighted_residuals)
+    if (lambda > 0) {
+      objective <- objective +
+        lambda * sum_squares(local_coefficients[penalty_indices, ])
+    }
+
+    fit <- solve(
+      Problem(Minimize(objective)),
+      solver = "CLARABEL",
+      max_iter = 1000
+    )
+    if (!fit$status %in% c("optimal", "optimal_inaccurate")) {
+      stop(sprintf(
+        "CVXR local regression failed for lambda=%g with status: %s",
+        lambda,
+        fit$status
+      ))
+    }
+
+    chunk_coefficients <- value(local_coefficients)
+    coefficient_estimates[, target_indices] <- chunk_coefficients
+    predictions[target_indices] <- rowSums(
+      target_X[target_indices, , drop = FALSE] *
+        t(chunk_coefficients)
+    )
+  }
+
+  list(
+    predictions = predictions,
+    coefficients = coefficient_estimates
+  )
+}
+
+lambda_grid <- c(0, 0.01, 0.1, 1, 10)
+cvxr_grid <- expand.grid(
+  bandwidth_index = seq_along(bandwidth_grid),
+  lambda = lambda_grid
+)
+cvxr_grid$bandwidth_neighbors <-
+  bandwidth_grid[cvxr_grid$bandwidth_index]
+cvxr_grid$holdout_RMSE <- NA_real_
+cvxr_grid$holdout_R_squared <- NA_real_
+cvxr_holdout_predictions <- vector("list", nrow(cvxr_grid))
+
+for (grid_index in seq_len(nrow(cvxr_grid))) {
+  holdout_fit <- cvxr_local_predict(
+    X = X_train,
+    y = y_train,
+    target_X = X_holdout,
+    weights = holdout_weights[[cvxr_grid$bandwidth_index[grid_index]]],
+    lambda = cvxr_grid$lambda[grid_index],
+    penalty_indices = feature_parameter_indices
+  )
+  cvxr_holdout_predictions[[grid_index]] <-
+    holdout_fit$predictions * model_setup$response_sd +
+    model_setup$response_mean
+  residuals <- y_holdout - cvxr_holdout_predictions[[grid_index]]
+  cvxr_grid$holdout_RMSE[grid_index] <- sqrt(mean(residuals^2))
+  cvxr_grid$holdout_R_squared[grid_index] <-
+    1 - sum(residuals^2) / holdout_total_sum_squares
+}
+
+selected_cvxr_index <- which.min(cvxr_grid$holdout_RMSE)
+selected_cvxr_bandwidth_index <-
+  cvxr_grid$bandwidth_index[selected_cvxr_index]
+selected_cvxr_bandwidth <- bandwidth_grid[selected_cvxr_bandwidth_index]
+selected_cvxr_lambda <- cvxr_grid$lambda[selected_cvxr_index]
+best_cvxr_holdout_predictions <-
+  cvxr_holdout_predictions[[selected_cvxr_index]]
+
+write.csv(
+  cvxr_grid,
+  file.path(data_output_dir, "cvxr_gwmodel_hyperparameter_metrics.csv"),
+  row.names = FALSE
+)
+cat(sprintf(
+  "Selected CVXR bandwidth: %d neighbors; lambda: %g; holdout RMSE: %.6f\n",
+  selected_cvxr_bandwidth,
+  selected_cvxr_lambda,
+  cvxr_grid$holdout_RMSE[selected_cvxr_index]
+))
+```
+
+### Persistent provincial outlier correction
+
+The selected spatial models are fitted to the 2020–2024 observations at their own centroids to obtain training residuals. Provinces with a median residual more than three robust standard deviations from the cross-province median are flagged. For each flagged province, a linear trend in its training residuals is extrapolated to 2025 and added to spatial predictions. The correction is estimated using training years only and does not remove any observations.
+
+This chunk obtains in-sample spatial fits for each selected method, aggregates
+residuals by province, and flags outliers using the median and MAD
+(scaled by 1.4826) with an absolute robust-score threshold of 3. Only flagged
+provinces receive a correction: an ordinary linear trend of their annual
+training residuals is extrapolated to 2025. The correction table is saved
+separately for auditability and does not delete or reweight observations.
+
+```{r}
+training_coordinates <- as.matrix(
+  training_data[, c("longitude", "latitude")]
+)
+training_distances <- t(gw.dist(
+  dp.locat = training_coordinates,
+  longlat = TRUE
+))
+training_sf <- st_as_sf(
+  training_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+
+selected_gwmodel_training_fit <- gwr.basic(
+  formula = model_formula,
+  data = training_sf,
+  bw = selected_gwmodel_bandwidth,
+  kernel = kernel_name,
+  adaptive = TRUE,
+  longlat = TRUE,
+  dMat = training_distances
+)
+if (is.null(selected_gwmodel_training_fit$SDF$yhat) ||
+    any(!is.finite(selected_gwmodel_training_fit$SDF$yhat))) {
+  stop("GWmodel training fit did not return finite fitted values for outlier detection.")
+}
+
+training_weights <- gw.weight(
+  training_distances,
+  bw = selected_cvxr_bandwidth,
+  kernel = kernel_name,
+  adaptive = TRUE
+)
+selected_cvxr_training_fit <- cvxr_local_predict(
+  X = X_train,
+  y = y_train,
+  target_X = X_train,
+  weights = training_weights,
+  lambda = selected_cvxr_lambda,
+  penalty_indices = feature_parameter_indices
+)
+
+fit_province_residual_correction <- function(
+  data,
+  residuals,
+  forecast_year,
+  threshold = 3
+) {
+  residual_data <- data.frame(
+    province = data$province,
+    year = data$year,
+    residual = residuals
+  )
+  province_residuals <- aggregate(
+    residual ~ province,
+    data = residual_data,
+    FUN = median
+  )
+  robust_center <- median(province_residuals$residual)
+  robust_scale <- mad(province_residuals$residual, constant = 1.4826)
+  if (!is.finite(robust_scale) || robust_scale <= 0) {
+    stop("Cannot identify provincial residual outliers: robust residual scale is zero.")
+  }
+  province_residuals$robust_z <-
+    (province_residuals$residual - robust_center) / robust_scale
+  province_residuals$outlier <- abs(province_residuals$robust_z) >= threshold
+  province_residuals$residual_correction <- 0
+
+  outlier_provinces <- province_residuals$province[
+    province_residuals$outlier
+  ]
+  for (province in outlier_provinces) {
+    province_data <- residual_data[
+      residual_data$province == province,
+      ,
+      drop = FALSE
+    ]
+    if (length(unique(province_data$year)) < 2) {
+      stop(sprintf(
+        "Cannot extrapolate residual trend for outlier province %s.",
+        province
+      ))
+    }
+    residual_trend <- lm(residual ~ year, data = province_data)
+    forecast <- unname(predict(
+      residual_trend,
+      newdata = data.frame(year = forecast_year)
+    ))
+    if (!is.finite(forecast)) {
+      stop(sprintf(
+        "Non-finite residual correction for outlier province %s.",
+        province
+      ))
+    }
+    province_residuals$residual_correction[
+      province_residuals$province == province
+    ] <- forecast
+  }
+
+  province_residuals
+}
+
+gwmodel_outlier_corrections <- fit_province_residual_correction(
+  training_data,
+  model_setup$y_train_raw -
+    (selected_gwmodel_training_fit$SDF$yhat * model_setup$response_sd +
+      model_setup$response_mean),
+  holdout_year
+)
+cvxr_outlier_corrections <- fit_province_residual_correction(
+  training_data,
+  model_setup$y_train_raw -
+    (selected_cvxr_training_fit$predictions * model_setup$response_sd +
+      model_setup$response_mean),
+  holdout_year
+)
+write.csv(
+  gwmodel_outlier_corrections,
+  file.path(data_output_dir, "gwmodel_outlier_corrections.csv"),
+  row.names = FALSE
+)
+write.csv(
+  cvxr_outlier_corrections,
+  file.path(data_output_dir, "cvxr_gw_outlier_corrections.csv"),
+  row.names = FALSE
+)
+print(gwmodel_outlier_corrections[
+  gwmodel_outlier_corrections$outlier,
+], row.names = FALSE)
+```
+
+### 2025 holdout comparison
+
+The table reports each raw spatial prediction and the prediction after applying its training-only outlier correction. Provincial GDP targets are not used in model selection or this correction.
+
+This comparison chunk applies those corrections to holdout predictions and
+writes method-specific training/holdout metric and diagnostic files. It reports
+uncorrected and corrected RMSE/\(R^2\) alongside the shared OLS reference, and
+plots observed versus fitted holdout values against the identity line. These
+results assess spatial model selection before the separate level-2 provincial
+calibration step.
+
+```{r}
+gwmodel_holdout_correction <- gwmodel_outlier_corrections$residual_correction[
+  match(holdout_data$province, gwmodel_outlier_corrections$province)
+]
+cvxr_holdout_correction <- cvxr_outlier_corrections$residual_correction[
+  match(holdout_data$province, cvxr_outlier_corrections$province)
+]
+if (anyNA(gwmodel_holdout_correction) || anyNA(cvxr_holdout_correction)) {
+  stop("Could not match all 2025 holdout provinces to the outlier-correction table.")
+}
+adjusted_gwmodel_holdout_predictions <-
+  best_gwmodel_holdout_predictions + gwmodel_holdout_correction
+adjusted_cvxr_holdout_predictions <-
+  best_cvxr_holdout_predictions + cvxr_holdout_correction
+
+gwmodel_split_metrics <- write_model_comparison_diagnostics(
+  model_name = "GWmodel GWR with outlier correction",
+  training_data = training_data,
+  holdout_data = holdout_data,
+  training_fitted =
+    selected_gwmodel_training_fit$SDF$yhat * model_setup$response_sd +
+    model_setup$response_mean,
+  holdout_fitted = adjusted_gwmodel_holdout_predictions,
+  ols_training = ols_comparison$training$predicted,
+  ols_holdout = ols_comparison$holdout$predicted,
+  data_output_dir = data_output_dir,
+  figure_output_dir = figure_output_dir,
+  file_prefix = "gwmodel",
+  feature_columns = feature_columns
+)
+cvxr_split_metrics <- write_model_comparison_diagnostics(
+  model_name = "CVXR local regression with outlier correction",
+  training_data = training_data,
+  holdout_data = holdout_data,
+  training_fitted =
+    selected_cvxr_training_fit$predictions * model_setup$response_sd +
+    model_setup$response_mean,
+  holdout_fitted = adjusted_cvxr_holdout_predictions,
+  ols_training = ols_comparison$training$predicted,
+  ols_holdout = ols_comparison$holdout$predicted,
+  data_output_dir = data_output_dir,
+  figure_output_dir = figure_output_dir,
+  file_prefix = "cvxr_gw",
+  feature_columns = feature_columns
+)
+
+holdout_model_comparison <- data.frame(
+  model = c(
+    "GWmodel GWR",
+    "GWmodel GWR with outlier correction",
+    "CVXR local regression",
+    "CVXR local regression with outlier correction",
+    "Ordinary least squares reference"
+  ),
+  bandwidth_neighbors = c(
+    selected_gwmodel_bandwidth,
+    selected_gwmodel_bandwidth,
+    selected_cvxr_bandwidth,
+    selected_cvxr_bandwidth,
+    NA_real_
+  ),
+  lambda = c(
+    NA_real_, NA_real_, selected_cvxr_lambda, selected_cvxr_lambda, NA_real_
+  ),
+  R_squared = c(
+    1 - sum((y_holdout - best_gwmodel_holdout_predictions)^2) /
+      holdout_total_sum_squares,
+    1 - sum((y_holdout - adjusted_gwmodel_holdout_predictions)^2) /
+      holdout_total_sum_squares,
+    1 - sum((y_holdout - best_cvxr_holdout_predictions)^2) /
+      holdout_total_sum_squares,
+    1 - sum((y_holdout - adjusted_cvxr_holdout_predictions)^2) /
+      holdout_total_sum_squares,
+    1 - sum(ols_reference_predictions$residual^2) /
+      holdout_total_sum_squares
+  ),
+  RMSE = c(
+    sqrt(mean((y_holdout - best_gwmodel_holdout_predictions)^2)),
+    sqrt(mean((y_holdout - adjusted_gwmodel_holdout_predictions)^2)),
+    sqrt(mean((y_holdout - best_cvxr_holdout_predictions)^2)),
+    sqrt(mean((y_holdout - adjusted_cvxr_holdout_predictions)^2)),
+    sqrt(mean(ols_reference_predictions$residual^2))
+  )
+)
+print(holdout_model_comparison, row.names = FALSE)
+
+holdout_predictions <- data.frame(
+  province = holdout_data$province,
+  year = holdout_year,
+  actual = y_holdout,
+  gwmodel_spatial_prediction = best_gwmodel_holdout_predictions,
+  gwmodel_outlier_correction = gwmodel_holdout_correction,
+  gwmodel_fitted = adjusted_gwmodel_holdout_predictions,
+  gwmodel_residual = y_holdout - adjusted_gwmodel_holdout_predictions,
+  cvxr_spatial_prediction = best_cvxr_holdout_predictions,
+  cvxr_outlier_correction = cvxr_holdout_correction,
+  cvxr_fitted = adjusted_cvxr_holdout_predictions,
+  cvxr_residual = y_holdout - adjusted_cvxr_holdout_predictions
+)
+write.csv(
+  holdout_predictions,
+  file.path(data_output_dir, "gw_model_2025_holdout_predictions.csv"),
+  row.names = FALSE
+)
+
+holdout_plot_data <- rbind(
+  data.frame(
+    actual = y_holdout,
+    fitted = best_gwmodel_holdout_predictions,
+    model = "GWmodel GWR"
+  ),
+  data.frame(
+    actual = y_holdout,
+    fitted = adjusted_gwmodel_holdout_predictions,
+    model = "GWmodel GWR with outlier correction"
+  ),
+  data.frame(
+    actual = y_holdout,
+    fitted = best_cvxr_holdout_predictions,
+    model = "CVXR local regression"
+  ),
+  data.frame(
+    actual = y_holdout,
+    fitted = adjusted_cvxr_holdout_predictions,
+    model = "CVXR with outlier correction"
+  )
+)
+holdout_plot <- ggplot(
+  holdout_plot_data,
+  aes(x = actual, y = fitted, color = model)
+) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "gray35") +
+  scale_color_manual(values = c(
+    "GWmodel GWR" = "#0072B2",
+    "GWmodel GWR with outlier correction" = "#56B4E9",
+    "CVXR local regression" = "#D55E00",
+    "CVXR with outlier correction" = "#E69F00"
+  )) +
+  labs(
+    title = "2025 spatial-model holdout: actual vs fitted",
+    x = "Actual GRDP per capita",
+    y = "Predicted GRDP per capita",
+    color = NULL
+  ) +
+  theme_minimal()
+ggsave(
+  file.path(figure_output_dir, "gw_model_2025_holdout_actual_vs_fitted.png"),
+  holdout_plot,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+```
+
+### Refit selected models and training diagnostics
+
+Refit each method using all available regression years. The final year effects include separate 2020–2025 intercept terms; 2025 level-2 predictions use the 2025 term directly.
+
+This chunk refits both methods on all years using their holdout-selected
+bandwidths (rescaled to the larger all-years sample) and selected CVXR
+\(\lambda\). It computes training fitted values/residuals, writes observation
+diagnostics, and reports training \(R^2\) and RMSE. The final refit is for
+level-2 prediction; holdout metrics continue to come from models trained
+without 2025 outcomes.
+
+```{r}
+final_training_data <- add_year_effects(
+  prepare_features(regression_data),
+  all_years
+)
+final_year_effect_columns <- paste0("year_", all_years[-1])
+final_predictors <- c(final_year_effect_columns, scaled_feature_columns)
+final_design_formula <- reformulate(final_predictors)
+final_model_formula <- reformulate(
+  final_predictors,
+  response = "grdp_per_capita"
+)
+final_X <- model.matrix(final_design_formula, data = final_training_data)
+final_y <- final_training_data$grdp_per_capita
+final_feature_parameter_indices <- match(
+  scaled_feature_columns,
+  colnames(final_X)
+)
+if (anyNA(final_feature_parameter_indices)) {
+  stop("Could not identify all final-model feature slopes.")
+}
+
+final_bandwidth_gwmodel <- min(
+  nrow(final_training_data),
+  max(
+    ncol(final_X) + 2,
+    ceiling(selected_gwmodel_bandwidth / nrow(training_data) *
+      nrow(final_training_data))
+  )
+)
+final_bandwidth_cvxr <- min(
+  nrow(final_training_data),
+  max(
+    ncol(final_X) + 2,
+    ceiling(selected_cvxr_bandwidth / nrow(training_data) *
+      nrow(final_training_data))
+  )
+)
+final_training_coordinates <- as.matrix(
+  final_training_data[, c("longitude", "latitude")]
+)
+final_training_distances <- t(gw.dist(
+  dp.locat = final_training_coordinates,
+  longlat = TRUE
+))
+final_training_sf <- st_as_sf(
+  final_training_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+
+final_gwr <- gwr.basic(
+  formula = final_model_formula,
+  data = final_training_sf,
+  bw = final_bandwidth_gwmodel,
+  kernel = kernel_name,
+  adaptive = TRUE,
+  longlat = TRUE,
+  dMat = final_training_distances
+)
+if (is.null(final_gwr$SDF$yhat) ||
+    any(!is.finite(final_gwr$SDF$yhat))) {
+  stop("GWmodel final fit did not return finite training fitted values.")
+}
+
+final_cvxr_weights <- gw.weight(
+  final_training_distances,
+  bw = final_bandwidth_cvxr,
+  kernel = kernel_name,
+  adaptive = TRUE
+)
+final_cvxr_training_fit <- cvxr_local_predict(
+  X = final_X,
+  y = final_y,
+  target_X = final_X,
+  weights = final_cvxr_weights,
+  lambda = selected_cvxr_lambda,
+  penalty_indices = final_feature_parameter_indices
+)
+
+training_diagnostics <- data.frame(
+  province = final_training_data$province,
+  year = final_training_data$year,
+  year_factor = factor(final_training_data$year),
+  actual = final_y,
+  gwmodel_fitted = final_gwr$SDF$yhat,
+  gwmodel_residual = final_y - final_gwr$SDF$yhat,
+  cvxr_fitted = final_cvxr_training_fit$predictions,
+  cvxr_residual = final_y - final_cvxr_training_fit$predictions,
+  mean_radiance = final_training_data$mean_radiance,
+  population = final_training_data$population,
+  pixel_count = final_training_data$pixel_count
+)
+training_diagnostics <- training_diagnostics %>%
+  mutate(
+    gwmodel_standardized_residual =
+      gwmodel_residual / sd(gwmodel_residual),
+    gwmodel_scale_location = sqrt(abs(gwmodel_standardized_residual)),
+    cvxr_standardized_residual = cvxr_residual / sd(cvxr_residual),
+    cvxr_scale_location = sqrt(abs(cvxr_standardized_residual))
+  )
+write.csv(
+  training_diagnostics,
+  file.path(data_output_dir, "gw_model_all_year_refit_diagnostics.csv"),
+  row.names = FALSE
+)
+
+training_total_sum_squares <- sum((final_y - mean(final_y))^2)
+final_refit_model_stats <- data.frame(
+  model = c("GWmodel GWR", "CVXR local regression"),
+  R_squared = c(
+    1 - sum(training_diagnostics$gwmodel_residual^2) /
+      training_total_sum_squares,
+    1 - sum(training_diagnostics$cvxr_residual^2) /
+      training_total_sum_squares
+  ),
+  RMSE = c(
+    sqrt(mean(training_diagnostics$gwmodel_residual^2)),
+    sqrt(mean(training_diagnostics$cvxr_residual^2))
+  )
+)
+print(final_refit_model_stats, row.names = FALSE)
+```
+
+The fitted-value and residual figures follow the linear model's diagnostic outputs. Training diagnostics are descriptive; local fits and spatially overlapping neighborhoods do not have independent residuals.
+
+The next chunk draws actual-versus-fitted plots for both spatial methods and
+residual-versus-fitted, Q-Q, residual-versus-radiance, and residual-by-year
+panels. Using parallel panels makes method differences visible, but spatial
+overlap and local fitting mean these are visual diagnostics rather than
+independent-error inference.
+
+```{r}
+actual_fitted_plot <- ggplot(training_diagnostics) +
+  geom_point(
+    aes(x = actual, y = gwmodel_fitted, color = "GWmodel GWR"),
+    alpha = 0.65,
+    size = 1.8
+  ) +
+  geom_point(
+    aes(x = actual, y = cvxr_fitted, color = "CVXR local regression"),
+    alpha = 0.65,
+    size = 1.8
+  ) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "gray35") +
+  scale_color_manual(
+    values = c("GWmodel GWR" = "#0072B2", "CVXR local regression" = "#D55E00")
+  ) +
+  labs(
+    title = "Training observations: actual vs fitted",
+    x = "Actual GRDP per capita",
+    y = "Fitted GRDP per capita",
+    color = NULL
+  ) +
+  theme_minimal()
+ggsave(
+  file.path(figure_output_dir, "gw_model_all_year_refit_actual_vs_fitted.png"),
+  actual_fitted_plot,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+diagnostic_scatter <- function(data, fitted_column, residual_column, title) {
+  ggplot(data, aes(x = .data[[fitted_column]], y = .data[[residual_column]])) +
+    geom_point(color = "#0072B2", alpha = 0.55, size = 1.4) +
+    geom_hline(yintercept = 0, linetype = 2) +
+    labs(title = title, x = "Fitted values", y = "Residual") +
+    theme_minimal()
+}
+diagnostic_qq <- function(data, residual_column, title) {
+  ggplot(data, aes(sample = .data[[residual_column]])) +
+    stat_qq(color = "#0072B2", alpha = 0.55) +
+    stat_qq_line(color = "#D55E00") +
+    labs(title = title, x = "Theoretical quantiles", y = "Sample quantiles") +
+    theme_minimal()
+}
+
+gw_residual_fitted <- diagnostic_scatter(
+  training_diagnostics, "gwmodel_fitted", "gwmodel_residual",
+  "GWmodel: residual vs fitted"
+)
+cvxr_residual_fitted <- diagnostic_scatter(
+  training_diagnostics, "cvxr_fitted", "cvxr_residual",
+  "CVXR: residual vs fitted"
+)
+gw_qq <- diagnostic_qq(
+  training_diagnostics, "gwmodel_residual", "GWmodel residual Q-Q"
+)
+cvxr_qq <- diagnostic_qq(
+  training_diagnostics, "cvxr_residual", "CVXR residual Q-Q"
+)
+gw_radiance <- ggplot(
+  training_diagnostics,
+  aes(x = mean_radiance, y = gwmodel_residual)
+) +
+  geom_point(color = "#0072B2", alpha = 0.55, size = 1.4) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(title = "GWmodel residual vs radiance", x = "Mean radiance", y = "Residual") +
+  theme_minimal()
+cvxr_radiance <- ggplot(
+  training_diagnostics,
+  aes(x = mean_radiance, y = cvxr_residual)
+) +
+  geom_point(color = "#D55E00", alpha = 0.55, size = 1.4) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(title = "CVXR residual vs radiance", x = "Mean radiance", y = "Residual") +
+  theme_minimal()
+gw_by_year <- ggplot(
+  training_diagnostics,
+  aes(x = year_factor, y = gwmodel_residual)
+) +
+  geom_boxplot(fill = "#B8D8E8", color = "#0072B2") +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(title = "GWmodel residual by year", x = "Year", y = "Residual") +
+  theme_minimal()
+cvxr_by_year <- ggplot(
+  training_diagnostics,
+  aes(x = year_factor, y = cvxr_residual)
+) +
+  geom_boxplot(fill = "#F4C7B8", color = "#D55E00") +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(title = "CVXR residual by year", x = "Year", y = "Residual") +
+  theme_minimal()
+
+residual_diagnostics_plot <-
+  (gw_residual_fitted | gw_qq | gw_radiance | gw_by_year) /
+  (cvxr_residual_fitted | cvxr_qq | cvxr_radiance | cvxr_by_year) +
+  plot_annotation(title = "Spatial-model training residual diagnostics")
+ggsave(
+  file.path(figure_output_dir, "gw_model_all_year_refit_residual_diagnostics.png"),
+  residual_diagnostics_plot,
+  width = 14,
+  height = 8,
+  dpi = 200
+)
+```
+
+### 2025 level-2 predictions
+
+Use the refitted model's 2025 year effect and the training-set feature standardization to predict each level-2 centroid. A province-specific additive adjustment calibrates level-2 predictions to the reported 2025 provincial GRDP-per-capita target. Because GRDP per capita cannot be negative, the model predictions are floored at zero and the adjustment is solved with that floor active, preserving provincial totals while keeping estimates non-negative.
+
+The final chunk predicts each centroid with both the `GWmodel` and CVXR
+refits, applies the corresponding training-only outlier correction, and
+calibrates each method separately. Within province \(j\), it finds
+\(\delta_j\) such that
+\(\sum_iP_{ij}\max(0,\hat y_{ij}+\delta_j)=g_jN_j\), using bisection; this
+preserves the official target while preventing negative estimates. It checks
+the aggregate totals and writes both unit prediction tables, constraint
+checks, and fitted model objects.
+
+```{r}
+prediction_data$year <- 2025
+prediction_data <- add_year_effects(prediction_data, all_years)
+final_prediction_X <- model.matrix(
+  final_design_formula,
+  data = prediction_data
+)
+if (!identical(colnames(final_prediction_X), colnames(final_X))) {
+  stop("Level-2 prediction design does not match the final fitted model.")
+}
+
+prediction_coordinates <- as.matrix(
+  prediction_data[, c("longitude", "latitude")]
+)
+if (any(!is.finite(prediction_coordinates))) {
+  stop("Level-2 centroid coordinates must be finite.")
+}
+prediction_sf <- st_as_sf(
+  prediction_data,
+  coords = c("longitude", "latitude"),
+  crs = 4326,
+  remove = FALSE
+)
+prediction_distances <- t(gw.dist(
+  dp.locat = final_training_coordinates,
+  rp.locat = prediction_coordinates,
+  longlat = TRUE
+))
+final_gwr_predictions <- gwr.predict(
+  formula = final_model_formula,
+  data = final_training_sf,
+  predictdata = prediction_sf,
+  bw = final_bandwidth_gwmodel,
+  kernel = kernel_name,
+  adaptive = TRUE,
+  longlat = TRUE,
+  dMat1 = prediction_distances,
+  dMat2 = final_training_distances
+)
+raw_gwmodel_predictions <- final_gwr_predictions$SDF$prediction
+
+prediction_weights <- gw.weight(
+  prediction_distances,
+  bw = final_bandwidth_cvxr,
+  kernel = kernel_name,
+  adaptive = TRUE
+)
+final_cvxr_prediction_fit <- cvxr_local_predict(
+  X = final_X,
+  y = final_y,
+  target_X = final_prediction_X,
+  weights = prediction_weights,
+  lambda = selected_cvxr_lambda,
+  penalty_indices = final_feature_parameter_indices
+)
+raw_cvxr_predictions <- final_cvxr_prediction_fit$predictions
+
+gwmodel_prediction_correction <- gwmodel_outlier_corrections$residual_correction[
+  match(prediction_data$level_1, gwmodel_outlier_corrections$province)
+]
+cvxr_prediction_correction <- cvxr_outlier_corrections$residual_correction[
+  match(prediction_data$level_1, cvxr_outlier_corrections$province)
+]
+if (anyNA(gwmodel_prediction_correction) ||
+    anyNA(cvxr_prediction_correction)) {
+  stop("Could not match all level-2 provinces to the outlier-correction table.")
+}
+adjusted_gwmodel_predictions <-
+  raw_gwmodel_predictions + gwmodel_prediction_correction
+adjusted_cvxr_predictions <-
+  raw_cvxr_predictions + cvxr_prediction_correction
+
+calibrate_province_predictions <- function(raw_predictions, data) {
+  if (length(raw_predictions) != nrow(data) ||
+      any(!is.finite(raw_predictions)) ||
+      any(!is.finite(data$population)) ||
+      any(data$population < 0)) {
+    stop("Level-2 predictions and populations must be finite and correctly sized.")
+  }
+  if (anyDuplicated(paste(data$level_1, data$name, sep = "\r"))) {
+    stop("The level-2 prediction data contains duplicate units within a province.")
+  }
+
+  target_grdp <- provincial_grdp_data[["2025"]][
+    match(data$level_1, provincial_grdp_data$province)
+  ]
+  province_population <- provincial_population_data[["2025"]][
+    match(data$level_1, provincial_population_data$province)
+  ]
+  if (anyNA(target_grdp) || any(!is.finite(target_grdp)) ||
+      anyNA(province_population) || any(!is.finite(province_population)) ||
+      any(province_population <= 0)) {
+    stop("Missing or invalid 2025 provincial GRDP or population target.")
+  }
+
+  provinces <- unique(data$level_1)
+  adjustments <- setNames(numeric(length(provinces)), provinces)
+  nonnegative_raw_predictions <- pmax(raw_predictions, 0)
+  calibrated_predictions <- numeric(length(raw_predictions))
+  for (province in provinces) {
+    index <- which(data$level_1 == province)
+    level2_population <- sum(data$population[index])
+    if (!is.finite(level2_population) || level2_population <= 0) {
+      stop(sprintf("Province %s has no positive level-2 population.", province))
+    }
+    province_index <- match(province, data$level_1)
+    target_total <- target_grdp[province_index] *
+      province_population[province_index]
+    if (!is.finite(target_total) || target_total <= 0) {
+      stop(sprintf("Province %s has an invalid non-positive GRDP target.", province))
+    }
+
+    province_raw <- nonnegative_raw_predictions[index]
+    weighted_total <- function(adjustment) {
+      sum(data$population[index] * pmax(province_raw + adjustment, 0))
+    }
+    lower <- -max(province_raw) - 1
+    upper <- target_total / level2_population - min(province_raw) + 1
+    for (iteration in seq_len(100)) {
+      adjustment <- lower + (upper - lower) / 2
+      if (weighted_total(adjustment) < target_total) {
+        lower <- adjustment
+      } else {
+        upper <- adjustment
+      }
+    }
+
+    adjustments[[province]] <- lower + (upper - lower) / 2
+    calibrated_predictions[index] <-
+      pmax(province_raw + adjustments[[province]], 0)
+  }
+
+  if (any(!is.finite(calibrated_predictions)) ||
+      any(calibrated_predictions < 0)) {
+    stop("Calibrated level-2 predictions must be finite and non-negative.")
+  }
+  province_check <- do.call(rbind, lapply(provinces, function(province) {
+    index <- which(data$level_1 == province)
+    province_index <- match(province, data$level_1)
+    target_total <- target_grdp[province_index] *
+      province_population[province_index]
+    predicted_total <- sum(
+      data$population[index] * calibrated_predictions[index]
+    )
+    data.frame(
+      province = province,
+      population = province_population[province_index],
+      level2_population = sum(data$population[index]),
+      target_grdp_per_capita = target_grdp[province_index],
+      target_total_grdp = target_total,
+      predicted_total_grdp = predicted_total,
+      difference = predicted_total - target_total
+    )
+  }))
+  if (any(abs(province_check$difference) >
+          1e-8 * pmax(abs(province_check$target_total_grdp), 1))) {
+    stop("Calibrated level-2 predictions do not match provincial GDP targets.")
+  }
+
+  list(
+    raw = nonnegative_raw_predictions,
+    calibrated = calibrated_predictions,
+    adjustment = unname(adjustments[data$level_1]),
+    target_grdp_per_capita = target_grdp,
+    province_check = province_check
+  )
+}
+
+gwmodel_calibration <- calibrate_province_predictions(
+  adjusted_gwmodel_predictions,
+  prediction_data
+)
+cvxr_calibration <- calibrate_province_predictions(
+  adjusted_cvxr_predictions,
+  prediction_data
+)
+
+gwmodel_level2_predictions <- data.frame(
+  level_2 = prediction_data$name,
+  level_1 = prediction_data$level_1,
+  year = prediction_data$year,
+  population = prediction_data$population,
+  spatial_grdp_per_capita = raw_gwmodel_predictions,
+  outlier_correction = gwmodel_prediction_correction,
+  raw_grdp_per_capita = gwmodel_calibration$raw,
+  province_adjustment = gwmodel_calibration$adjustment,
+  predicted_grdp_per_capita = gwmodel_calibration$calibrated,
+  province_grdp_per_capita_target_2025 =
+    gwmodel_calibration$target_grdp_per_capita
+)
+cvxr_level2_predictions <- data.frame(
+  level_2 = prediction_data$name,
+  level_1 = prediction_data$level_1,
+  year = prediction_data$year,
+  population = prediction_data$population,
+  spatial_grdp_per_capita = raw_cvxr_predictions,
+  outlier_correction = cvxr_prediction_correction,
+  raw_grdp_per_capita = cvxr_calibration$raw,
+  province_adjustment = cvxr_calibration$adjustment,
+  predicted_grdp_per_capita = cvxr_calibration$calibrated,
+  province_grdp_per_capita_target_2025 =
+    cvxr_calibration$target_grdp_per_capita
+)
+
+write.csv(
+  gwmodel_level2_predictions,
+  file.path(data_output_dir, "gwmodel_level2_predictions.csv"),
+  row.names = FALSE
+)
+write.csv(
+  cvxr_level2_predictions,
+  file.path(data_output_dir, "cvxr_gw_level2_predictions.csv"),
+  row.names = FALSE
+)
+write.csv(
+  gwmodel_calibration$province_check,
+  file.path(data_output_dir, "gwmodel_province_constraint_check.csv"),
+  row.names = FALSE
+)
+write.csv(
+  cvxr_calibration$province_check,
+  file.path(data_output_dir, "cvxr_gw_province_constraint_check.csv"),
+  row.names = FALSE
+)
+
+saveRDS(
+  list(
+    model = final_gwr,
+    formula = final_model_formula,
+    year_effects = all_years,
+    feature_columns = feature_columns,
+    feature_means = feature_means,
+    feature_sds = feature_sds,
+    prediction_floor = 0,
+    level2_calibration = "additive province adjustment with non-negative prediction floor",
+    bandwidth_neighbors = final_bandwidth_gwmodel,
+    bandwidth_fraction = selected_gwmodel_bandwidth / nrow(training_data),
+    kernel = kernel_name,
+    outlier_corrections = gwmodel_outlier_corrections,
+    holdout_metrics = gwmodel_bandwidth_results[selected_gwmodel_index, ],
+    training_metrics = gwmodel_split_metrics[
+      gwmodel_split_metrics$split == "training" &
+        gwmodel_split_metrics$model == "GWmodel GWR with outlier correction",
+      ,
+      drop = FALSE
+    ]
+  ),
+  file.path(model_output_dir, "gwmodel_gwr.rds")
+)
+saveRDS(
+  list(
+    coefficients = final_cvxr_prediction_fit$coefficients,
+    training_coefficients = final_cvxr_training_fit$coefficients,
+    feature_names = colnames(final_X),
+    formula = final_model_formula,
+    year_effects = all_years,
+    feature_columns = feature_columns,
+    feature_means = feature_means,
+    feature_sds = feature_sds,
+    prediction_floor = 0,
+    level2_calibration = "additive province adjustment with non-negative prediction floor",
+    bandwidth_neighbors = final_bandwidth_cvxr,
+    bandwidth_fraction = selected_cvxr_bandwidth / nrow(training_data),
+    lambda = selected_cvxr_lambda,
+    kernel = kernel_name,
+    outlier_corrections = cvxr_outlier_corrections,
+    holdout_metrics = cvxr_grid[selected_cvxr_index, ],
+    training_metrics = cvxr_split_metrics[
+      cvxr_split_metrics$split == "training" &
+        cvxr_split_metrics$model ==
+          "CVXR local regression with outlier correction",
+      ,
+      drop = FALSE
+    ]
+  ),
+  file.path(model_output_dir, "cvxr_gw_model.rds")
+)
+
+print(gwmodel_calibration$province_check, row.names = FALSE)
+head(gwmodel_level2_predictions)
+```
