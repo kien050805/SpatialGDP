@@ -1,6 +1,6 @@
 ---
 title: "Linear Model"
-author: ""
+author: ''
 output:
   html_document:
     highlight: pygments
@@ -10,10 +10,25 @@ output:
     toc_float:
       collapsed: true
       smooth_scroll: true
+  pdf_document:
+    toc: true
+    toc_depth: '4'
 editor_options:
   markdown:
     wrap: sentence
 ---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  fig.width = 11.25,
+  fig.height = 6.875,
+  out.width = "100%",
+  fig.align = "center",
+  dpi = 160
+)
+```
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Load Libraries
 library(CVXR)
