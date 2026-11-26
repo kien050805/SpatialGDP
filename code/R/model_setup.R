@@ -81,7 +81,7 @@ prepare_model_setup <- function(
       X_train,
       longitude = training_data$longitude,
       latitude = training_data$latitude,
-      grdp_per_capita = training_data$grdp_per_capita
+      grdp_per_capita = y_train
     ),
     coords = c("longitude", "latitude"),
     crs = 4326,
@@ -93,7 +93,7 @@ prepare_model_setup <- function(
       X_test,
       longitude = holdout_data$longitude,
       latitude = holdout_data$latitude,
-      grdp_per_capita = holdout_data$grdp_per_capita
+      grdp_per_capita = y_test
     ),
     coords = c("longitude", "latitude"),
     crs = 4326,
@@ -164,10 +164,24 @@ prepare_full_model_setup <- function(
   
   y <- (regression_data$grdp_per_capita - response_mean) / response_sd
   
+  regression_sf <- st_as_sf(
+    data.frame(
+      X,
+      longitude = regression_data$longitude,
+      latitude = regression_data$latitude,
+      grdp_per_capita = y
+    ),
+    coords = c("longitude", "latitude"),
+    crs = 4326,
+    remove = FALSE
+  )
+  
   return(list(
     X = X,
     y = y,
     years = years,
+    
+    regression_sf = regression_sf,
     
     feature_columns = feature_columns,
     feature_means = feature_means,

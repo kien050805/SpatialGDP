@@ -1,3 +1,16 @@
+# Calculate model performance metrics.
+calculate_metrics <- function(actual, predicted) {
+  residuals <- actual - predicted
+  
+  metrics <- data.frame(
+    R_squared = 1 - sum(residuals^2) /
+      sum((actual - mean(actual))^2),
+    RMSE = sqrt(mean(residuals^2))
+  )
+  
+  return(metrics)
+}
+
 prepare_model_diagnostics <- function(
     data,
     fitted,
@@ -12,17 +25,6 @@ prepare_model_diagnostics <- function(
   }
   
   actual <- data$grdp_per_capita
-  
-  # Calculate model performance metrics.
-  calculate_metrics <- function(actual, predicted) {
-    residuals <- actual - predicted
-    
-    data.frame(
-      R_squared = 1 - sum(residuals^2) /
-        sum((actual - mean(actual))^2),
-      RMSE = sqrt(mean(residuals^2))
-    )
-  }
   
   model_metrics <- calculate_metrics(actual, fitted)
   model_metrics$Model <- model_name

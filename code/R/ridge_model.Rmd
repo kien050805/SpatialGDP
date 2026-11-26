@@ -576,14 +576,14 @@ knitr::include_graphics(training_diagnostics_path)
 # Plot holdout diagnostic plots.
 holdout_plots <- plot_residual_diagnostics(
   opt_holdout_diagnostics$diagnostics,
-  "Constrained Linear Model",
+  "Constrained Ridge Model",
   "OLS"
 )
 
 # Save and display
 holdout_diagnostics_path <- file.path(
   figure_output_dir,
-  "linear_model_holdout_residual_diagnostics.png"
+  "ridge_model_holdout_residual_diagnostics.png"
 )
 ggsave(
   holdout_diagnostics_path,
