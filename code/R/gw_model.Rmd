@@ -14,6 +14,18 @@ editor_options:
   markdown:
     wrap: sentence
 ---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  fig.width = 11.25,
+  fig.height = 6.875,
+  out.width = "100%",
+  fig.align = "center",
+  dpi = 160
+)
+```
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Load Libraries
 library(CVXR)
@@ -66,6 +78,12 @@ For this model, we will use the following training and testing datasets:
 
 All data sets have been cleaned and contain no missing values.
 
+For this model, mean radiance is transformed using 
+\[
+\ln(1+\text{mean_radiance})
+\]
+in both the regression and prediction datasets to reduce the influence of extreme radiance values.
+
 ```{r}
 # Regression Dataset
 regression_data <- read.csv(file.path(data_dir, "training_data/regression_dataset.csv"))
@@ -92,6 +110,14 @@ provincial_population_data <- read.csv(file.path(data_dir,
 regression_data$population <- regression_data$population * 1000
 provincial_population_data[, as.character(2020:2025)] <-
   provincial_population_data[, as.character(2020:2025)] * 1000
+
+# Change the mean_radiance into ln(1 + mean_radiance)
+regression_data$mean_radiance <- log1p(
+  regression_data$mean_radiance
+)
+prediction_data$mean_radiance <- log1p(
+  prediction_data$mean_radiance
+)
 ```
 
 ### Splitting the Training and Testing Sets
@@ -369,7 +395,7 @@ bandwidth_results <- data.frame(
 # Save
 write.csv(
   bandwidth_results,
-  file.path(data_output_dir, "GW_bandwidth_grid_diagnostic_metrics.csv"),
+  file.path(data_output_dir, "gw_model_bandwidth_grid_diagnostic_metrics.csv"),
   row.names = FALSE
 )
 ```
@@ -733,11 +759,11 @@ level2_prediction_data <- prepare_prediction_data(
 
 The raw prediction is
 \[
-\hat{y}_{i,2025}
+\hat{y}_{i,2025}^{\text{GWR}}
 =
-\sum_{t=1}^{T} w_t \alpha_t
+\sum_{t=1}^{T} w_t \hat{\alpha}_{t,i}
 +
-\sum_{m=1}^{p} \beta_m X_{mi,2025}
+\sum_{m=1}^{p} \hat{\beta}_{m,i} X_{mi,2025}
 \]
 ```{r}
 # Make raw prediction
@@ -856,6 +882,3 @@ write.csv(
   row.names = FALSE
 )
 ```
-
-
-
