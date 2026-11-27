@@ -62,6 +62,7 @@ dir.create(model_output_dir, showWarnings = FALSE, recursive = TRUE)
 source(file.path(source_dir, "model_setup.R"))
 source(file.path(source_dir, "fit_ols_comparison.R"))
 source(file.path(source_dir, "model_diagnostics.R"))
+source(file.path(source_dir, "plot_nn_metrics.R"))
 ```
 
 ### Load dataset
@@ -104,4 +105,678 @@ provincial_population_data[, as.character(2020:2025)] <-
   provincial_population_data[, as.character(2020:2025)] * 1000
 ```
 
+### Splitting the Training and Testing Sets
 
+This setup performs the following tasks:
+
+- Splits the data into a training set (2020–2024) and a holdout test set (2025).
+- Selects `mean_radiance`, `population`, and `pixel_count` as the predictor variables.
+- Standardizes the features in both the training and testing sets using the means and standard deviations calculated from the training data.
+- Calculates the temporal extrapolation weights based on the training years
+
+The temporal extrapolation weights is calculated as
+\[
+w_t = \frac{1}{T}
++ \frac{(2025-\bar{t})(t-\bar{t})}
+{\sum_{j=1}^{T}(t_j-\bar{t})^2}.
+\]
+
+where
+
+* \(T = 5\): number of training years
+* \(t\): individual training years
+* \(\bar{t}\): mean training years
+
+
+```{r}
+model_data <- prepare_model_setup(regression_data)
+
+X_train <- model_data$X_train
+y_train <- model_data$y_train
+X_test  <- model_data$X_test
+y_test  <- model_data$y_test
+temporal_weights = model_data$temporal_weights
+training_data = model_data$training_data
+holdout_data = model_data$holdout_data
+training_years = model_data$training_years
+holdout_year = model_data$holdout_year
+y_train_raw = model_data$y_train_raw
+y_test_raw = model_data$y_test_raw
+feature_columns = model_data$feature_columns
+feature_means = model_data$feature_means
+feature_sds = model_data$feature_sds
+response_mean = model_data$response_mean
+response_sd = model_data$response_sd
+```
+
+### Prepare OLS references
+
+Ordinary Least Squares (OLS) is used as a baseline reference model to evaluate predictions on both the training and holdout sets (2025). It also provides baseline performance metrics, including \(R^2\) and RMSE, for comparison with more advanced models.
+
+```{r}
+ols_comparison <- fit_ols_comparison(model_data)
+
+ols_coefficients <- ols_comparison$coefficients
+ols_training_predictions <- ols_comparison$training
+ols_holdout_predictions <- ols_comparison$holdout
+ols_metrics <- ols_comparison$metrics
+ols_training_predictions <- ols_comparison$training$predicted
+ols_holdout_predictions <- ols_comparison$holdout$predicted
+```
+
+### Preliminaries
+Supposed:
+
+* \(y \in \mathbb{R}^n\): observed outcome vector. That is, `grdp_per_capita`.
+* \(x_i \in \mathbb{R}^3\): standardized explanatory variables for observation \(i\): `mean_radiance`, `population`, and `pixel_count`.
+* \(\alpha_t \in \mathbb{R}\): year-specific intercept for year \(t\).
+* \(P_i \in \mathbb{R}\): `population` for observation \(i\)
+* \(\beta \in \mathbb{R}^3\): shared coefficients for the explanatory variables.
+* \(a_t \in \mathbb{R}\): specified national GDP total for year \(t\).
+
+### Neural Network architecture
+
+The neural network uses a single hidden layer with a linear output:
+
+\[
+\hat{y}_{it} =
+f_{\mathrm{NN}}\left(x_{it},\,\alpha_{2021,t},\ldots,\alpha_{2024,t}\right).
+\]
+
+```{r}
+fit_neural_network <- function(
+  x,
+  y,
+  size,
+  decay,
+  seed,
+  maxit = 3000
+) {
+  set.seed(seed)
+  fit <- nnet(
+    x = x,
+    y = matrix(y, ncol = 1),
+    size = size,
+    decay = decay,
+    linout = TRUE,
+    maxit = maxit,
+    MaxNWts = 5000,
+    rang = 0.1,
+    trace = FALSE
+  )
+  if (fit$convergence != 0) {
+    stop(sprintf(
+      "Neural network did not converge (size=%d, decay=%g, seed=%d).",
+      size,
+      decay,
+      seed
+    ))
+  }
+  fit
+}
+
+make_prediction <- function(model, newdata) {
+  as.vector(predict(model, newdata = newdata)) * response_sd +
+    response_mean
+}
+```
+
+#### Hidden units and decay rate
+For the choice of hidden units and decay rate, we search evaluates hidden layers of size \(1,2,3,5\) crossed with weight-decay values \(0,0.01,0.1,1\).
+
+```{r}
+hidden_units_grid <- seq(1, 14)
+decay_grid <- c(0, 10^seq(-5, 0))
+nn_grid <- lapply(hidden_units_grid, \(h) {
+  lapply(decay_grid, \(d) c(h, d))
+}) |> unlist(recursive = FALSE)
+
+```
+
+The model is fitted using the 2020–2024 training data with the shared standardized response and design matrix.
+
+```{r}
+# Initialize storage for model results.
+
+# training_predictions: predictions on training data
+training_predictions <- matrix(
+  NA_real_,
+  nrow = nrow(training_data),
+  ncol = length(nn_grid)
+)
+
+# holdout_predictions: predictions on testing data
+holdout_predictions <- matrix(
+  NA_real_,
+  nrow = nrow(holdout_data),
+  ncol = length(nn_grid)
+)
+```
+
+
+```{r}
+for (grid_index in seq_along(nn_grid)) {
+  model <- fit_neural_network(
+    x = X_train,
+    y = y_train,
+    size = nn_grid[[grid_index]][1],
+    decay = nn_grid[[grid_index]][2],
+    seed = 401 + grid_index
+  )
+
+  # Training predictions
+  training_predictions[, grid_index] <- make_prediction(model, X_train)
+
+  # Holdout predictions
+  holdout_predictions[, grid_index] <- make_prediction(model, X_test)
+}
+```
+
+### Model Evaluation and Hyperparameter Selection
+
+For each data split, the mean and total sum of squares (SST) are calculated using the observed GRDP-per-capita values within that split. We evaluate model performance using the following metrics.
+
+The coefficient of determination (\(R^2\)) is calculated for each model as
+
+\[
+R^2
+= 1-\frac{\sum_{i=1}^{n}(y_i-\hat y_i)^2}{\mathrm{SST}},
+\]
+
+where
+
+\[
+\bar y = \frac{1}{n}\sum_{i=1}^{n} y_i,
+\qquad
+\mathrm{SST} = \sum_{i=1}^{n}(y_i-\bar y)^2.
+\]
+
+We also calculate the root mean squared error (RMSE), expressed in the original GRDP-per-capita units, as
+
+\[
+\mathrm{RMSE}
+=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i)^2}.
+\]
+
+```{r}
+# Prepare diagnostics.
+training_diagnostics <- lapply(seq_along(nn_grid), function(grid_index) {
+  prepare_model_diagnostics(
+    data = training_data,
+    fitted = training_predictions[, grid_index],
+    model_name = "Neural Network Model",
+  )
+})
+
+holdout_diagnostics <- lapply(seq_along(nn_grid), function(grid_index) {
+  prepare_model_diagnostics(
+    data = holdout_data,
+    fitted = holdout_predictions[, grid_index],
+    model_name = "Neural Network Model",
+  )
+})
+
+nn_results <- data.frame(
+  size = sapply(nn_grid, `[`, 1),
+  decay = sapply(nn_grid, `[`, 2),
+
+  # Training diagnostics
+  training_RMSE = sapply(training_diagnostics, function(x) {
+    x$metrics$RMSE
+  }),
+  training_R_squared = sapply(training_diagnostics, function(x) {
+    x$metrics$R_squared
+  }),
+
+  # Holdout diagnostics
+  holdout_RMSE = sapply(holdout_diagnostics, function(x) {
+    x$metrics$RMSE
+  }),
+  holdout_R_squared = sapply(holdout_diagnostics, function(x) {
+    x$metrics$R_squared
+  })
+)
+
+# Save
+write.csv(
+  nn_results,
+  file.path(data_output_dir, ... =
+  "nn_grid_diagnostic_metrics.csv"),
+  row.names = FALSE
+)
+```
+
+We select the optimal number of hidden neurons and decay rates from the candidate grid based on the holdout performance, aiming to minimize RMSE and maximize \(R^2\).
+
+```{r}
+# Select the lambda that minimizes the 2025 holdout RMSE.
+selected_index <- which.min(nn_results$holdout_RMSE)
+selected_size <- nn_results$size[selected_index]
+selected_decay <- nn_results$decay[selected_index]
+
+selected_nn <- nn_results |>
+  filter(
+    size == selected_size,
+    decay == selected_decay
+  )
+
+
+# Get training and holdout diagnostics of selected lambda.
+opt_training_diagnostics <- prepare_model_diagnostics(
+  training_data,
+  training_predictions[, selected_index],
+  ols_training_predictions,
+  "Neural Network Model",
+  "OLS"
+)
+opt_holdout_diagnostics <- prepare_model_diagnostics(
+  holdout_data,
+  holdout_predictions[, selected_index],
+  ols_holdout_predictions,
+  "Neural Network Model",
+  "OLS"
+)
+
+# Report the selected lambda and evaluation metrics.
+cat("Selected hidden neurons and decay rates by minimum 2025 holdout RMSE: ")
+print(c(selected_size,selected_decay))
+
+# Save
+write.csv(
+  opt_training_diagnostics$diagnostics,
+  file.path(data_output_dir, "nn_model_training_diagnostics.csv"),
+  row.names = FALSE
+)
+write.csv(
+  opt_holdout_diagnostics$diagnostics,
+  file.path(data_output_dir, "nn_model_holdout_diagnostics.csv"),
+  row.names = FALSE
+)
+model_comparison_metrics <- bind_rows(
+  Training = opt_training_diagnostics$metrics,
+  Holdout = opt_holdout_diagnostics$metrics,
+  .id = "Dataset"
+)
+write.csv(
+  model_comparison_metrics,
+  file.path(data_output_dir, "nn_model_comparison_metrics.csv"),
+  row.names = FALSE
+)
+```
+
+#### Hidden neurons sensitivity analysis
+The vertical line and highlighted point mark the selected \(\lambda\).
+
+```{r}
+nn_metrics_plot <- plot_nn_metrics(
+  nn_results
+)
+
+# Save and display
+nn_metrics_path <- file.path(
+  figure_output_dir,
+  "nn_grid_metrics.png"
+)
+ggsave(
+  nn_metrics_path,
+  nn_metrics_plot,
+  width = 22.5,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(nn_metrics_path)
+```
+
+### Residual Diagnostics
+
+```{r}
+# Plot holdout actual vs fitted.
+holdout_actual_fitted_plot <- plot_actual_vs_fitted(
+  holdout_data,
+  holdout_predictions[, selected_index],
+  "Neural Network Model"
+)
+
+# Save and display
+holdout_actual_fitted_path <- file.path(
+  figure_output_dir,
+  "nn_model_holdout_actual_vs_fitted.png"
+)
+ggsave(
+  holdout_actual_fitted_path,
+  holdout_actual_fitted_plot,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(holdout_actual_fitted_path)
+```
+
+```{r}
+training_model_comparison_plot <- plot_model_comparison(
+  training_data,
+  training_predictions[, selected_index],
+  ols_training_predictions,
+  "Neural Network Model",
+  "OLS"
+)
+
+# Save and display
+training_comparison_path <- file.path(
+  figure_output_dir,
+  "nn_model_training_actual_vs_fitted_comparison.png"
+)
+ggsave(
+  training_comparison_path,
+  training_model_comparison_plot,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(training_comparison_path)
+```
+
+```{r}
+holdout_model_comparison_plot <- plot_model_comparison(
+  holdout_data,
+  holdout_predictions[, selected_index],
+  ols_holdout_predictions,
+  "Neural Network Model",
+  "OLS"
+)
+
+# Save and display
+holdout_comparison_path <- file.path(
+  figure_output_dir,
+  "nn_model_holdout_actual_vs_fitted_comparison.png"
+)
+ggsave(
+  holdout_comparison_path,
+  holdout_model_comparison_plot,
+  width = 11.25,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(holdout_comparison_path)
+```
+
+```{r}
+# Plot training diagnostic plots.
+training_plots <- plot_residual_diagnostics(
+  opt_training_diagnostics$diagnostics,
+  "Neural Network Model",
+  "OLS"
+)
+
+# Save and display
+training_diagnostics_path <- file.path(
+  figure_output_dir,
+  "nn_model_training_residual_diagnostics.png"
+)
+ggsave(
+  training_diagnostics_path,
+  training_plots$combined,
+  width = 15,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(training_diagnostics_path)
+```
+
+```{r}
+# Plot holdout diagnostic plots.
+holdout_plots <- plot_residual_diagnostics(
+  opt_holdout_diagnostics$diagnostics,
+  "Neural Network Model",
+  "OLS"
+)
+
+# Save and display
+holdout_diagnostics_path <- file.path(
+  figure_output_dir,
+  "nn_model_holdout_residual_diagnostics.png"
+)
+ggsave(
+  holdout_diagnostics_path,
+  holdout_plots$combined,
+  width = 15,
+  height = 6.875,
+  dpi = 160
+)
+
+knitr::include_graphics(holdout_diagnostics_path)
+```
+### Training using all data
+
+Prepare the complete dataset for the full optimization model. All observations are used to standardize the predictor variables and response variable.
+
+```{r}
+full_model_data <- prepare_full_model_setup(regression_data)
+X <- full_model_data$X
+y <- full_model_data$y
+years <- full_model_data$years
+
+regression_sf <- full_model_data$regression_sf
+feature_columns <- full_model_data$feature_columns
+feature_means <- full_model_data$feature_means
+feature_sds <- full_model_data$feature_sds
+response_mean <- full_model_data$response_mean
+response_sd <- full_model_data$response_sd
+```
+
+Fit the Neural Network model using all available years.
+
+```{r}
+fitted_model <- local({
+  variable_names <- colnames(X)
+  training_years <- years
+  training_data <- regression_sf
+
+  list(
+  model = fit_neural_network(
+    x = X,
+    y = y,
+    size = selected_size,
+    decay = selected_decay,
+    seed = 401
+  ),
+    variable_names = variable_names,
+    years = training_years,
+    feature_columns = feature_columns,
+    feature_means = feature_means,
+    feature_sds = feature_sds,
+    response_mean = response_mean,
+    response_sd = response_sd,
+  
+  make_prediction = function(newdata) {
+    # Calculate temporal extrapolation weights.
+      T <- length(training_years)
+      time_index <- seq_len(T)
+      time_mean <- mean(time_index)
+
+      target_index <- newdata$year - min(training_years) + 1
+
+      temporal_weights <- sapply(target_index, function(t_star) {
+        1 / T +
+          (t_star - time_mean) *
+          (time_index - time_mean) /
+          sum((time_index - time_mean)^2)
+      })
+
+      # Standardize prediction features.
+      scaled_features <- as.matrix(newdata[feature_columns])
+
+      scaled_features <- sweep(
+        scaled_features, 2,
+        feature_means[feature_columns], "-"
+      )
+
+      scaled_features <- sweep(
+        scaled_features, 2,
+        feature_sds[feature_columns], "/"
+      )
+
+      # Construct prediction matrix.
+      prediction_X <- cbind(
+        t(temporal_weights),
+        scaled_features
+      )
+
+      colnames(prediction_X) <- variable_names
+
+    prediction <- as.vector(predict(model, newdata = prediction_X)) * response_sd +
+    response_mean
+    
+    return (prediction)
+}
+)
+})
+
+model_path = file.path(model_output_dir, "nn_model.rds")
+saveRDS(fitted_model, model_path)
+```
+
+### 2025 Level-2 Predictions
+
+Using the trained model from the previous section, we first predicts GRDP per capita for each level-2 unit using the 2025 intercept and the same means and standard deviations used to standardize the training data.
+
+```{r}
+# Setting up prediction data
+level2_prediction_data <- prepare_prediction_data(
+  prediction_data = prediction_data,
+  provincial_grdp_data = provincial_grdp_data,
+  provincial_population_data = provincial_population_data,
+  feature_columns = feature_columns,
+  feature_means = feature_means,
+  feature_sds = feature_sds
+)
+```
+
+The raw prediction is
+\[
+\hat{y}_{i,2025}^{\text{NN}}
+=
+f_{\text{NN}}\left(\mathbf{X}_{i,2025}\right)
+\]
+```{r}
+# Make raw prediction
+raw_predictions <- fitted_model$make_prediction(level2_prediction_data)
+level2_prediction_data$raw_predictions <- raw_predictions
+```
+
+
+Next, we adjust these predictions so that their population weighted total matches the province's reported 2025 GRDP per capita multiplied by its total population.
+
+#### Adjustment Solution 1: Additive adjustment
+To do this, we add the same adjustment \(\delta_j\) to every level-2 prediction within province \(j\):
+
+\[ \tilde y_{ij} = \hat y_{ij} + \delta_j \]
+
+The adjustment is calculated as:
+
+\[ \delta_j = \frac{g_j\sum_{i\in j}P_{ij}-\sum_{i\in j}P_{ij}\hat y_{ij}} {\sum_{i\in j}P_{ij}} \]
+
+where \(g_j\) is the province's reported GRDP per capita and \(P_{ij}\) is the population of level-2 unit \(i\).
+
+```{r}
+# Adjustment Solution 1: Additive adjustment
+calculate_additive_adjustments <- function(level2_prediction_data) {
+
+  province_groups <- split(
+    seq_len(nrow(level2_prediction_data)),
+    level2_prediction_data$level_1
+  )
+
+  vapply(province_groups, function(idx) {
+
+    population <- level2_prediction_data$population[idx]
+
+    level2_prediction_data$grdp_pc_2025[idx[1]] -
+      weighted.mean(
+        level2_prediction_data$raw_predictions[idx],
+        population
+      )
+
+  }, numeric(1))
+}
+
+# Apply additive adjustment
+additive_adjustments <- calculate_additive_adjustments(
+  level2_prediction_data
+)
+
+level2_prediction_data$additive_adjustment <-
+  unname(additive_adjustments[level2_prediction_data$level_1])
+
+level2_prediction_data$additive_predictions <-
+  level2_prediction_data$raw_predictions +
+  level2_prediction_data$additive_adjustment
+
+```
+
+#### Adjustment Solution 2: Proportional scaling
+Another approach is to adjust the level-2 predictions by multiplying every prediction within province \(j\) by a common scaling factor:
+
+\[ s_j = \frac{g_j}{\bar{y}_j}, \]
+
+where
+
+\[ \bar{y}_j = \frac{\sum_{i=1}^{n_j} P_{ij}\hat{y}_{ij}} {\sum_{i=1}^{n_j} P_{ij}} \]
+
+is the population-weighted average of the raw level-2 predictions in province \(j\).
+The adjusted prediction for each level-2 unit is then:
+
+\[ \tilde {y}_{ij}=s_j\hat{y}_{ij}. \]
+
+```{r}
+# Adjustment Solution 2: Proportional scaling
+calculate_scaling_adjustments <- function(level2_prediction_data) {
+  province_groups <- split(
+    seq_len(nrow(level2_prediction_data)),
+    level2_prediction_data$level_1
+  )
+
+  vapply(province_groups, function(idx) {
+
+    population <- level2_prediction_data$population[idx]
+
+    predicted_mean <- weighted.mean(
+      level2_prediction_data$raw_predictions[idx],
+      population
+    )
+
+    level2_prediction_data$grdp_pc_2025[idx[1]] /
+      predicted_mean
+
+  }, numeric(1))
+}
+
+# Apply proportional scaling
+scaling_adjustments <- calculate_scaling_adjustments(level2_prediction_data)
+
+level2_prediction_data$scaling_adjustments <-   
+  unname(scaling_adjustments[level2_prediction_data$level_1])
+
+level2_prediction_data$scaled_predictions <-
+  level2_prediction_data$raw_predictions *
+  level2_prediction_data$scaling_adjustments
+```
+
+```{r}
+# Save prediction results
+prediction_output <- file.path(
+  data_output_dir,
+  "gw_model_level2_predictions.csv"
+)
+
+write.csv(
+  level2_prediction_data,
+  prediction_output,
+  row.names = FALSE
+)
+```

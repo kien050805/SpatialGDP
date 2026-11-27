@@ -1,5 +1,5 @@
-"split","model","R_squared","RMSE"
-"training","Neural network",0.899159267176966,11.8612866080372
-"training","Ordinary least squares reference",0.457940246644364,27.5002970551732
-"holdout","Neural network",0.832700905391056,18.5731896936637
-"holdout","Ordinary least squares reference",0.373151897003679,35.9518180357549
+"Dataset","R_squared","RMSE","Model"
+"Training",0.972939011900309,6.14448698462763,"Neural Network Model"
+"Training",0.457940246644364,27.5002970551732,"OLS"
+"Holdout",0.935361569519398,11.5447650864812,"Neural Network Model"
+"Holdout",0.373151897003679,35.9518180357549,"OLS"
